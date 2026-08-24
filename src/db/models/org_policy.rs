@@ -110,6 +110,11 @@ impl OrgPolicy {
 /// Database methods
 impl OrgPolicy {
     pub async fn save(&self, conn: &DbConn) -> EmptyResult {
+        let __log_start = std::time::Instant::now();
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): update query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(org_policies::table)
@@ -153,6 +158,9 @@ impl OrgPolicy {
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(org_policies::table.filter(org_policies::uuid.eq(self.uuid)))
                 .execute(conn)
                 .map_res("Error deleting org_policy")
@@ -203,6 +211,9 @@ impl OrgPolicy {
 
     pub async fn delete_all_by_organization(org_uuid: &OrganizationId, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete_all_by_organization(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete_all_by_organization(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(org_policies::table.filter(org_policies::org_uuid.eq(org_uuid)))
                 .execute(conn)
                 .map_res("Error deleting org_policy")

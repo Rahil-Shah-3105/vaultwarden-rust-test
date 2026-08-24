@@ -196,6 +196,7 @@ async fn create_organization(headers: Headers, data: Json<OrgData>, conn: DbConn
     if !CONFIG.is_org_creation_allowed(&headers.user.email) {
         err!("User not allowed to create organizations")
     }
+	let __log_start = std::time::Instant::now();
     if OrgPolicy::is_applicable_to_user(&headers.user.uuid, OrgPolicyType::SingleOrg, None, &conn).await {
         err!(
             "You may not create an organization. You belong to an organization which has a policy that prohibits you from being a member of any other organization."
@@ -203,6 +204,7 @@ async fn create_organization(headers: Headers, data: Json<OrgData>, conn: DbConn
     }
 
     let data: OrgData = data.into_inner();
+	log::info!("create_organization(): database query executed in {} ms", __log_start.elapsed().as_millis());
     let (private_key, public_key) = if let Some(keys) = data.keys {
         (Some(keys.encrypted_private_key), Some(keys.public_key))
     } else {
@@ -1222,6 +1224,7 @@ async fn bulk_reinvite_members(
         "data": bulk_response,
         "object": "list",
         "continuationToken": null
+	log::debug!("<<< Exiting bulk_reinvite_members(data={:?})", data);
     })))
 }
 
@@ -1683,6 +1686,7 @@ async fn bulk_delete_member(
         "data": bulk_response,
         "object": "list",
         "continuationToken": null
+	log::debug!("<<< Exiting bulk_delete_member(data={:?})", data);
     })))
 }
 
@@ -1787,6 +1791,7 @@ async fn bulk_public_keys(
         "data": bulk_response,
         "object": "list",
         "continuationToken": null
+	log::debug!("<<< Exiting bulk_public_keys(data={:?})", data);
     })))
 }
 

@@ -629,6 +629,7 @@ fn get_icon_type(bytes: &[u8]) -> Option<&'static str> {
 /// Minimize the amount of bytes to be parsed from a reqwest result.
 /// This prevents very long parsing and memory usage.
 async fn stream_to_bytes_limit(res: Response, max_size: usize) -> Result<Bytes, reqwest::Error> {
+	let __log_start = std::time::Instant::now();
     let mut stream = res.bytes_stream().take(max_size);
     let mut buf = BytesMut::new();
     let mut size = 0;
@@ -646,6 +647,7 @@ async fn stream_to_bytes_limit(res: Response, max_size: usize) -> Result<Bytes, 
             break;
         }
     }
+	log::info!("stream_to_bytes_limit(max_size)={}: external service call took {} ms", max_size, __log_start.elapsed().as_millis());
     Ok(buf.freeze())
 }
 

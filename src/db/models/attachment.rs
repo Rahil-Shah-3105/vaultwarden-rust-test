@@ -81,6 +81,10 @@ impl Attachment {
 /// Database methods
 impl Attachment {
     pub async fn save(&self, conn: &DbConn) -> EmptyResult {
+        let __log_start = std::time::Instant::now();
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): update query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(attachments::table)
@@ -121,6 +125,7 @@ impl Attachment {
             .map_res("Error deleting attachment")
         })
         .await?;
+		log::info!("delete(): delete query executed in {} ms", __log_start.elapsed().as_millis());
 
         let operator = CONFIG.opendal_operator_for_path_type(&PathType::Attachments)?;
         let file_path = self.get_file_path();

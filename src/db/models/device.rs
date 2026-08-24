@@ -70,6 +70,8 @@ impl Device {
             "creationDate": format_date(&self.created_at),
             "isTrusted": false,
             "object":"device"
+		log::debug!(">>> Entering to_json()");
+		log::debug!("<<< Exiting to_json()");
         })
     }
 
@@ -145,6 +147,9 @@ impl Device {
             self.updated_at = Utc::now().naive_utc();
         }
 
+		let __log_start = std::time::Instant::now();
+        log::info!("save(update_time)={}: database query executed in {} ms", update_time, __log_start.elapsed().as_millis());
+        log::info!("save(update_time)={}: database query executed in {} ms", update_time, __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 crate::util::retry(||
@@ -170,6 +175,9 @@ impl Device {
 
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete_all_by_user(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete_all_by_user(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(devices::table.filter(devices::user_uuid.eq(user_uuid)))
                 .execute(conn)
                 .map_res("Error removing devices for user")
@@ -211,6 +219,9 @@ impl Device {
 
     pub async fn clear_push_token_by_uuid(uuid: &DeviceId, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("clear_push_token_by_uuid(uuid)={:?}: update query executed in {} ms", uuid, __log_start.elapsed().as_millis());
+            log::info!("clear_push_token_by_uuid(uuid)={:?}: database query executed in {} ms", uuid, __log_start.elapsed().as_millis());
             diesel::update(devices::table)
                 .filter(devices::uuid.eq(uuid))
                 .set(devices::push_token.eq::<Option<String>>(None))
