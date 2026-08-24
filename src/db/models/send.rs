@@ -201,6 +201,10 @@ impl Send {
         self.update_users_revision(conn).await;
         self.revision_date = Utc::now().naive_utc();
 
+		let __log_start = std::time::Instant::now();
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): update query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(sends::table)
@@ -252,6 +256,7 @@ impl Send {
                     .execute(conn)
             })
             .await?;
+			log::info!("register_access(): update query executed in {} ms", __log_start.elapsed().as_millis());
 
         if updated == 0 {
             return Ok(false);
@@ -259,6 +264,7 @@ impl Send {
 
         self.access_count += 1;
         self.revision_date = revision_date;
+		log::info!("register_access(): database query executed in {} ms", __log_start.elapsed().as_millis());
         Ok(true)
     }
 
@@ -287,6 +293,8 @@ impl Send {
         }
 
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete(): delete query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(sends::table.filter(sends::uuid.eq(&self.uuid))).execute(conn).map_res("Error deleting send")
         })
         .await

@@ -393,21 +393,29 @@ mod tests {
 
     #[test]
     fn test_obscure_email_long() {
+		log::debug!(">>> Entering test_obscure_email_long()");
         let email = "bytes@example.ext";
 
+		log::debug!("test_obscure_email_long(): email → {}", email);
         let result = obscure_email(email);
+		log::debug!("test_obscure_email_long(): result → {}", result);
 
         // Only first two characters should be visible.
+		log::debug!("<<< Exiting test_obscure_email_long()");
         assert_eq!(result, "by***@example.ext");
     }
 
     #[test]
     fn test_obscure_email_short() {
+		log::debug!(">>> Entering test_obscure_email_short()");
         let email = "byt@example.ext";
 
+		log::debug!("test_obscure_email_short(): email → {}", email);
         let result = obscure_email(email);
+		log::debug!("test_obscure_email_short(): result → {}", result);
 
         // If it's smaller than 3 characters it should only show asterisks.
+		log::debug!("<<< Exiting test_obscure_email_short()");
         assert_eq!(result, "***@example.ext");
     }
 }

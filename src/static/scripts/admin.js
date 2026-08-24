@@ -1,7 +1,9 @@
+const logger = console;
 "use strict";
 /* exported BASE_URL, _post, _delete */
 
 function getBaseUrl() {
+	logger.debug('>>> Entering getBaseUrl()');
     // If the base URL is `https://vaultwarden.example.com/base/path/admin/`,
     // `window.location.href` should have one of the following forms:
     //
@@ -11,23 +13,30 @@ function getBaseUrl() {
     // We want to get to just `https://vaultwarden.example.com/base/path`.
     const pathname = window.location.pathname;
     const adminPos = pathname.indexOf("/admin");
+	logger.debug(`getBaseUrl(): adminPos → ${adminPos}`);
     const newPathname = pathname.substring(0, adminPos != -1 ? adminPos : pathname.length);
+	logger.debug(`getBaseUrl(): newPathname → ${newPathname}`);
     return `${window.location.origin}${newPathname}`;
 }
 const BASE_URL = getBaseUrl();
 
 function reload() {
+	logger.debug('>>> Entering reload()');
     // Reload the page by setting the exact same href
     // Using window.location.reload() could cause a repost.
     window.location = window.location.href;
+	logger.debug(`reload(): window.location → ${window.location}`);
 }
 
 function msg(text, reload_page = true) {
+	logger.debug(`>>> Entering msg(text=${text},reload_page=${reload_page})`);
     text && alert(text);
     reload_page && reload();
+	logger.debug(`<<< Exiting msg(text=${text},reload_page=${reload_page})`);
 }
 
 function _fetch(method, url, successMsg, errMsg, body, reload_page = true) {
+	logger.debug(`>>> Entering _fetch(method=${method},url=${url},successMsg=${successMsg},errMsg=${errMsg},body=${body},reload_page=${reload_page})`);
     let respStatus;
     let respStatusText;
     fetch(url, {
@@ -38,12 +47,15 @@ function _fetch(method, url, successMsg, errMsg, body, reload_page = true) {
         headers: { "Content-Type": "application/json" }
     }).then(resp => {
         if (resp.ok) {
+			const _start__fetch = Date.now();
             msg(successMsg, reload_page);
             // Abuse the catch handler by setting error to false and continue
             return Promise.reject({ error: false });
         }
         respStatus = resp.status;
         respStatusText = resp.statusText;
+		logger.debug(`_fetch(method=${method},url=${url},successMsg=${successMsg},errMsg=${errMsg},body=${body},reload_page=${reload_page}): respStatus → ${respStatus}`);
+		logger.debug(`_fetch(method=${method},url=${url},successMsg=${successMsg},errMsg=${errMsg},body=${body},reload_page=${reload_page}): respStatusText → ${respStatusText}`);
         return resp.text();
     }).then(respText => {
         try {
@@ -54,6 +66,8 @@ function _fetch(method, url, successMsg, errMsg, body, reload_page = true) {
                 return Promise.reject({ body: `${respStatus} - ${respStatusText}\n\nUnknown error`, error: true });
             }
         } catch (e) {
+			logger.info(`_fetch(method=${method}, url=${url}, successMsg=${successMsg}, errMsg=${errMsg}, body=${body}, reload_page=${reload_page}): API call took ${Date.now() - _start__fetch} ms`);
+			logger.error(`Exception in _fetch(method=${method},url=${url},successMsg=${successMsg},errMsg=${errMsg},body=${body},reload_page=${reload_page}): ${e.message}`, e);
             return Promise.reject({ body: `${respStatus} - ${respStatusText}\n\n[Catch] ${e}`, error: true });
         }
     }).then(apiMsg => {
@@ -62,13 +76,18 @@ function _fetch(method, url, successMsg, errMsg, body, reload_page = true) {
         if (e.error === false) { return true; }
         else { msg(`${errMsg}\n${e.body}`, reload_page); }
     });
+	logger.debug(`<<< Exiting _fetch(method=${method},url=${url},successMsg=${successMsg},errMsg=${errMsg},body=${body},reload_page=${reload_page})`);
 }
 
 function _post(url, successMsg, errMsg, body, reload_page = true) {
+	logger.debug(`>>> Entering _post(url=${url},successMsg=${successMsg},errMsg=${errMsg},body=${body},reload_page=${reload_page})`);
+	logger.debug(`<<< Exiting _post(url=${url},successMsg=${successMsg},errMsg=${errMsg},body=${body},reload_page=${reload_page})`);
     return _fetch("POST", url, successMsg, errMsg, body, reload_page);
 }
 
 function _delete(url, successMsg, errMsg, body, reload_page = true) {
+	logger.debug(`>>> Entering _delete(url=${url},successMsg=${successMsg},errMsg=${errMsg},body=${body},reload_page=${reload_page})`);
+	logger.debug(`<<< Exiting _delete(url=${url},successMsg=${successMsg},errMsg=${errMsg},body=${body},reload_page=${reload_page})`);
     return _fetch("DELETE", url, successMsg, errMsg, body, reload_page);
 }
 
@@ -77,8 +96,11 @@ const getStoredTheme = () => localStorage.getItem("theme");
 const setStoredTheme = theme => localStorage.setItem("theme", theme);
 
 const getPreferredTheme = () => {
+	logger.debug('>>> Entering getPreferredTheme()');
     const storedTheme = getStoredTheme();
     if (storedTheme) {
+		logger.debug(`getPreferredTheme(): storedTheme → ${storedTheme}`);
+	logger.debug('<<< Exiting getPreferredTheme()');
         return storedTheme;
     }
 
@@ -96,20 +118,27 @@ const setTheme = theme => {
 setTheme(getPreferredTheme());
 
 const showActiveTheme = (theme, focus = false) => {
+	logger.debug(`>>> Entering showActiveTheme(theme=${theme},focus=${focus})`);
     const themeSwitcher = document.querySelector("#bd-theme");
 
+	logger.debug(`showActiveTheme(theme=${theme},focus=${focus}): themeSwitcher → ${themeSwitcher}`);
     if (!themeSwitcher) {
         return;
     }
 
     const themeSwitcherText = document.querySelector("#bd-theme-text");
+	logger.debug(`showActiveTheme(theme=${theme},focus=${focus}): themeSwitcherText → ${themeSwitcherText}`);
     const activeThemeIcon = document.querySelector(".theme-icon-active use");
+	logger.debug(`showActiveTheme(theme=${theme},focus=${focus}): activeThemeIcon → ${activeThemeIcon}`);
     const btnToActive = document.querySelector(`[data-bs-theme-value="${theme}"]`);
+	logger.debug(`showActiveTheme(theme=${theme},focus=${focus}): btnToActive → ${btnToActive}`);
     if (!btnToActive) {
         return;
     }
     const btnIconUse = btnToActive ? btnToActive.querySelector("[data-theme-icon-use]") : null;
+	logger.debug(`showActiveTheme(theme=${theme},focus=${focus}): btnIconUse → ${btnIconUse}`);
     const iconHref = btnIconUse ? btnIconUse.getAttribute("href") || btnIconUse.getAttribute("xlink:href") : null;
+	logger.debug(`showActiveTheme(theme=${theme},focus=${focus}): iconHref → ${iconHref}`);
 
     document.querySelectorAll("[data-bs-theme-value]").forEach(element => {
         element.classList.remove("active");
@@ -125,11 +154,13 @@ const showActiveTheme = (theme, focus = false) => {
     }
 
     const themeSwitcherLabel = `${themeSwitcherText.textContent} (${btnToActive.dataset.bsThemeValue})`;
+	logger.debug(`showActiveTheme(theme=${theme},focus=${focus}): themeSwitcherLabel → ${themeSwitcherLabel}`);
     themeSwitcher.setAttribute("aria-label", themeSwitcherLabel);
 
     if (focus) {
         themeSwitcher.focus();
     }
+	logger.debug(`<<< Exiting showActiveTheme(theme=${theme},focus=${focus})`);
 };
 
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {

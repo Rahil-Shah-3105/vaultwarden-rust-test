@@ -167,6 +167,9 @@ impl AuthRequest {
 
     pub async fn delete(&self, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(auth_requests::table.filter(auth_requests::uuid.eq(&self.uuid)))
                 .execute(conn)
                 .map_res("Error deleting auth request")

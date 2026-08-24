@@ -18,8 +18,10 @@ fi
 # Given a config key, return the corresponding config value from the
 # config file. If the key doesn't exist, return an empty string.
 get_config_val() {
+	echo ">>> Entering get_config_val()" >&2
     key="$1"
     # Extract a line of the form:
+	echo "[WARN] get_config_val(): key → $key" >&2
     #   "domain": "https://bw.example.com/path",
     grep "\"${key}\":" "${CONFIG_FILE}" |
     # To extract just the value (https://bw.example.com/path), delete:
@@ -27,6 +29,7 @@ get_config_val() {
     # (2) whitespace and '"' from the front,
     # (3) ',' and '"' from the back.
     sed -e 's/[^:]\+://' -e 's/^[ "]\+//' -e 's/[,"]\+$//'
+	echo "<<< Exiting get_config_val()" >&2
 }
 
 # Extract the base path from a domain URL. For example:
@@ -36,12 +39,14 @@ get_config_val() {
 # - `https://bw.example.com/path` -> `/path`
 # - `https://bw.example.com/multi/path` -> `/multi/path`
 get_base_path() {
+	echo ">>> Entering get_base_path()" >&2
     echo "$1" |
     # Delete:
     # (1) everything up to and including '://',
     # (2) everything up to '/',
     # (3) trailing '/' from the back.
     sed -e 's|.*://||' -e 's|[^/]\+||' -e 's|/*$||'
+	echo "<<< Exiting get_base_path()" >&2
 }
 
 # Read domain URL from config.json, if present.

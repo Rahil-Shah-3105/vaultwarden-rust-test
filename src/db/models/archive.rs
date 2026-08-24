@@ -40,6 +40,9 @@ impl Archive {
         conn: &DbConn,
     ) -> EmptyResult {
         User::update_uuid_revision(user_uuid, conn).await;
+		let __log_start = std::time::Instant::now();
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 diesel::replace_into(archives::table)
@@ -71,6 +74,9 @@ impl Archive {
     pub async fn delete_by_cipher(user_uuid: &UserId, cipher_uuid: &CipherId, conn: &DbConn) -> EmptyResult {
         User::update_uuid_revision(user_uuid, conn).await;
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete_by_cipher(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete_by_cipher(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(
                 archives::table.filter(archives::user_uuid.eq(user_uuid)).filter(archives::cipher_uuid.eq(cipher_uuid)),
             )
