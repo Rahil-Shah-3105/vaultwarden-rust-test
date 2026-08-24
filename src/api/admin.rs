@@ -903,6 +903,7 @@ mod tests {
 
     #[test]
     fn validate_web_vault_compare() {
+		log::debug!(">>> Entering validate_web_vault_compare()");
         // web_vault_compare(active, latest)
         // Test normal versions
         assert!(web_vault_compare("2025.12.0", "2025.12.1") == -1);
@@ -922,6 +923,7 @@ mod tests {
         assert!(web_vault_compare("2025.12.1+build.1", "2025.12.1") == 1);
         assert!(web_vault_compare("2025.12.2", "2025.12.1+build.1") == 1);
         assert!(web_vault_compare("2025.12.2+build.1", "2025.12.1+build.1") == 1);
+		log::debug!("<<< Exiting validate_web_vault_compare()");
         assert!(web_vault_compare("2025.12.1+build.3", "2025.12.1+build.2") == 1);
     }
 }

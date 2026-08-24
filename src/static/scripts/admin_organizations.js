@@ -1,7 +1,9 @@
+const logger = console;
 "use strict";
 /* global jQuery, _post:readable, BASE_URL:readable, reload:readable, jdenticon:readable */
 
 function deleteOrganization(event) {
+	logger.debug(`>>> Entering deleteOrganization(event=${event})`);
     event.preventDefault();
     event.stopPropagation();
     const org_uuid = event.target.dataset.vwOrgUuid;
@@ -9,13 +11,16 @@ function deleteOrganization(event) {
     const billing_email = event.target.dataset.vwBillingEmail;
     if (!org_uuid) {
         alert("Required parameters not found!");
+		logger.debug(`<<< Exiting deleteOrganization(event=${event})`);
         return false;
     }
 
     // First make sure the user wants to delete this organization
     const continueDelete = confirm(`WARNING: All data of this organization (${org_name}) will be lost!\nMake sure you have a backup, this cannot be undone!`);
+	logger.debug(`deleteOrganization(event=${event}): continueDelete → ${continueDelete}`);
     if (continueDelete == true) {
         const input_org_uuid = prompt(`To delete the organization "${org_name} (${billing_email})", please type the organization uuid below.`);
+		logger.debug(`deleteOrganization(event=${event}): input_org_uuid → ${input_org_uuid}`);
         if (input_org_uuid != null) {
             if (input_org_uuid == org_uuid) {
                 _post(`${BASE_URL}/admin/organizations/${org_uuid}/delete`,
@@ -30,12 +35,14 @@ function deleteOrganization(event) {
 }
 
 function initActions() {
+	logger.debug('>>> Entering initActions()');
     document.querySelectorAll("button[vw-delete-organization]").forEach(btn => {
         btn.addEventListener("click", deleteOrganization);
     });
 
     if (jdenticon) {
         jdenticon();
+		logger.debug('<<< Exiting initActions()');
     }
 }
 
@@ -43,7 +50,9 @@ function initActions() {
 document.addEventListener("DOMContentLoaded", (/*event*/) => {
     jQuery("#orgs-table").DataTable({
         "drawCallback": function() {
+			logger.debug('>>> Entering function()');
             initActions();
+			logger.debug('<<< Exiting function()');
         },
         "stateSave": true,
         "responsive": true,

@@ -249,6 +249,7 @@ impl Organization {
             "planType": 6, // Custom plan
             "usersGetPremium": true,
             "object": "organization",
+		log::debug!("<<< Exiting to_json()");
         })
     }
 }
@@ -352,6 +353,10 @@ impl Organization {
             User::update_uuid_revision(&member.user_uuid, conn).await;
         }
 
+		let __log_start = std::time::Instant::now();
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): update query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(organizations::table)
@@ -392,6 +397,9 @@ impl Organization {
         OrganizationApiKey::delete_all_by_organization(&self.uuid, conn).await?;
 
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(organizations::table.filter(organizations::uuid.eq(self.uuid)))
                 .execute(conn)
                 .map_res("Error saving organization")
@@ -800,6 +808,9 @@ impl Membership {
         for member in Self::find_by_org(org_uuid, conn).await {
             member.delete(conn).await?;
         }
+		let __log_start = std::time::Instant::now();
+            log::info!("delete_all_by_organization(org_uuid)={:?}: delete query executed in {} ms", org_uuid, __log_start.elapsed().as_millis());
+            log::info!("delete_all_by_organization(org_uuid)={:?}: database query executed in {} ms", org_uuid, __log_start.elapsed().as_millis());
         Ok(())
     }
 
@@ -876,6 +887,9 @@ impl Membership {
     // In Organizations::send_invite status is set to Accepted only if the user has a password.
     pub async fn accept_user_invitations(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("accept_user_invitations(): update query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("accept_user_invitations(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::update(users_organizations::table)
                 .filter(users_organizations::user_uuid.eq(user_uuid))
                 .filter(users_organizations::status.eq(MembershipStatus::Invited as i32))
@@ -1065,6 +1079,8 @@ impl Membership {
 
     pub async fn find_by_cipher_and_org(cipher_uuid: &CipherId, org_uuid: &OrganizationId, conn: &DbConn) -> Vec<Self> {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("find_by_cipher_and_org(org_uuid)={:?}: database query executed in {} ms", org_uuid, __log_start.elapsed().as_millis());
             users_organizations::table
                 .filter(users_organizations::org_uuid.eq(org_uuid))
                 .left_join(users_collections::table.on(users_collections::user_uuid.eq(users_organizations::user_uuid)))
@@ -1091,6 +1107,8 @@ impl Membership {
         conn: &DbConn,
     ) -> Vec<Self> {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("find_by_cipher_and_org_with_group(org_uuid)={:?}: database query executed in {} ms", org_uuid, __log_start.elapsed().as_millis());
             users_organizations::table
                 .filter(users_organizations::org_uuid.eq(org_uuid))
                 .inner_join(
@@ -1280,9 +1298,11 @@ mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn partial_cmp_MembershipType() {
+		log::debug!(">>> Entering partial_cmp_MembershipType()");
         assert!(MembershipType::Owner > MembershipType::Admin);
         assert!(MembershipType::Admin > MembershipType::Manager);
         assert!(MembershipType::Manager > MembershipType::User);
+		log::debug!("<<< Exiting partial_cmp_MembershipType()");
         assert!(MembershipType::Manager == MembershipType::from_str("4").unwrap());
     }
 }

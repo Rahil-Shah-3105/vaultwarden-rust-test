@@ -82,6 +82,7 @@ mod s3 {
     use crate::error::Error;
 
     pub(super) fn is_uri(path: &str) -> bool {
+		log::debug!(">>> Entering is_uri()");
         path.starts_with("s3://")
     }
 
@@ -138,16 +139,19 @@ mod s3 {
     }
 
     fn path_segments(url: &Url) -> Vec<String> {
+		log::debug!(">>> Entering path_segments()");
         url.path_segments()
             .map(|segments| segments.filter(|segment| !segment.is_empty()).map(str::to_owned).collect())
             .unwrap_or_default()
     }
 
     fn set_path_segments(url: &mut Url, segments: &[String]) {
+		log::debug!(">>> Entering set_path_segments(segments={:?})", segments);
         if segments.is_empty() {
             url.set_path("");
         } else {
             url.set_path(&format!("/{}", segments.join("/")));
+		log::debug!("<<< Exiting set_path_segments(segments={:?})", segments);
         }
     }
 
@@ -169,6 +173,8 @@ mod s3 {
             type Credential = Credential;
 
             async fn provide_credential(&self, _ctx: &Context) -> reqsign_core::Result<Option<Self::Credential>> {
+				log::debug!(">>> Entering provide_credential()");
+				let __log_start = std::time::Instant::now();
                 use aws_credential_types::provider::ProvideCredentials as _;
                 use reqsign_core::time::Timestamp;
                 use tokio::sync::OnceCell;
@@ -205,6 +211,8 @@ mod s3 {
                     None
                 };
 
+				log::info!("provide_credential(): external service call took {} ms", __log_start.elapsed().as_millis());
+                log::debug!("<<< Exiting provide_credential()");
                 Ok(Some(Credential {
                     access_key_id: creds.access_key_id().to_owned(),
                     secret_access_key: creds.secret_access_key().to_owned(),
@@ -240,10 +248,12 @@ mod s3 {
     }
 
     fn uri_has_option(uri: &opendal::OperatorUri, names: &[&str]) -> bool {
+		log::debug!(">>> Entering uri_has_option(names={:?})", names);
         names.iter().any(|name| uri.options().contains_key(*name))
     }
 
     fn uri_has_credential_options(uri: &opendal::OperatorUri, config: &opendal::services::S3Config) -> bool {
+		log::debug!(">>> Entering uri_has_credential_options()");
         config.access_key_id.is_some()
             || config.secret_access_key.is_some()
             || config.session_token.is_some()
@@ -260,9 +270,11 @@ mod tests {
 
     #[test]
     fn handles_local_paths() {
+		log::debug!(">>> Entering handles_local_paths()");
         assert_eq!(join_path("data", "attachments"), "data/attachments");
         assert_eq!(with_extension("data/rsa_key", "pem"), "data/rsa_key.pem");
         assert_eq!(parent("data/rsa_key.pem").as_deref(), Some("data"));
+		log::debug!("<<< Exiting handles_local_paths()");
         assert_eq!(file_name("data/rsa_key.pem").as_deref(), Some("rsa_key.pem"));
     }
 }
@@ -273,25 +285,32 @@ mod s3_tests {
 
     #[test]
     fn joins_s3_path_before_query_string() {
+		log::debug!(">>> Entering joins_s3_path_before_query_string()");
         assert_eq!(
             join_path("s3://bucket/base?region=us-west-2", "attachments"),
             "s3://bucket/base/attachments?region=us-west-2"
+		log::debug!("<<< Exiting joins_s3_path_before_query_string()");
         );
     }
 
     #[test]
     fn appends_extension_before_s3_query_string() {
+		log::debug!(">>> Entering appends_extension_before_s3_query_string()");
         assert_eq!(
             with_extension("s3://bucket/base/rsa_key?region=us-west-2", "pem"),
             "s3://bucket/base/rsa_key.pem?region=us-west-2"
+		log::debug!("<<< Exiting appends_extension_before_s3_query_string()");
         );
     }
 
     #[test]
     fn splits_s3_parent_and_file_name_without_query_string() {
+		log::debug!(">>> Entering splits_s3_parent_and_file_name_without_query_string()");
         let path = "s3://bucket/base/config.json?region=us-west-2";
 
+		log::debug!("splits_s3_parent_and_file_name_without_query_string(): path → {}", path);
         assert_eq!(parent(path).as_deref(), Some("s3://bucket/base?region=us-west-2"));
+		log::debug!("<<< Exiting splits_s3_parent_and_file_name_without_query_string()");
         assert_eq!(file_name(path).as_deref(), Some("config.json"));
     }
 }
