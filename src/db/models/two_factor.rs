@@ -80,6 +80,11 @@ impl TwoFactor {
 /// Database methods
 impl TwoFactor {
     pub async fn save(&self, conn: &DbConn) -> EmptyResult {
+        let __log_start = std::time::Instant::now();
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): update query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(twofactor::table)
@@ -119,6 +124,9 @@ impl TwoFactor {
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(twofactor::table.filter(twofactor::uuid.eq(self.uuid)))
                 .execute(conn)
                 .map_res("Error deleting twofactor")
@@ -150,6 +158,9 @@ impl TwoFactor {
 
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete_all_by_user(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete_all_by_user(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(twofactor::table.filter(twofactor::user_uuid.eq(user_uuid)))
                 .execute(conn)
                 .map_res("Error deleting twofactors")

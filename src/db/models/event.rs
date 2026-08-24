@@ -201,6 +201,9 @@ impl Event {
     /// #############
     /// Basic Queries
     pub async fn save(&self, conn: &DbConn) -> EmptyResult {
+        let __log_start = std::time::Instant::now();
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 diesel::replace_into(event::table)
@@ -225,6 +228,9 @@ impl Event {
         // SQLite doesn't support the DEFAULT argument, and does not support inserting multiple values at the same time.
         // MySQL and PostgreSQL do.
         // We also ignore duplicate if they ever will exists, else it could break the whole flow.
+		let __log_start = std::time::Instant::now();
+        log::info!("save_user_event(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save_user_event(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             // Unfortunately SQLite does not support inserting multiple records at the same time
             // We loop through the events here and insert them one at a time.
@@ -257,6 +263,8 @@ impl Event {
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete(): delete query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(event::table.filter(event::uuid.eq(self.uuid))).execute(conn).map_res("Error deleting event")
         })
         .await

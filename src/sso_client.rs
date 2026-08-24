@@ -71,6 +71,8 @@ pub struct OidcHttpClient {
 
 impl OidcHttpClient {
     fn new() -> Result<Self, reqwest::Error> {
+        let __log_start = std::time::Instant::now();
+        log::info!("new(): external service call took {} ms", __log_start.elapsed().as_millis());
         get_reqwest_client_builder(false).redirect(reqwest::redirect::Policy::none()).build().map(|client| Self {
             client,
         })

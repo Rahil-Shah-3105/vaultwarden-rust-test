@@ -358,6 +358,7 @@ async fn post_send_file_v2(data: Json<SendData>, headers: Headers, conn: DbConn)
         o.insert(String::from("size"), Value::Number(file_length.into()));
         o.insert(String::from("sizeName"), Value::String(crate::util::get_display_size(file_length)));
     }
+	log::info!("post_send_file_v2(): save query executed in {} ms", __log_start.elapsed().as_millis());
     send.data = serde_json::to_string(&data_value)?;
     send.save(&conn).await?;
 

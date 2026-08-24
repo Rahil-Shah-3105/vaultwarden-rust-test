@@ -1,3 +1,4 @@
+const logger = console;
 /**
  * Jdenticon 3.3.0
  * http://jdenticon.com
@@ -55,7 +56,9 @@ function parseHex(hash, startPosition, octets) {
 }
 
 function decToHex(v) {
+	logger.debug(`>>> Entering decToHex(v=${v})`);
     v |= 0; // Ensure integer value
+	logger.debug(`<<< Exiting decToHex(v=${v})`);
     return v < 0 ? "00" :
         v < 16 ? "0" + v.toString(16) :
         v < 256 ? v.toString(16) :
@@ -63,7 +66,9 @@ function decToHex(v) {
 }
 
 function hueToRgb(m1, m2, h) {
+	logger.debug(`>>> Entering hueToRgb(m1=${m1},m2=${m2},h=${h})`);
     h = h < 0 ? h + 6 : h > 6 ? h - 6 : h;
+	logger.debug(`<<< Exiting hueToRgb(m1=${m1},m2=${m2},h=${h})`);
     return decToHex(255 * (
         h < 1 ? m1 + (m2 - m1) * h :
         h < 3 ? m2 :
@@ -76,6 +81,7 @@ function hueToRgb(m1, m2, h) {
  * @returns {string}
  */
 function parseColor(color) {
+	logger.debug(`>>> Entering parseColor(color=${color})`);
     if (/^#[0-9a-f]{3,8}$/i.test(color)) {
         var result;
         var colorLength = color.length;
@@ -91,6 +97,8 @@ function parseColor(color) {
             result = color;
         }
 
+		logger.debug(`parseColor(color=${color}): result → ${result}`);
+		logger.debug(`<<< Exiting parseColor(color=${color})`);
         return result;
     }
 }
@@ -101,8 +109,10 @@ function parseColor(color) {
  * @returns {string}
  */
 function toCss3Color(hexColor) {
+	logger.debug(`>>> Entering toCss3Color(hexColor=${hexColor})`);
     var a = parseHex(hexColor, 7, 2);
     var result;
+	logger.debug(`toCss3Color(hexColor=${hexColor}): a → ${a}`);
 
     if (isNaN(a)) {
         result = hexColor;
@@ -110,9 +120,12 @@ function toCss3Color(hexColor) {
         var r = parseHex(hexColor, 1, 2),
             g = parseHex(hexColor, 3, 2),
             b = parseHex(hexColor, 5, 2);
+			logger.debug(`toCss3Color(hexColor=${hexColor}): r → ${r}`);
         result = "rgba(" + r + "," + g + "," + b + "," + (a / 255).toFixed(2) + ")";
     }
 
+	logger.debug(`toCss3Color(hexColor=${hexColor}): result → ${result}`);
+	logger.debug(`<<< Exiting toCss3Color(hexColor=${hexColor})`);
     return result;
 }
 
@@ -124,22 +137,27 @@ function toCss3Color(hexColor) {
  * @returns {string}
  */
 function hsl(hue, saturation, lightness) {
+	logger.debug(`>>> Entering hsl(hue=${hue},saturation=${saturation},lightness=${lightness})`);
     // Based on http://www.w3.org/TR/2011/REC-css3-color-20110607/#hsl-color
     var result;
 
     if (saturation == 0) {
         var partialHex = decToHex(lightness * 255);
+		logger.debug(`hsl(hue=${hue},saturation=${saturation},lightness=${lightness}): partialHex → ${partialHex}`);
         result = partialHex + partialHex + partialHex;
     }
     else {
         var m2 = lightness <= 0.5 ? lightness * (saturation + 1) : lightness + saturation - lightness * saturation,
               m1 = lightness * 2 - m2;
+			logger.debug(`hsl(hue=${hue},saturation=${saturation},lightness=${lightness}): m2 → ${m2}`);
         result =
             hueToRgb(m1, m2, hue * 6 + 2) +
             hueToRgb(m1, m2, hue * 6) +
             hueToRgb(m1, m2, hue * 6 - 2);
+			logger.debug(`hsl(hue=${hue},saturation=${saturation},lightness=${lightness}): result → ${result}`);
     }
 
+	logger.debug(`<<< Exiting hsl(hue=${hue},saturation=${saturation},lightness=${lightness})`);
     return "#" + result;
 }
 
@@ -151,6 +169,7 @@ function hsl(hue, saturation, lightness) {
  * @returns {string}
  */
 function correctedHsl(hue, saturation, lightness) {
+	logger.debug(`>>> Entering correctedHsl(hue=${hue},saturation=${saturation},lightness=${lightness})`);
     // The corrector specifies the perceived middle lightness for each hue
     var correctors = [ 0.55, 0.5, 0.5, 0.46, 0.6, 0.55, 0.55 ],
           corrector = correctors[(hue * 6 + 0.5) | 0];
@@ -158,6 +177,7 @@ function correctedHsl(hue, saturation, lightness) {
     // Adjust the input lightness relative to the corrector
     lightness = lightness < 0.5 ? lightness * corrector * 2 : corrector + (lightness - 0.5) * (1 - corrector) * 2;
 
+	logger.debug(`<<< Exiting correctedHsl(hue=${hue},saturation=${saturation},lightness=${lightness})`);
     return hsl(hue, saturation, lightness);
 }
 
@@ -191,7 +211,9 @@ var rootConfigurationHolder = {};
  * @param {!Object} rootObject
  */
 function defineConfigProperty(rootObject) {
+	logger.debug(`>>> Entering defineConfigProperty(rootObject=${rootObject})`);
     rootConfigurationHolder = rootObject;
+	logger.debug(`<<< Exiting defineConfigProperty(rootObject=${rootObject})`);
 }
 
 /**
@@ -199,9 +221,11 @@ function defineConfigProperty(rootObject) {
  * @param {Object} newConfiguration - New configuration object.
  */
 function configure(newConfiguration) {
+	logger.debug(`>>> Entering configure(newConfiguration=${newConfiguration})`);
     if (arguments.length) {
         rootConfigurationHolder[CONFIG_PROPERTIES.n/*MODULE*/] = newConfiguration;
     }
+	logger.debug(`<<< Exiting configure(newConfiguration=${newConfiguration})`);
     return rootConfigurationHolder[CONFIG_PROPERTIES.n/*MODULE*/];
 }
 
@@ -216,6 +240,7 @@ function configure(newConfiguration) {
  * @returns {ParsedConfiguration}
  */
 function getConfiguration(paddingOrLocalConfig, defaultPadding) {
+	logger.debug(`>>> Entering getConfiguration(paddingOrLocalConfig=${paddingOrLocalConfig},defaultPadding=${defaultPadding})`);
     var configObject =
             typeof paddingOrLocalConfig == "object" && paddingOrLocalConfig ||
             rootConfigurationHolder[CONFIG_PROPERTIES.n/*MODULE*/] ||
@@ -233,10 +258,12 @@ function getConfiguration(paddingOrLocalConfig, defaultPadding) {
         backColor = configObject["backColor"],
         padding = configObject["padding"];
 
+	logger.debug(`getConfiguration(paddingOrLocalConfig=${paddingOrLocalConfig},defaultPadding=${defaultPadding}): padding → ${padding}`);
     /**
      * Creates a lightness range.
      */
     function lightness(configName, defaultRange) {
+		logger.debug(`>>> Entering lightness(configName=${configName},defaultRange=${defaultRange})`);
         var range = lightnessConfig[configName];
 
         // Check if the lightness range is an array-like object. This way we ensure the
@@ -249,7 +276,9 @@ function getConfiguration(paddingOrLocalConfig, defaultPadding) {
          * Gets a lightness relative the specified value in the specified lightness range.
          */
         return function (value) {
+		logger.debug(`>>> Entering function(value=${value})`);
             value = range[0] + value * (range[1] - range[0]);
+			logger.debug(`<<< Exiting lightness(configName=${configName},defaultRange=${defaultRange})`);
             return value < 0 ? 0 : value > 1 ? 1 : value;
         };
     }
@@ -259,8 +288,10 @@ function getConfiguration(paddingOrLocalConfig, defaultPadding) {
      * provided the originally computed hue.
      */
     function hueFunction(originalHue) {
+		logger.debug(`>>> Entering hueFunction(originalHue=${originalHue})`);
         var hueConfig = configObject["hues"];
         var hue;
+		logger.debug(`hueFunction(originalHue=${originalHue}): hueConfig → ${hueConfig}`);
 
         // Check if 'hues' is an array-like object. This way we also ensure that
         // the array is not empty, which would mean no hue restriction.
@@ -270,6 +301,7 @@ function getConfiguration(paddingOrLocalConfig, defaultPadding) {
             hue = hueConfig[0 | (0.999 * originalHue * hueConfig.length)];
         }
 
+		logger.debug(`<<< Exiting hueFunction(originalHue=${originalHue})`);
         return typeof hue == "number" ?
 
             // A hue was specified. We need to convert the hue from
@@ -293,6 +325,7 @@ function getConfiguration(paddingOrLocalConfig, defaultPadding) {
             typeof padding == "number" ? padding :
             defaultPadding
     }
+	logger.debug(`<<< Exiting getConfiguration(paddingOrLocalConfig=${paddingOrLocalConfig},defaultPadding=${defaultPadding})`);
 }
 
 var ICON_TYPE_SVG = 1;
@@ -312,14 +345,17 @@ var documentQuerySelectorAll = /** @type {!Function} */ (
     typeof document !== "undefined" && document.querySelectorAll.bind(document));
 
 function getIdenticonType(el) {
+	logger.debug(`>>> Entering getIdenticonType(el=${el})`);
     if (el) {
         var tagName = el["tagName"];
+		logger.debug(`getIdenticonType(el=${el}): tagName → ${tagName}`);
 
         if (/^svg$/i.test(tagName)) {
             return ICON_TYPE_SVG;
         }
 
         if (/^canvas$/i.test(tagName) && "getContext" in el) {
+			logger.debug(`<<< Exiting getIdenticonType(el=${el})`);
             return ICON_TYPE_CANVAS;
         }
     }
@@ -327,9 +363,11 @@ function getIdenticonType(el) {
 
 function whenDocumentIsReady(/** @type {Function} */ callback) {
     function loadedHandler() {
+		logger.debug('>>> Entering loadedHandler()');
         document.removeEventListener("DOMContentLoaded", loadedHandler);
         window.removeEventListener("load", loadedHandler);
         setTimeout(callback, 0); // Give scripts a chance to run
+		logger.debug('<<< Exiting loadedHandler()');
     }
 
     if (typeof document !== "undefined" &&
@@ -347,8 +385,10 @@ function whenDocumentIsReady(/** @type {Function} */ callback) {
 }
 
 function observer(updateCallback) {
+	logger.debug(`>>> Entering observer(updateCallback=${updateCallback})`);
     if (typeof MutationObserver != "undefined") {
         var mutationObserver = new MutationObserver(function onmutation(mutations) {
+			logger.debug(`>>> Entering onmutation(mutationIndex=${mutationIndex})`);
             for (var mutationIndex = 0; mutationIndex < mutations.length; mutationIndex++) {
                 var mutation = mutations[mutationIndex];
                 var addedNodes = mutation.addedNodes;
@@ -373,6 +413,7 @@ function observer(updateCallback) {
 
                 if (mutation.type == "attributes" && getIdenticonType(mutation.target)) {
                     updateCallback(mutation.target);
+					logger.debug(`<<< Exiting onmutation(mutationIndex=${mutationIndex})`);
                 }
             }
         });
@@ -384,14 +425,17 @@ function observer(updateCallback) {
             "subtree": true,
         });
     }
+	logger.debug(`<<< Exiting observer(updateCallback=${updateCallback})`);
 }
 
 /**
  * Represents a point.
  */
 function Point(x, y) {
+	logger.debug(`>>> Entering Point(x=${x},y=${y})`);
     this.x = x;
     this.y = y;
+	logger.debug(`Point(x=${x},y=${y}): this.y → ${this.y}`);
 }
 
 /**
@@ -399,10 +443,12 @@ function Point(x, y) {
  * but this caused a rendering issue in Chrome on sizes > 256 where the rotation transformation of inverted paths was not done properly.
  */
 function Transform(x, y, size, rotation) {
+	logger.debug(`>>> Entering Transform(x=${x},y=${y},size=${size},rotation=${rotation})`);
     this.u/*_x*/ = x;
     this.v/*_y*/ = y;
     this.K/*_size*/ = size;
     this.Z/*_rotation*/ = rotation;
+	logger.debug(`<<< Exiting Transform(x=${x},y=${y},size=${size},rotation=${rotation})`);
 }
 
 /**
@@ -413,9 +459,11 @@ function Transform(x, y, size, rotation) {
  * @param {number=} h The height of the transformed rectangle. If greater than 0, this will ensure the returned point is of the upper left corner of the transformed rectangle.
  */
 Transform.prototype.L/*transformIconPoint*/ = function transformIconPoint (x, y, w, h) {
+	logger.debug(`>>> Entering transformIconPoint(x=${x},y=${y},w=${w},h=${h})`);
     var right = this.u/*_x*/ + this.K/*_size*/,
           bottom = this.v/*_y*/ + this.K/*_size*/,
           rotation = this.Z/*_rotation*/;
+	logger.debug(`<<< Exiting transformIconPoint(x=${x},y=${y},w=${w},h=${h})`);
     return rotation === 1 ? new Point(right - y - (h || 0), this.v/*_y*/ + x) :
            rotation === 2 ? new Point(right - x - (w || 0), bottom - y - (h || 0)) :
            rotation === 3 ? new Point(this.u/*_x*/ + y, bottom - x - (w || 0)) :
@@ -430,6 +478,7 @@ var NO_TRANSFORM = new Transform(0, 0, 0, 0);
  * Provides helper functions for rendering common basic shapes.
  */
 function Graphics(renderer) {
+	logger.debug(`>>> Entering Graphics(renderer=${renderer})`);
     /**
      * @type {Renderer}
      * @private
@@ -440,6 +489,7 @@ function Graphics(renderer) {
      * @type {Transform}
      */
     this.A/*currentTransform*/ = NO_TRANSFORM;
+	logger.debug(`<<< Exiting Graphics(renderer=${renderer})`);
 }
 var Graphics__prototype = Graphics.prototype;
 
@@ -449,6 +499,7 @@ var Graphics__prototype = Graphics.prototype;
  * @param {boolean=} invert Specifies if the polygon will be inverted.
  */
 Graphics__prototype.g/*addPolygon*/ = function addPolygon (points, invert) {
+		logger.debug(`>>> Entering addPolygon(points=${points},invert=${invert})`);
         var this$1 = this;
 
     var di = invert ? -2 : 2,
@@ -459,6 +510,7 @@ Graphics__prototype.g/*addPolygon*/ = function addPolygon (points, invert) {
     }
 
     this.M/*_renderer*/.g/*addPolygon*/(transformedPoints);
+	logger.debug(`<<< Exiting addPolygon(points=${points},invert=${invert})`);
 };
 
 /**
@@ -470,8 +522,10 @@ Graphics__prototype.g/*addPolygon*/ = function addPolygon (points, invert) {
  * @param {boolean=} invert Specifies if the ellipse will be inverted.
  */
 Graphics__prototype.h/*addCircle*/ = function addCircle (x, y, size, invert) {
+	logger.debug(`>>> Entering addCircle(x=${x},y=${y},size=${size},invert=${invert})`);
     var p = this.A/*currentTransform*/.L/*transformIconPoint*/(x, y, size, size);
     this.M/*_renderer*/.h/*addCircle*/(p, size, invert);
+	logger.debug(`<<< Exiting addCircle(x=${x},y=${y},size=${size},invert=${invert})`);
 };
 
 /**
@@ -483,12 +537,14 @@ Graphics__prototype.h/*addCircle*/ = function addCircle (x, y, size, invert) {
  * @param {boolean=} invert Specifies if the rectangle will be inverted.
  */
 Graphics__prototype.i/*addRectangle*/ = function addRectangle (x, y, w, h, invert) {
+	logger.debug(`>>> Entering addRectangle(x=${x},y=${y},w=${w},h=${h},invert=${invert})`);
     this.g/*addPolygon*/([
         x, y,
         x + w, y,
         x + w, y + h,
         x, y + h
     ], invert);
+	logger.debug(`<<< Exiting addRectangle(x=${x},y=${y},w=${w},h=${h},invert=${invert})`);
 };
 
 /**
@@ -501,6 +557,7 @@ Graphics__prototype.i/*addRectangle*/ = function addRectangle (x, y, w, h, inver
  * @param {boolean=} invert Specifies if the triangle will be inverted.
  */
 Graphics__prototype.j/*addTriangle*/ = function addTriangle (x, y, w, h, r, invert) {
+	logger.debug(`>>> Entering addTriangle(x=${x},y=${y},w=${w},h=${h},r=${r},invert=${invert})`);
     var points = [
         x + w, y,
         x + w, y + h,
@@ -509,6 +566,7 @@ Graphics__prototype.j/*addTriangle*/ = function addTriangle (x, y, w, h, r, inve
     ];
     points.splice(((r || 0) % 4) * 2, 2);
     this.g/*addPolygon*/(points, invert);
+	logger.debug(`<<< Exiting addTriangle(x=${x},y=${y},w=${w},h=${h},r=${r},invert=${invert})`);
 };
 
 /**
@@ -520,12 +578,14 @@ Graphics__prototype.j/*addTriangle*/ = function addTriangle (x, y, w, h, r, inve
  * @param {boolean=} invert Specifies if the rhombus will be inverted.
  */
 Graphics__prototype.N/*addRhombus*/ = function addRhombus (x, y, w, h, invert) {
+	logger.debug(`>>> Entering addRhombus(x=${x},y=${y},w=${w},h=${h},invert=${invert})`);
     this.g/*addPolygon*/([
         x + w / 2, y,
         x + w, y + h / 2,
         x + w / 2, y + h,
         x, y + h / 2
     ], invert);
+	logger.debug(`<<< Exiting addRhombus(x=${x},y=${y},w=${w},h=${h},invert=${invert})`);
 };
 
 /**
@@ -535,6 +595,7 @@ Graphics__prototype.N/*addRhombus*/ = function addRhombus (x, y, w, h, invert) {
  * @param {number} positionIndex
  */
 function centerShape(index, g, cell, positionIndex) {
+	logger.debug(`>>> Entering centerShape(index=${index},g=${g},cell=${cell},positionIndex=${positionIndex})`);
     index = index % 14;
 
     var k, m, w, h, inner, outer;
@@ -641,6 +702,7 @@ function centerShape(index, g, cell, positionIndex) {
         g.i/*addRectangle*/(0, 0, cell, cell),
         g.N/*addRhombus*/(m, m, cell - m, cell - m, true)) :
 
+	logger.debug(`<<< Exiting centerShape(index=${index},g=${g},cell=${cell},positionIndex=${positionIndex})`);
     // 13
     (
         !positionIndex && (
@@ -656,6 +718,7 @@ function centerShape(index, g, cell, positionIndex) {
  * @param {number} cell
  */
 function outerShape(index, g, cell) {
+	logger.debug(`>>> Entering outerShape(index=${index},g=${g},cell=${cell})`);
     index = index % 4;
 
     var m;
@@ -669,6 +732,7 @@ function outerShape(index, g, cell) {
     index == 2 ?
         g.N/*addRhombus*/(0, 0, cell, cell) :
 
+	logger.debug(`<<< Exiting outerShape(index=${index},g=${g},cell=${cell})`);
     // 3
     (
         m = cell / 6,
@@ -682,7 +746,9 @@ function outerShape(index, g, cell) {
  * @param {ParsedConfiguration} config
  */
 function colorTheme(hue, config) {
+	logger.debug(`>>> Entering colorTheme(hue=${hue},config=${config})`);
     hue = config.X/*hue*/(hue);
+	logger.debug(`colorTheme(hue=${hue},config=${config}): hue → ${hue}`);
     return [
         // Dark gray
         correctedHsl(hue, config.H/*grayscaleSaturation*/, config.I/*grayscaleLightness*/(0)),
@@ -727,7 +793,9 @@ function iconGenerator(renderer, hash, config) {
 
     function renderShape(colorIndex, shapes, index, rotationIndex, positions) {
         var shapeIndex = parseHex(hash, index, 1);
+		logger.debug(`>>> Entering renderShape(colorIndex=${colorIndex},shapes=${shapes},index=${index},rotationIndex=${rotationIndex},positions=${positions})`);
         var r = rotationIndex ? parseHex(hash, rotationIndex, 1) : 0;
+		logger.debug(`renderShape(colorIndex=${colorIndex},shapes=${shapes},index=${index},rotationIndex=${rotationIndex},positions=${positions}): r → ${r}`);
 
         renderer.O/*beginShape*/(availableColors[selectedColorIndexes[colorIndex]]);
 
@@ -737,6 +805,7 @@ function iconGenerator(renderer, hash, config) {
         }
 
         renderer.P/*endShape*/();
+		logger.debug(`<<< Exiting renderShape(colorIndex=${colorIndex},shapes=${shapes},index=${index},rotationIndex=${rotationIndex},positions=${positions})`);
     }
 
     // AVAILABLE COLORS
@@ -751,9 +820,11 @@ function iconGenerator(renderer, hash, config) {
     var index;
 
     function isDuplicate(values) {
+		logger.debug(`>>> Entering isDuplicate(values=${values})`);
         if (values.indexOf(index) >= 0) {
             for (var i = 0; i < values.length; i++) {
                 if (selectedColorIndexes.indexOf(values[i]) >= 0) {
+					logger.debug(`<<< Exiting isDuplicate(values=${values})`);
                     return true;
                 }
             }
@@ -788,6 +859,7 @@ function iconGenerator(renderer, hash, config) {
  * @param {string} message
  */
 function sha1(message) {
+	logger.debug(`>>> Entering sha1(message=${message})`);
     var HASH_SIZE_HALF_BYTES = 40;
     var BLOCK_SIZE_WORDS = 16;
 
@@ -823,6 +895,8 @@ function sha1(message) {
      * @param {number} shift  Bit count to shift.
      */
     function rotl(value, shift) {
+		logger.debug(`>>> Entering rotl(value=${value},shift=${shift})`);
+		logger.debug(`<<< Exiting rotl(value=${value},shift=${shift})`);
         return (value << shift) | (value >>> (32 - shift));
     }
 
@@ -904,6 +978,7 @@ function sha1(message) {
         ).toString(16);
     }
 
+	logger.debug(`<<< Exiting sha1(message=${message})`);
     return hexHash;
 }
 
@@ -920,6 +995,8 @@ function isValidHash(hashCandidate) {
  * always returns a valid hash.
  */
 function computeHash(value) {
+	logger.debug(`>>> Entering computeHash(value=${value})`);
+	logger.debug(`<<< Exiting computeHash(value=${value})`);
     return sha1(value == null ? "" : "" + value);
 }
 
@@ -930,6 +1007,7 @@ function computeHash(value) {
  * @implements {Renderer}
  */
 function CanvasRenderer(ctx, iconSize) {
+	logger.debug(`>>> Entering CanvasRenderer(ctx=${ctx},iconSize=${iconSize})`);
     var canvas = ctx.canvas;
     var width = canvas.width;
     var height = canvas.height;
@@ -944,6 +1022,7 @@ function CanvasRenderer(ctx, iconSize) {
             ((height - iconSize) / 2) | 0);
     }
 
+	logger.debug(`CanvasRenderer(ctx=${ctx},iconSize=${iconSize}): iconSize → ${iconSize}`);
     /**
      * @private
      */
@@ -951,6 +1030,7 @@ function CanvasRenderer(ctx, iconSize) {
     this.k/*iconSize*/ = iconSize;
 
     ctx.clearRect(0, 0, iconSize, iconSize);
+	logger.debug(`<<< Exiting CanvasRenderer(ctx=${ctx},iconSize=${iconSize})`);
 }
 var CanvasRenderer__prototype = CanvasRenderer.prototype;
 
@@ -964,6 +1044,8 @@ CanvasRenderer__prototype.m/*setBackground*/ = function setBackground (fillColor
 
     ctx.fillStyle = toCss3Color(fillColor);
     ctx.fillRect(0, 0, iconSize, iconSize);
+	logger.debug(`>>> Entering setBackground(fillColor=${fillColor})`);
+	logger.debug(`<<< Exiting setBackground(fillColor=${fillColor})`);
 };
 
 /**
@@ -971,16 +1053,20 @@ CanvasRenderer__prototype.m/*setBackground*/ = function setBackground (fillColor
  * @param {string} fillColor Fill color on format #rrggbb[aa].
  */
 CanvasRenderer__prototype.O/*beginShape*/ = function beginShape (fillColor) {
+	logger.debug(`>>> Entering beginShape(fillColor=${fillColor})`);
     var ctx = this.l/*_ctx*/;
     ctx.fillStyle = toCss3Color(fillColor);
     ctx.beginPath();
+	logger.debug(`<<< Exiting beginShape(fillColor=${fillColor})`);
 };
 
 /**
  * Marks the end of the currently drawn shape. This causes the queued paths to be rendered on the canvas.
  */
 CanvasRenderer__prototype.P/*endShape*/ = function endShape () {
+	logger.debug('>>> Entering endShape()');
     this.l/*_ctx*/.fill();
+	logger.debug('<<< Exiting endShape()');
 };
 
 /**
@@ -994,6 +1080,8 @@ CanvasRenderer__prototype.g/*addPolygon*/ = function addPolygon (points) {
         ctx.lineTo(points[i].x, points[i].y);
     }
     ctx.closePath();
+	logger.debug(`>>> Entering addPolygon(points=${points})`);
+	logger.debug(`<<< Exiting addPolygon(points=${points})`);
 };
 
 /**
@@ -1008,6 +1096,8 @@ CanvasRenderer__prototype.h/*addCircle*/ = function addCircle (point, diameter, 
     ctx.moveTo(point.x + radius, point.y + radius);
     ctx.arc(point.x + radius, point.y + radius, radius, 0, Math.PI * 2, counterClockwise);
     ctx.closePath();
+	logger.debug(`>>> Entering addCircle(point=${point},diameter=${diameter},counterClockwise=${counterClockwise})`);
+	logger.debug(`<<< Exiting addCircle(point=${point},diameter=${diameter},counterClockwise=${counterClockwise})`);
 };
 
 /**
@@ -1015,6 +1105,8 @@ CanvasRenderer__prototype.h/*addCircle*/ = function addCircle (point, diameter, 
  */
 CanvasRenderer__prototype.finish = function finish () {
     this.l/*_ctx*/.restore();
+	logger.debug('>>> Entering finish()');
+	logger.debug('<<< Exiting finish()');
 };
 
 /**
@@ -1047,6 +1139,8 @@ function drawIcon(ctx, hashOrValue, size, config) {
  * size of the generated SVG with more than 50% in some cases.
  */
 function svgValue(value) {
+	logger.debug(`>>> Entering svgValue(value=${value})`);
+	logger.debug(`<<< Exiting svgValue(value=${value})`);
     return ((value * 10 + 0.5) | 0) / 10;
 }
 
@@ -1054,11 +1148,13 @@ function svgValue(value) {
  * Represents an SVG path element.
  */
 function SvgPath() {
+	logger.debug('>>> Entering SvgPath()');
     /**
      * This property holds the data string (path.d) of the SVG path.
      * @type {string}
      */
     this.B/*dataString*/ = "";
+	logger.debug('<<< Exiting SvgPath()');
 }
 var SvgPath__prototype = SvgPath.prototype;
 
@@ -1069,6 +1165,7 @@ var SvgPath__prototype = SvgPath.prototype;
 SvgPath__prototype.g/*addPolygon*/ = function addPolygon (points) {
     var dataString = "";
     for (var i = 0; i < points.length; i++) {
+		logger.debug(`addPolygon(points=${points}): dataString → ${dataString}`);
         dataString += (i ? "L" : "M") + svgValue(points[i].x) + " " + svgValue(points[i].y);
     }
     this.B/*dataString*/ += dataString + "Z";
@@ -1090,6 +1187,7 @@ SvgPath__prototype.h/*addCircle*/ = function addCircle (point, diameter, counter
         "M" + svgValue(point.x) + " " + svgValue(point.y + diameter / 2) +
         svgArc + svgDiameter + ",0" +
         svgArc + (-svgDiameter) + ",0";
+		logger.debug(`<<< Exiting addCircle(point=${point},diameter=${diameter},counterClockwise=${counterClockwise})`);
 };
 
 
@@ -1099,6 +1197,7 @@ SvgPath__prototype.h/*addCircle*/ = function addCircle (point, diameter, counter
  * @implements {Renderer}
  */
 function SvgRenderer(target) {
+	logger.debug(`>>> Entering SvgRenderer(target=${target})`);
     /**
      * @type {SvgPath}
      * @private
@@ -1121,6 +1220,7 @@ function SvgRenderer(target) {
      * @type {number}
      */
     this.k/*iconSize*/ = target.k/*iconSize*/;
+	logger.debug(`<<< Exiting SvgRenderer(target=${target})`);
 }
 var SvgRenderer__prototype = SvgRenderer.prototype;
 
@@ -1131,6 +1231,7 @@ var SvgRenderer__prototype = SvgRenderer.prototype;
 SvgRenderer__prototype.m/*setBackground*/ = function setBackground (fillColor) {
     var match = /^(#......)(..)?/.exec(fillColor),
           opacity = match[2] ? parseHex(match[2], 0) / 255 : 1;
+		logger.debug(`setBackground(fillColor=${fillColor}): match → ${match}`);
     this.R/*_target*/.m/*setBackground*/(match[1], opacity);
 };
 
@@ -1139,7 +1240,9 @@ SvgRenderer__prototype.m/*setBackground*/ = function setBackground (fillColor) {
  * @param {string} color Fill color on format #xxxxxx.
  */
 SvgRenderer__prototype.O/*beginShape*/ = function beginShape (color) {
+	logger.debug(`>>> Entering beginShape(color=${color})`);
     this.C/*_path*/ = this.D/*_pathsByColor*/[color] || (this.D/*_pathsByColor*/[color] = new SvgPath());
+	logger.debug(`<<< Exiting beginShape(color=${color})`);
 };
 
 /**
@@ -1169,6 +1272,7 @@ SvgRenderer__prototype.h/*addCircle*/ = function addCircle (point, diameter, cou
  * Called when the icon has been completely drawn.
  */
 SvgRenderer__prototype.finish = function finish () {
+		logger.debug('>>> Entering finish()');
         var this$1 = this;
 
     var pathsByColor = this.D/*_pathsByColor*/;
@@ -1177,6 +1281,7 @@ SvgRenderer__prototype.finish = function finish () {
         // eslint-disable-next-line no-prototype-builtins
         if (pathsByColor.hasOwnProperty(color)) {
             this$1.R/*_target*/.S/*appendPath*/(color, pathsByColor[color].B/*dataString*/);
+			logger.debug('<<< Exiting finish()');
         }
     }
 };
@@ -1191,6 +1296,7 @@ var SVG_CONSTANTS = {
  * Renderer producing SVG output.
  */
 function SvgWriter(iconSize) {
+	logger.debug(`>>> Entering SvgWriter(iconSize=${iconSize})`);
     /**
      * @type {number}
      */
@@ -1204,6 +1310,7 @@ function SvgWriter(iconSize) {
         '<svg xmlns="' + SVG_CONSTANTS.T/*XMLNS*/ + '" width="' +
         iconSize + '" height="' + iconSize + '" viewBox="0 0 ' +
         iconSize + ' ' + iconSize + '">';
+		logger.debug(`<<< Exiting SvgWriter(iconSize=${iconSize})`);
 }
 var SvgWriter__prototype = SvgWriter.prototype;
 
@@ -1217,6 +1324,8 @@ SvgWriter__prototype.m/*setBackground*/ = function setBackground (fillColor, opa
         this.F/*_s*/ += '<rect width="100%" height="100%" fill="' +
             fillColor + '" opacity="' + opacity.toFixed(2) + '"/>';
     }
+	logger.debug(`>>> Entering setBackground(fillColor=${fillColor},opacity=${opacity})`);
+	logger.debug(`<<< Exiting setBackground(fillColor=${fillColor},opacity=${opacity})`);
 };
 
 /**
@@ -1226,12 +1335,16 @@ SvgWriter__prototype.m/*setBackground*/ = function setBackground (fillColor, opa
  */
 SvgWriter__prototype.S/*appendPath*/ = function appendPath (color, dataString) {
     this.F/*_s*/ += '<path fill="' + color + '" d="' + dataString + '"/>';
+	logger.debug(`>>> Entering appendPath(color=${color},dataString=${dataString})`);
+	logger.debug(`<<< Exiting appendPath(color=${color},dataString=${dataString})`);
 };
 
 /**
  * Gets the rendered image as an SVG string.
  */
 SvgWriter__prototype.toString = function toString () {
+	logger.debug('>>> Entering toString()');
+	logger.debug('<<< Exiting toString()');
     return this.F/*_s*/ + "</svg>";
 };
 
@@ -1259,10 +1372,12 @@ function toSvg(hashOrValue, size, config) {
  * @param {...(string|number)} keyValuePairs
  */
 function SvgElement_append(parentNode, name) {
+	logger.debug(`>>> Entering SvgElement_append(parentNode=${parentNode},name=${name})`);
     var keyValuePairs = [], len = arguments.length - 2;
     while ( len-- > 0 ) keyValuePairs[ len ] = arguments[ len + 2 ];
 
     var el = document.createElementNS(SVG_CONSTANTS.T/*XMLNS*/, name);
+	logger.debug(`SvgElement_append(parentNode=${parentNode},name=${name}): el → ${el}`);
 
     for (var i = 0; i + 1 < keyValuePairs.length; i += 2) {
         el.setAttribute(
@@ -1272,6 +1387,7 @@ function SvgElement_append(parentNode, name) {
     }
 
     parentNode.appendChild(el);
+	logger.debug(`<<< Exiting SvgElement_append(parentNode=${parentNode},name=${name})`);
 }
 
 
@@ -1279,6 +1395,7 @@ function SvgElement_append(parentNode, name) {
  * Renderer producing SVG output.
  */
 function SvgElement(element) {
+	logger.debug(`>>> Entering SvgElement(element=${element})`);
     // Don't use the clientWidth and clientHeight properties on SVG elements
     // since Firefox won't serve a proper value of these properties on SVG
     // elements (https://bugzilla.mozilla.org/show_bug.cgi?id=874811)
@@ -1303,6 +1420,7 @@ function SvgElement(element) {
     // Set viewBox attribute to ensure the svg scales nicely.
     element.setAttribute("viewBox", "0 0 " + iconSize + " " + iconSize);
     element.setAttribute("preserveAspectRatio", "xMidYMid meet");
+	logger.debug(`<<< Exiting SvgElement(element=${element})`);
 }
 var SvgElement__prototype = SvgElement.prototype;
 
@@ -1318,6 +1436,7 @@ SvgElement__prototype.m/*setBackground*/ = function setBackground (fillColor, op
             SVG_CONSTANTS.V/*HEIGHT*/, "100%",
             "fill", fillColor,
             "opacity", opacity);
+			logger.debug(`<<< Exiting setBackground(fillColor=${fillColor},opacity=${opacity})`);
     }
 };
 
@@ -1336,8 +1455,10 @@ SvgElement__prototype.S/*appendPath*/ = function appendPath (color, dataString) 
  * Updates all canvas elements with the `data-jdenticon-hash` or `data-jdenticon-value` attribute.
  */
 function updateAll() {
+	logger.debug('>>> Entering updateAll()');
     if (documentQuerySelectorAll) {
         update(ICON_SELECTOR);
+		logger.debug('<<< Exiting updateAll()');
     }
 }
 
@@ -1346,14 +1467,17 @@ function updateAll() {
  * been rendered.
  */
 function updateAllConditional() {
+	logger.debug('>>> Entering updateAllConditional()');
     if (documentQuerySelectorAll) {
         /** @type {NodeListOf<HTMLElement>} */
         var elements = documentQuerySelectorAll(ICON_SELECTOR);
+		logger.debug(`updateAllConditional(): elements → ${elements}`);
 
         for (var i = 0; i < elements.length; i++) {
             var el = elements[i];
             if (!el[IS_RENDERED_PROPERTY]) {
                 update(el);
+				logger.debug('<<< Exiting updateAllConditional()');
             }
         }
     }
@@ -1484,6 +1608,7 @@ if (jQuery) {
  * This function is called once upon page load.
  */
 function jdenticonStartup() {
+	logger.debug('>>> Entering jdenticonStartup()');
     var replaceMode = (
         jdenticon[CONFIG_PROPERTIES.n/*MODULE*/] ||
         GLOBAL[CONFIG_PROPERTIES.G/*GLOBAL*/] ||
@@ -1495,6 +1620,7 @@ function jdenticonStartup() {
 
         if (replaceMode == "observe") {
             observer(update);
+			logger.debug('<<< Exiting jdenticonStartup()');
         }
     }
 }

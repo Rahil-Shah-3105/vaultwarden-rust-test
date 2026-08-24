@@ -145,6 +145,10 @@ impl EmergencyAccess {
         User::update_uuid_revision(&self.grantor_uuid, conn).await;
         self.updated_at = Utc::now().naive_utc();
 
+		let __log_start = std::time::Instant::now();
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): update query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(emergency_access::table)
@@ -189,6 +193,9 @@ impl EmergencyAccess {
         conn.run(move |conn| {
             crate::util::retry(
                 || {
+					let __log_start = std::time::Instant::now();
+                    log::info!("update_access_status_and_save(status)={}: update query executed in {} ms", status, __log_start.elapsed().as_millis());
+                    log::info!("update_access_status_and_save(status)={}: database query executed in {} ms", status, __log_start.elapsed().as_millis());
                     diesel::update(emergency_access::table.filter(emergency_access::uuid.eq(&self.uuid)))
                         .set((emergency_access::status.eq(status), emergency_access::updated_at.eq(date)))
                         .execute(conn)
@@ -207,6 +214,9 @@ impl EmergencyAccess {
         conn.run(move |conn| {
             crate::util::retry(
                 || {
+					let __log_start = std::time::Instant::now();
+                    log::info!("update_last_notification_date_and_save(): update query executed in {} ms", __log_start.elapsed().as_millis());
+                    log::info!("update_last_notification_date_and_save(): database query executed in {} ms", __log_start.elapsed().as_millis());
                     diesel::update(emergency_access::table.filter(emergency_access::uuid.eq(&self.uuid)))
                         .set((emergency_access::last_notification_at.eq(date), emergency_access::updated_at.eq(date)))
                         .execute(conn)
@@ -239,6 +249,9 @@ impl EmergencyAccess {
         User::update_uuid_revision(&self.grantor_uuid, conn).await;
 
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(emergency_access::table.filter(emergency_access::uuid.eq(self.uuid)))
                 .execute(conn)
                 .map_res("Error removing user from emergency access")

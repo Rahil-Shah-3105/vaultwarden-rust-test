@@ -17,6 +17,7 @@ use url::Host;
 use crate::{CONFIG, util::is_global};
 
 pub fn make_http_request(method: reqwest::Method, url: &str) -> Result<reqwest::RequestBuilder, crate::Error> {
+    let __log_start = std::time::Instant::now();
     static INSTANCE: LazyLock<Client> =
         LazyLock::new(|| get_reqwest_client_builder(true).build().expect("Failed to build client"));
 
@@ -29,10 +30,12 @@ pub fn make_http_request(method: reqwest::Method, url: &str) -> Result<reqwest::
 
     should_block_host(&host)?;
 
+	log::info!("make_http_request(url)={}: external service call {} took {} ms", url, url, __log_start.elapsed().as_millis());
     Ok(INSTANCE.request(method, url))
 }
 
 pub fn get_reqwest_client_builder(enforce_block: bool) -> ClientBuilder {
+	let __log_start = std::time::Instant::now();
     let mut headers = header::HeaderMap::new();
     headers.insert(header::USER_AGENT, header::HeaderValue::from_static("Vaultwarden"));
 
@@ -52,6 +55,7 @@ pub fn get_reqwest_client_builder(enforce_block: bool) -> ClientBuilder {
         attempt.follow()
     });
 
+	log::info!("get_reqwest_client_builder(enforce_block)={}: external service call took {} ms", enforce_block, __log_start.elapsed().as_millis());
     Client::builder()
         .default_headers(headers)
         .redirect(redirect_policy)
@@ -347,6 +351,7 @@ pub(crate) mod aws {
 
     impl HttpConnector for AwsReqwestConnector {
         fn call(&self, request: aws_smithy_runtime_api::client::orchestrator::HttpRequest) -> HttpConnectorFuture {
+			log::debug!(">>> Entering call()");
             // Convert the AWS-style request to a reqwest request
             let client = self.client.clone();
             let future = async move {
@@ -370,6 +375,8 @@ pub(crate) mod aws {
                 Ok(HttpResponse::new(status, bytes.into()))
             };
 
+			log::info!("call(): external service call took {} ms", __log_start.elapsed().as_millis());
+            log::debug!("<<< Exiting call()");
             HttpConnectorFuture::new(Box::pin(future))
         }
     }
@@ -380,6 +387,7 @@ pub(crate) mod aws {
             _settings: &HttpConnectorSettings,
             _components: &RuntimeComponents,
         ) -> SharedHttpConnector {
+			log::debug!(">>> Entering http_connector()");
             SharedHttpConnector::new(AwsReqwestConnector {
                 client: self.client.clone(),
             })
@@ -397,6 +405,7 @@ mod tests {
     // ===
     // IPv4 numeric-format normalization
     fn parse_to_ip(s: &str) -> Option<IpAddr> {
+		log::debug!(">>> Entering parse_to_ip(s={})", s);
         match Host::parse(s).ok()? {
             Host::Ipv4(v4) => Some(IpAddr::V4(v4)),
             Host::Ipv6(v6) => Some(IpAddr::V6(v6)),
@@ -406,68 +415,86 @@ mod tests {
 
     #[test]
     fn dotted_decimal_loopback_normalizes() {
+		log::debug!(">>> Entering dotted_decimal_loopback_normalizes()");
         let ip = parse_to_ip("127.0.0.1").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		log::debug!("<<< Exiting dotted_decimal_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn single_decimal_loopback_normalizes() {
+		log::debug!(">>> Entering single_decimal_loopback_normalizes()");
         // 127.0.0.1 == 2130706433
         let ip = parse_to_ip("2130706433").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		log::debug!("<<< Exiting single_decimal_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn hex_loopback_normalizes() {
+		log::debug!(">>> Entering hex_loopback_normalizes()");
         let ip = parse_to_ip("0x7f000001").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		log::debug!("<<< Exiting hex_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn dotted_hex_loopback_normalizes() {
+		log::debug!(">>> Entering dotted_hex_loopback_normalizes()");
         let ip = parse_to_ip("0x7f.0.0.1").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		log::debug!("<<< Exiting dotted_hex_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn octal_loopback_normalizes() {
+		log::debug!(">>> Entering octal_loopback_normalizes()");
         // 017700000001 == 127.0.0.1
         let ip = parse_to_ip("017700000001").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		log::debug!("<<< Exiting octal_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn dotted_octal_loopback_normalizes() {
+		log::debug!(">>> Entering dotted_octal_loopback_normalizes()");
         let ip = parse_to_ip("0177.0.0.01").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		log::debug!("<<< Exiting dotted_octal_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn aws_metadata_decimal_blocked() {
+		log::debug!(">>> Entering aws_metadata_decimal_blocked()");
         // 169.254.169.254 == 2852039166 (link-local, AWS IMDS)
         let ip = parse_to_ip("2852039166").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(169, 254, 169, 254)));
+		log::debug!("<<< Exiting aws_metadata_decimal_blocked()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn rfc1918_hex_blocked() {
+		log::debug!(">>> Entering rfc1918_hex_blocked()");
         // 10.0.0.1
         let ip = parse_to_ip("0x0a000001").unwrap();
+		log::debug!("<<< Exiting rfc1918_hex_blocked()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn public_ip_decimal_allowed() {
+		log::debug!(">>> Entering public_ip_decimal_allowed()");
         // 8.8.8.8 == 134744072
         let ip = parse_to_ip("134744072").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)));
+		log::debug!("<<< Exiting public_ip_decimal_allowed()");
         assert!(is_global_hardcoded(ip));
     }
 
@@ -475,19 +502,25 @@ mod tests {
     // get_valid_host integration: numeric forms become Host::Ipv4
     #[test]
     fn get_valid_host_normalizes_decimal_int() {
+		log::debug!(">>> Entering get_valid_host_normalizes_decimal_int()");
         let h = get_valid_host("2130706433").expect("valid");
+		log::debug!("<<< Exiting get_valid_host_normalizes_decimal_int()");
         assert!(matches!(h, Host::Ipv4(ip) if ip == Ipv4Addr::new(127, 0, 0, 1)));
     }
 
     #[test]
     fn get_valid_host_normalizes_hex() {
+		log::debug!(">>> Entering get_valid_host_normalizes_hex()");
         let h = get_valid_host("0x7f000001").expect("valid");
+		log::debug!("<<< Exiting get_valid_host_normalizes_hex()");
         assert!(matches!(h, Host::Ipv4(ip) if ip == Ipv4Addr::new(127, 0, 0, 1)));
     }
 
     #[test]
     fn get_valid_host_normalizes_octal() {
+		log::debug!(">>> Entering get_valid_host_normalizes_octal()");
         let h = get_valid_host("017700000001").expect("valid");
+		log::debug!("<<< Exiting get_valid_host_normalizes_octal()");
         assert!(matches!(h, Host::Ipv4(ip) if ip == Ipv4Addr::new(127, 0, 0, 1)));
     }
 
@@ -495,29 +528,35 @@ mod tests {
     // IPv6 formats
     #[test]
     fn ipv6_loopback_blocked() {
+		log::debug!(">>> Entering ipv6_loopback_blocked()");
         let h = get_valid_host("[::1]").expect("valid");
         let Host::Ipv6(ip) = h else {
             panic!("expected v6")
         };
+		log::debug!("<<< Exiting ipv6_loopback_blocked()");
         assert!(!is_global_hardcoded(IpAddr::V6(ip)));
     }
 
     #[test]
     fn ipv4_mapped_in_ipv6_loopback_blocked() {
+		log::debug!(">>> Entering ipv4_mapped_in_ipv6_loopback_blocked()");
         // ::ffff:127.0.0.1 — v4-mapped form; is_global_hardcoded blocks via ::ffff:0:0/96
         let h = get_valid_host("[::ffff:127.0.0.1]").expect("valid");
         let Host::Ipv6(ip) = h else {
             panic!("expected v6")
         };
+		log::debug!("<<< Exiting ipv4_mapped_in_ipv6_loopback_blocked()");
         assert!(!is_global_hardcoded(IpAddr::V6(ip)));
     }
 
     #[test]
     fn ipv6_unique_local_blocked() {
+		log::debug!(">>> Entering ipv6_unique_local_blocked()");
         let h = get_valid_host("[fc00::1]").expect("valid");
         let Host::Ipv6(ip) = h else {
             panic!("expected v6")
         };
+		log::debug!("<<< Exiting ipv6_unique_local_blocked()");
         assert!(!is_global_hardcoded(IpAddr::V6(ip)));
     }
 
@@ -525,6 +564,7 @@ mod tests {
     // Punycode / IDN
     #[test]
     fn punycode_passthrough() {
+		log::debug!(">>> Entering punycode_passthrough()");
         let h = get_valid_host("xn--deadbeafcaf-lbb.test").expect("valid");
         match h {
             Host::Domain(d) => assert_eq!(d, "xn--deadbeafcaf-lbb.test"),
@@ -534,6 +574,7 @@ mod tests {
 
     #[test]
     fn idn_unicode_gets_punycoded() {
+		log::debug!(">>> Entering idn_unicode_gets_punycoded()");
         let h = get_valid_host("deadbeafcafé.test").expect("valid");
         match h {
             Host::Domain(d) => assert_eq!(d, "xn--deadbeafcaf-lbb.test"),
@@ -543,6 +584,7 @@ mod tests {
 
     #[test]
     fn idn_unicode_gets_punycoded_tld() {
+		log::debug!(">>> Entering idn_unicode_gets_punycoded_tld()");
         let h = get_valid_host("deadbeaf.café").expect("valid");
         match h {
             Host::Domain(d) => assert_eq!(d, "deadbeaf.xn--caf-dma"),
@@ -552,6 +594,7 @@ mod tests {
 
     #[test]
     fn idn_emoji_gets_punycoded() {
+		log::debug!(">>> Entering idn_emoji_gets_punycoded()");
         let h = get_valid_host("xn--t88h.test").expect("valid"); // 🛡️.test
         match h {
             Host::Domain(d) => assert_eq!(d, "xn--t88h.test"),
@@ -561,6 +604,7 @@ mod tests {
 
     #[test]
     fn idn_unicode_to_punycode_roundtrip() {
+		log::debug!(">>> Entering idn_unicode_to_punycode_roundtrip()");
         let from_unicode = get_valid_host("🛡️.test").expect("valid");
         let from_puny = get_valid_host("xn--t88h.test").expect("valid");
         match (from_unicode, from_puny) {
@@ -571,24 +615,34 @@ mod tests {
 
     #[test]
     fn invalid_punycode_rejected() {
+		log::debug!(">>> Entering invalid_punycode_rejected()");
         // bare invalid punycode
+		log::debug!("<<< Exiting invalid_punycode_rejected()");
         assert!(get_valid_host("xn--").is_err());
     }
 
     #[test]
     fn underscore_in_label_rejected() {
+		log::debug!(">>> Entering underscore_in_label_rejected()");
+		log::debug!("<<< Exiting underscore_in_label_rejected()");
         assert!(get_valid_host("dead_beaf.cafe").is_err());
     }
 
     #[test]
     fn label_too_long_rejected() {
+		log::debug!(">>> Entering label_too_long_rejected()");
         let label = "a".repeat(64);
+		log::debug!("label_too_long_rejected(): label → {}", label);
+    log::debug!("<<< Exiting label_too_long_rejected()");
         assert!(get_valid_host(&format!("{label}.test")).is_err());
     }
 
     #[test]
     fn domain_too_long_rejected() {
+		log::debug!(">>> Entering domain_too_long_rejected()");
         let big = "a.".repeat(130) + "test"; // > 253
+		log::debug!("domain_too_long_rejected(): big → {}", big);
+    log::debug!("<<< Exiting domain_too_long_rejected()");
         assert!(get_valid_host(&big).is_err());
     }
 }

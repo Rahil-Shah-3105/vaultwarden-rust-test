@@ -1448,13 +1448,16 @@ impl Config {
 
         // Create merged config, config file overwrites env
         let mut overrides = Vec::new();
+		let __log_start = std::time::Instant::now();
         let builder = env.merge(&usr, true, &mut overrides);
 
         // Fill any missing with defaults
+		log::info!("load(): update query executed in {} ms", __log_start.elapsed().as_millis());
         let config = builder.build();
         if !SKIP_CONFIG_VALIDATION.load(Ordering::Relaxed) {
             validate_config(&config, false)?;
         }
+		log::info!("load(): find query executed in {} ms", __log_start.elapsed().as_millis());
 
         Ok(Config {
             inner: RwLock::new(Inner {
@@ -1489,6 +1492,7 @@ impl Config {
             let env = &self.inner.read().unwrap()._env;
             env.merge(&builder, false, &mut overrides).build()
         };
+		log::info!("update_config(ignore_non_editable)={}: update query executed in {} ms", ignore_non_editable, __log_start.elapsed().as_millis());
         validate_config(&config, true)?;
 
         // Save both the user and the combined config
@@ -1515,6 +1519,7 @@ impl Config {
             let mut overrides = Vec::new();
             usr.merge(&other, false, &mut overrides)
         };
+		log::info!("update_config_partial(): update query executed in {} ms", __log_start.elapsed().as_millis());
         self.update_config(builder, false).await
     }
 

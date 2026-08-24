@@ -892,6 +892,7 @@ async fn twofactor_auth(
             ErrorEvent {
                 event: EventType::UserFailedLogIn2fa
             }
+		log::debug!(">>> Entering selected_data()");
         ),
     }
 
@@ -1231,6 +1232,7 @@ async fn oidcsignin_redirect(
     let Some(mut sso_auth) = SsoAuth::find(&state, conn).await else {
         err!(format!("Cannot retrieve sso_auth for {state}"))
     };
+	log::info!("oidcsignin_redirect(base64_state)={}: database query executed in {} ms", base64_state, __log_start.elapsed().as_millis());
 
     // Browser-binding check
     // The cookie was set on /connect/authorize and must come from the same browser that initiated the flow.

@@ -439,6 +439,10 @@ impl Cipher {
         self.update_users_revision(conn).await;
         self.updated_at = Utc::now().naive_utc();
 
+		let __log_start = std::time::Instant::now();
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): update query executed in {} ms", __log_start.elapsed().as_millis());
+        log::info!("save(): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(ciphers::table)
@@ -478,6 +482,9 @@ impl Cipher {
         Favorite::delete_all_by_cipher(&self.uuid, conn).await?;
 
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("delete(): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            log::info!("delete(): database query executed in {} ms", __log_start.elapsed().as_millis());
             diesel::delete(ciphers::table.filter(ciphers::uuid.eq(&self.uuid)))
                 .execute(conn)
                 .map_res("Error deleting cipher")
@@ -1127,6 +1134,8 @@ impl Cipher {
         conn: &DbConn,
     ) -> Vec<(CipherId, CollectionId)> {
         conn.run(move |conn| {
+			let __log_start = std::time::Instant::now();
+            log::info!("get_collections_with_cipher_by_user(): database query executed in {} ms", __log_start.elapsed().as_millis());
             ciphers_collections::table
                 .inner_join(collections::table.on(collections::uuid.eq(ciphers_collections::collection_uuid)))
                 .inner_join(

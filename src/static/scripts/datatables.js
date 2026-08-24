@@ -1,3 +1,4 @@
+const logger = console;
 /*
  * This combined file was created by the DataTables downloader builder:
  *   https://datatables.net/download
@@ -19,7 +20,10 @@
 
 	if ( typeof define === 'function' && define.amd ) {
 		// AMD
+		logger.debug(`>>> Entering function(settings=${settings})`);
 		define( ['jquery'], function ( $ ) {
+			logger.debug('>>> Entering define()');
+			logger.debug('<<< Exiting define()');
 			return factory( $, window, document );
 		} );
 	}
@@ -31,6 +35,7 @@
 
 		if (typeof window === 'undefined') {
 			module.exports = function (root, $) {
+				logger.debug(`>>> Entering moduleExport(root=${root})`);
 				if ( ! root ) {
 					// CommonJS environments without a window global must pass a
 					// root. This will give an error otherwise
@@ -41,6 +46,7 @@
 					$ = jq( root );
 				}
 
+				logger.debug(`<<< Exiting moduleExport(root=${root})`);
 				return factory( $, root, root.document );
 			};
 		}
@@ -188,6 +194,7 @@
 				"sTableId":      sId,
 				colgroup: $('<colgroup>'),
 				fastData: function (row, column, type) {
+					logger.debug(`<<< Exiting fastData(row=${row},column=${column},type=${type})`);
 					return _fnGetCellData(oSettings, row, column, type);
 				}
 			} );
@@ -362,6 +369,7 @@
 				};
 			
 				$( rowOne[0] ).children('th, td').each( function (i, cell) {
+					logger.debug('>>> Entering each()');
 					var col = oSettings.aoColumns[i];
 			
 					if (! col) {
@@ -382,6 +390,8 @@
 							col._isArrayHost = true;
 			
 							_fnColumnOptions( oSettings, i );
+							logger.debug('>>> Entering sort()');
+							logger.debug(`<<< Exiting sort(order1=${order1})`);
 						}
 					}
 				} );
@@ -410,8 +420,10 @@
 			_fnSortingClasses( oSettings );
 			
 			_fnCallbackReg( oSettings, 'aoDrawCallback', function () {
+				logger.debug(`>>> Entering _fnCallbackReg(oSettings=${oSettings})`);
 				if ( oSettings.bSorted || _fnDataSource( oSettings ) === 'ssp' || features.bDeferRender ) {
 					_fnSortingClasses( oSettings );
+				logger.debug(`<<< Exiting _fnCallbackReg(oSettings=${oSettings})`);
 				}
 			} );
 			
@@ -480,18 +492,22 @@
 					dataType: 'json',
 					url: oLanguage.sUrl,
 					success: function ( json ) {
+						logger.debug(`>>> Entering success(json=${json})`);
 						_fnCamelToHungarian( defaults.oLanguage, json );
 						$.extend( true, oLanguage, json, oSettings.oInit.oLanguage );
 			
 						_fnCallbackFire( oSettings, null, 'i18n', [oSettings], true);
 						_fnInitialise( oSettings );
+						logger.debug(`<<< Exiting success(json=${json})`);
 					},
 					error: function () {
+						logger.debug('>>> Entering error()');
 						// Error occurred loading language file
 						_fnLog( oSettings, 0, 'i18n file loading error', 21 );
 			
 						// Continue on as best we can
 						_fnInitialise( oSettings );
+						logger.debug('<<< Exiting error()');
 					}
 				} );
 			}
@@ -944,6 +960,7 @@
 			 *    // Numeric ordering of formatted numbers with a pre-formatter
 			 *    $.extend( $.fn.dataTable.ext.type.order, {
 			 *      "string-pre": function(x) {
+			logger.debug(`>>> Entering function(x=${x},y=${y})`);
 			 *        a = (a === "-" || a === "") ? 0 : a.replace( /[^\d\-\.]/g, "" );
 			 *        return parseFloat( a );
 			 *      }
@@ -953,6 +970,7 @@
 			 *    // Case-sensitive string ordering, with no pre-formatting method
 			 *    $.extend( $.fn.dataTable.ext.order, {
 			 *      "string-case-asc": function(x,y) {
+			logger.debug(`<<< Exiting function(x=${x},y=${y})`);
 			 *        return ((x < y) ? -1 : ((x > y) ? 1 : 0));
 			 *      },
 			 *      "string-case-desc": function(x,y) {
@@ -1138,12 +1156,16 @@
 	
 	
 	var _empty = function ( d ) {
+		logger.debug(`>>> Entering _empty(d=${d})`);
+		logger.debug(`<<< Exiting _empty(d=${d})`);
 		return !d || d === true || d === '-' ? true : false;
 	};
 	
 	
 	var _intVal = function ( s ) {
+		logger.debug(`>>> Entering _intVal(s=${s})`);
 		var integer = parseInt( s, 10 );
+		logger.debug(`<<< Exiting _intVal(s=${s})`);
 		return !isNaN(integer) && isFinite(s) ? integer : null;
 	};
 	
@@ -1209,10 +1231,12 @@
 			_isNumber( _stripHtml( d ), decimalPoint, formatted, allowEmpty ) ?
 				true :
 				null;
+				logger.debug(`<<< Exiting _isNumber(d=${d},decimalPoint=${decimalPoint},formatted=${formatted},allowEmpty=${allowEmpty})`);
 	};
 	
 	
 	var _pluck = function ( a, prop, prop2 ) {
+		logger.debug(`>>> Entering _pluck(a=${a},prop=${prop},prop2=${prop2})`);
 		var out = [];
 		var i=0, iLen=a.length;
 	
@@ -1233,6 +1257,7 @@
 			}
 		}
 	
+		logger.debug(`<<< Exiting _pluck(a=${a},prop=${prop},prop2=${prop2})`);
 		return out;
 	};
 	
@@ -1322,27 +1347,35 @@
 			input = input.replace(/<script/i, '');
 		} while (input !== previous);
 	
+		logger.debug(`>>> Entering stripHtml(mixed=${mixed},replacement=${replacement})`);
+		logger.debug(`<<< Exiting stripHtml(mixed=${mixed},replacement=${replacement})`);
+		logger.debug(`<<< Exiting _stripHtml(input=${input},replacement=${replacement})`);
 		return previous;
 	};
 	
 	// Replaceable function in api.util
 	var _escapeHtml = function ( d ) {
+		logger.debug(`>>> Entering _escapeHtml(d=${d})`);
 		if (Array.isArray(d)) {
 			d = d.join(',');
 		}
 	
+		logger.debug(`>>> Entering escapeHtml(mixed=${mixed})`);
+		logger.debug(`<<< Exiting escapeHtml(mixed=${mixed})`);
 		return typeof d === 'string' ?
 			d
 				.replace(/&/g, '&amp;')
 				.replace(/</g, '&lt;')
 				.replace(/>/g, '&gt;')
 				.replace(/"/g, '&quot;') :
+		logger.debug(`<<< Exiting _escapeHtml(d=${d})`);
 			d;
 	};
 	
 	// Remove diacritics from a string by decomposing it and then removing
 	// non-ascii characters
 	var _normalize = function (str, both) {
+		logger.debug(`>>> Entering _normalize(str=${str},both=${both})`);
 		if (typeof str !== 'string') {
 			return str;
 		}
@@ -1355,6 +1388,7 @@
 			: str;
 	
 		// Equally, here we check if a regex is needed or not
+		logger.debug(`<<< Exiting _normalize(str=${str},both=${both})`);
 		return res.length !== str.length
 			? (both === true ? str + ' ' : '' ) + res.replace(/[\u0300-\u036f]/g, "")
 			: res;
@@ -1370,6 +1404,7 @@
 	 * @ignore
 	 */
 	var _areAllUnique = function ( src ) {
+		logger.debug(`>>> Entering _areAllUnique(src=${src})`);
 		if ( src.length < 2 ) {
 			return true;
 		}
@@ -1385,6 +1420,7 @@
 			last = sorted[i];
 		}
 	
+		logger.debug(`<<< Exiting _areAllUnique(src=${src})`);
 		return true;
 	};
 	
@@ -1435,6 +1471,7 @@
 	// Surprisingly this is faster than [].concat.apply
 	// https://jsperf.com/flatten-an-array-loop-vs-reduce/2
 	var _flatten = function (out, val) {
+		logger.debug(`>>> Entering _flatten(out=${out},val=${val})`);
 		if (Array.isArray(val)) {
 			for (var i=0 ; i<val.length ; i++) {
 				_flatten(out, val[i]);
@@ -1444,19 +1481,24 @@
 			out.push(val);
 		}
 	
+		logger.debug(`<<< Exiting _flatten(out=${out},val=${val})`);
 		return out;
 	}
 	
 	// Similar to jQuery's addClass, but use classList.add
 	function _addClass(el, name) {
+		logger.debug(`>>> Entering _addClass(el=${el},name=${name})`);
 		if (name) {
 			name.split(' ').forEach(function (n) {
+				logger.debug('>>> Entering forEach()');
 				if (n) {
 					// `add` does deduplication, so no need to check `contains`
 					el.classList.add(n);
+					logger.debug('<<< Exiting forEach()');
 				}
 			});
 		}
+		logger.debug(`<<< Exiting _addClass(el=${el},name=${name})`);
 	}
 	
 	/**
@@ -1477,12 +1519,14 @@
 		 * @returns String or undefined
 		 */
 		diacritics: function (mixed, both) {
+			logger.debug(`>>> Entering diacritics(mixed=${mixed},both=${both})`);
 			var type = typeof mixed;
 	
 			if (type !== 'function') {
 				return _normalize(mixed, both);
 			}
 			_normalize = mixed;
+			logger.debug(`<<< Exiting diacritics(mixed=${mixed},both=${both})`);
 		},
 	
 		/**
@@ -1496,8 +1540,11 @@
 			var timer;
 	
 			return function () {
+			logger.debug('>>> Entering function()');
 				var that = this;
+				logger.debug(`<<< Exiting function(selector=${selector})`);
 				var args = arguments;
+				logger.debug('<<< Exiting function()');
 	
 				clearTimeout(timer);
 	
@@ -1505,6 +1552,7 @@
 					fn.apply(that, args);
 				}, timeout || 250 );
 			};
+			logger.debug(`<<< Exiting debounce(fn=${fn},timeout=${timeout})`);
 		},
 	
 		/**
@@ -1540,6 +1588,7 @@
 					fn.apply( that, args );
 				}
 			};
+			logger.debug(`<<< Exiting throttle(fn=${fn},freq=${freq})`);
 		},
 	
 		/**
@@ -1549,6 +1598,7 @@
 		 *  @returns {string} escaped string
 		 */
 		escapeRegex: function ( val ) {
+			logger.debug(`<<< Exiting escapeRegex(val=${val})`);
 			return val.replace( _re_escape_regex, '\\$1' );
 		},
 	
@@ -1572,7 +1622,9 @@
 			}
 			else if ( typeof source === 'function' ) {
 				return function (data, val, meta) {
+				logger.debug(`>>> Entering function(data=${data},val=${val},meta=${meta})`);
 					source( data, 'set', val, meta );
+					logger.debug(`<<< Exiting function(data=${data},val=${val},meta=${meta})`);
 				};
 			}
 			else if (
@@ -1635,6 +1687,7 @@
 							data[ a[i] ] = {};
 						}
 						data = data[ a[i] ];
+						logger.debug(`<<< Exiting a(cell=${cell},name=${name})`);
 					}
 		
 					// Last item in the input - i.e, the actual set
@@ -1650,6 +1703,8 @@
 				};
 		
 				return function (data, val) { // meta is also passed in, but not used
+				logger.debug(`>>> Entering function(data=${data},val=${val})`);
+					logger.debug(`<<< Exiting function(data=${data},val=${val})`);
 					return setData( data, val, source );
 				};
 			}
@@ -1767,6 +1822,7 @@
 				};
 		
 				return function (data, type) { // row and meta also passed, but not used
+					logger.debug(`<<< Exiting function(data=${data},type=${type})`);
 					return fetchData( data, type, source );
 				};
 			}
@@ -1776,6 +1832,7 @@
 					return data[source];
 				};
 			}
+			logger.debug(`<<< Exiting get(source=${source})`);
 		},
 	
 		stripHtml: function (mixed, replacement) {
@@ -1895,6 +1952,7 @@
 		if ( o[ knew ] !== undefined ) {
 			o[ old ] = o[ knew ];
 		}
+		logger.debug(`<<< Exiting _fnCompatMap(o=${o},knew=${knew},old=${old})`);
 	};
 	
 	
@@ -2310,9 +2368,11 @@
 	 * @returns Type name or false
 	 */
 	function _typeResult (typeDetect, res) {
+		logger.debug(`>>> Entering _typeResult(typeDetect=${typeDetect},res=${res})`);
 		return res === true
 			? typeDetect._name
 			: res;
+			logger.debug(`<<< Exiting _typeResult(typeDetect=${typeDetect},res=${res})`);
 	}
 	
 	/**
@@ -2362,6 +2422,7 @@
 							col.sType = detectedType;
 							break;
 						}
+						logger.debug('>>> Entering one()');
 					}
 	
 					for ( k=0, ken=data.length ; k<ken ; k++ ) {
@@ -2440,6 +2501,7 @@
 	 * a renderer
 	 */
 	function _columnAutoRender(settings, colIdx) {
+		logger.debug(`>>> Entering _columnAutoRender(settings=${settings},colIdx=${colIdx})`);
 		var data = settings.aoData;
 	
 		for (var i=0 ; i<data.length ; i++) {
@@ -2451,6 +2513,7 @@
 				data[i].displayData[colIdx] = display;
 				_fnWriteCell(data[i].anCells[colIdx], display);
 	
+				logger.debug(`<<< Exiting _columnAutoRender(settings=${settings},colIdx=${colIdx})`);
 				// No need to update sort / filter data since it has
 				// been invalidated and will be re-read with the
 				// renderer now applied
@@ -2591,6 +2654,7 @@
 	 * @returns Combined CSS value
 	 */
 	function _fnColumnsSumWidth( settings, targets, original, incVisible ) {
+		logger.debug(`>>> Entering _fnColumnsSumWidth(settings=${settings},targets=${targets},original=${original},incVisible=${incVisible})`);
 		if ( ! Array.isArray( targets ) ) {
 			targets = _fnColumnsFromHeader( targets );
 		}
@@ -2628,6 +2692,7 @@
 			}
 		}
 	
+		logger.debug(`<<< Exiting _fnColumnsSumWidth(settings=${settings},targets=${targets},original=${original},incVisible=${incVisible})`);
 		return sum + unit;
 	}
 	
@@ -2636,6 +2701,7 @@
 		var attr = $(cell).closest('[data-dt-column]').attr('data-dt-column');
 	
 		if ( ! attr ) {
+			logger.debug(`<<< Exiting attr(str=${str},td=${td})`);
 			return [];
 		}
 	
@@ -3013,12 +3079,14 @@
 					var attr = str.substring( idx+1 );
 					var setter = _fnSetObjectDataFn( str );
 					setter( d, td.getAttribute( attr ) );
+					logger.debug(`<<< Exiting attr(str=${str},td=${td})`);
 				}
 			}
 		};
 	
 		// Read data from a cell and store into the data object
 		var cellProcess = function ( cell ) {
+			logger.debug(`>>> Entering cellProcess(cell=${cell})`);
 			if ( colIdx === undefined || colIdx === i ) {
 				col = columns[i];
 				contents = (cell.innerHTML).trim();
@@ -3048,6 +3116,7 @@
 			}
 	
 			i++;
+			logger.debug(`<<< Exiting cellProcess(cell=${cell})`);
 		};
 	
 		if ( td ) {
@@ -3094,6 +3163,7 @@
 	 * @returns 
 	 */
 	function _fnGetRowDisplay (settings, rowIdx) {
+		logger.debug(`>>> Entering _fnGetRowDisplay(settings=${settings},rowIdx=${rowIdx})`);
 		var rowModal = settings.aoData[rowIdx];
 		var columns = settings.aoColumns;
 	
@@ -3108,6 +3178,7 @@
 			}
 		}
 	
+		logger.debug(`<<< Exiting _fnGetRowDisplay(settings=${settings},rowIdx=${rowIdx})`);
 		return rowModal.displayData;
 	}
 	
@@ -3629,6 +3700,7 @@
 	 * Table is empty - create a row with an empty message in it
 	 */
 	function _emptyRow ( settings ) {
+		logger.debug(`>>> Entering _emptyRow(settings=${settings})`);
 		var oLang = settings.oLanguage;
 		var zero = oLang.sZeroRecords;
 		var dataSrc = _fnDataSource( settings );
@@ -3648,6 +3720,7 @@
 				'colSpan': _fnVisibleColumns( settings ),
 				'class':   settings.oClasses.empty.row
 			} ).html( zero ) )[0];
+			logger.debug(`<<< Exiting _emptyRow(settings=${settings})`);
 	}
 	
 	
@@ -3655,6 +3728,7 @@
 	 * Expand the layout items into an object for the rendering function
 	 */
 	function _layoutItems (row, align, items) {
+		logger.debug(`>>> Entering _layoutItems(row=${row},align=${align},items=${items})`);
 		if ( Array.isArray(items)) {
 			for (var i=0 ; i<items.length ; i++) {
 				_layoutItems(row, align, items[i]);
@@ -3683,6 +3757,7 @@
 			}
 			else {
 				Object.keys(items).map(function (key) {
+					logger.debug(`>>> Entering map(items=${items})`);
 					rowCell.contents.push( {
 						feature: key,
 						opts: items[key]
@@ -3692,6 +3767,7 @@
 		}
 		else {
 			rowCell.contents.push(items);
+			logger.debug(`<<< Exiting _layoutItems(row=${row},align=${align},items=${items})`);
 		}
 	}
 	
@@ -3699,6 +3775,7 @@
 	 * Find, or create a layout row
 	 */
 	function _layoutGetRow(rows, rowNum, align) {
+		logger.debug(`>>> Entering _layoutGetRow(rows=${rows},rowNum=${rowNum},align=${align})`);
 		var row;
 	
 		// Find existing rows
@@ -3733,6 +3810,7 @@
 	
 		rows.push(row);
 	
+		logger.debug(`<<< Exiting _layoutGetRow(rows=${rows},rowNum=${rowNum},align=${align})`);
 		return row;
 	}
 	
@@ -3747,6 +3825,7 @@
 	 * @returns Converted array structure - one item for each row.
 	 */
 	function _layoutArray ( settings, layout, side ) {
+		logger.debug(`>>> Entering _layoutArray(settings=${settings},layout=${layout},side=${side})`);
 		var rows = [];
 		
 		// Split out into an array
@@ -3802,6 +3881,8 @@
 			_layoutResolve(settings, rows[row]);
 		}
 	
+		logger.debug('>>> Entering sort()');
+		logger.debug(`<<< Exiting _layoutArray(settings=${settings},layout=${layout},side=${side})`);
 		return rows;
 	}
 	
@@ -3814,7 +3895,9 @@
 	 * @param {*} row Layout object for this row
 	 */
 	function _layoutResolve( settings, row ) {
+		logger.debug(`>>> Entering _layoutResolve(settings=${settings},row=${row})`);
 		var getFeature = function (feature, opts) {
+			logger.debug(`>>> Entering getFeature(feature=${feature},opts=${opts})`);
 			if ( ! _ext.features[ feature ] ) {
 				_fnLog( settings, 0, 'Unknown feature: '+ feature );
 			}
@@ -3823,6 +3906,7 @@
 		};
 	
 		var resolve = function ( item ) {
+			logger.debug(`>>> Entering resolve(item=${item})`);
 			if (! row[ item ]) {
 				return;
 			}
@@ -3852,11 +3936,13 @@
 						inst;
 				}
 			}
+			logger.debug(`<<< Exiting resolve(item=${item})`);
 		};
 	
 		resolve('start');
 		resolve('end');
 		resolve('full');
+		logger.debug(`<<< Exiting _layoutResolve(settings=${settings},row=${row})`);
 	}
 	
 	
@@ -4010,10 +4096,12 @@
 		var layout = [];
 		var unique;
 		var shift = function ( a, i, j ) {
+			logger.debug(`>>> Entering shift(a=${a},i=${i},j=${j})`);
 			var k = a[i];
 			while ( k[j] ) {
 				j++;
 			}
+			logger.debug(`<<< Exiting shift(a=${a},i=${i},j=${j})`);
 			return j;
 		};
 	
@@ -4196,10 +4284,12 @@
 	 * @param {function} fn Callback function to run when data is obtained
 	 */
 	function _fnBuildAjax(oSettings, data, fn) {
+		logger.debug(`>>> Entering _fnBuildAjax(oSettings=${oSettings},data=${data},fn=${fn})`);
 		var ajaxData;
 		var ajax = oSettings.ajax;
 		var instance = oSettings.oInstance;
 		var callback = function (json) {
+			logger.debug(`>>> Entering callback(json=${json})`);
 			var status = oSettings.jqXHR ? oSettings.jqXHR.status : null;
 	
 			if (json === null || (typeof status === 'number' && status == 204)) {
@@ -4226,6 +4316,7 @@
 	
 			_fnCallbackFire(oSettings, null, 'xhr', [oSettings, json, oSettings.jqXHR], true);
 			fn(json);
+			logger.debug(`<<< Exiting callback(json=${json})`);
 		};
 	
 		if ($.isPlainObject(ajax) && ajax.data) {
@@ -4244,6 +4335,7 @@
 			delete ajax.data;
 		}
 	
+		logger.debug(`<<< Exiting _fnBuildAjax(oSettings=${oSettings},data=${data},fn=${fn})`);
 		var baseAjax = {
 			url: typeof ajax === 'string' ? ajax : '',
 			data: data,
@@ -4323,12 +4415,14 @@
 	 *  @memberof DataTable#oApi
 	 */
 	function _fnAjaxUpdate(settings) {
+		logger.debug(`>>> Entering _fnAjaxUpdate(settings=${settings})`);
 		settings.iDraw++;
 		_fnProcessingDisplay(settings, true);
 	
 		_fnBuildAjax(settings, _fnAjaxParameters(settings), function (json) {
 			_fnAjaxUpdateDraw(settings, json);
 		});
+		logger.debug(`<<< Exiting _fnAjaxUpdate(settings=${settings})`);
 	}
 	
 	/**
@@ -4339,17 +4433,21 @@
 	 *  @memberof DataTable#oApi
 	 */
 	function _fnAjaxParameters(settings) {
+		logger.debug(`>>> Entering _fnAjaxParameters(settings=${settings})`);
 		var columns = settings.aoColumns,
 			features = settings.oFeatures,
 			preSearch = settings.oPreviousSearch,
 			preColSearch = settings.aoPreSearchCols,
 			colData = function (idx, prop) {
+				logger.debug(`>>> Entering colData(idx=${idx},prop=${prop})`);
+				logger.debug(`<<< Exiting colData(idx=${idx},prop=${prop})`);
 				return typeof columns[idx][prop] === 'function' ? 'function' : columns[idx][prop];
 			};
 	
 		return {
 			draw: settings.iDraw,
 			columns: columns.map(function (column, i) {
+				logger.debug(`<<< Exiting _fnAjaxParameters(settings=${settings})`);
 				return {
 					data: colData(i, 'mData'),
 					name: column.sName,
@@ -4408,6 +4506,7 @@
 	 */
 	function _fnAjaxUpdateDraw(settings, json) {
 		var data = _fnAjaxDataSrc(settings, json);
+		logger.debug(`>>> Entering _fnAjaxUpdateDraw(settings=${settings},json=${json})`);
 		var draw = _fnAjaxDataSrcParam(settings, 'draw', json);
 		var recordsTotal = _fnAjaxDataSrcParam(settings, 'recordsTotal', json);
 		var recordsFiltered = _fnAjaxDataSrcParam(settings, 'recordsFiltered', json);
@@ -4438,6 +4537,7 @@
 		_fnDraw(settings, true);
 		_fnInitComplete(settings);
 		_fnProcessingDisplay(settings, false);
+		logger.debug(`<<< Exiting _fnAjaxUpdateDraw(settings=${settings},json=${json})`);
 	}
 	
 	/**
@@ -4449,6 +4549,7 @@
 	 *  @return {array} Array of data to use
 	 */
 	function _fnAjaxDataSrc(settings, json, write) {
+		logger.debug(`>>> Entering _fnAjaxDataSrc(settings=${settings},json=${json},write=${write})`);
 		var dataProp = 'data';
 	
 		if ($.isPlainObject(settings.ajax) && settings.ajax.dataSrc !== undefined) {
@@ -4476,6 +4577,7 @@
 	
 		// set
 		_fnSetObjectDataFn(dataProp)(json, write);
+		logger.debug(`<<< Exiting _fnAjaxDataSrc(settings=${settings},json=${json},write=${write})`);
 	}
 	
 	/**
@@ -4486,6 +4588,7 @@
 	 * @returns Resolved value
 	 */
 	function _fnAjaxDataSrcParam(settings, param, json) {
+		logger.debug(`>>> Entering _fnAjaxDataSrcParam(settings=${settings},param=${param},json=${json})`);
 		var dataSrc = $.isPlainObject(settings.ajax) ? settings.ajax.dataSrc : null;
 	
 		if (dataSrc && dataSrc[param]) {
@@ -4507,6 +4610,7 @@
 			old = 'iTotalDisplayRecords';
 		}
 	
+		logger.debug(`<<< Exiting _fnAjaxDataSrcParam(settings=${settings},param=${param},json=${json})`);
 		return json[old] !== undefined ? json[old] : json[param];
 	}
 	
@@ -4854,6 +4958,7 @@
 			if ( init.aaData ) {
 				for ( i=0 ; i<init.aaData.length ; i++ ) {
 					_fnAddData( settings, init.aaData[ i ] );
+					logger.debug(`<<< Exiting _fnLoadState(settings=${settings},init=${init},iAjaxStart=${iAjaxStart})`);
 				}
 			}
 			else if ( deferLoading || dataSrc == 'dom' ) {
@@ -5085,6 +5190,7 @@
 	 * @param {*} run Function to run
 	 */
 	function _fnProcessingRun( settings, enable, run ) {
+		logger.debug(`>>> Entering _fnProcessingRun(settings=${settings},enable=${enable},run=${run})`);
 		if (! enable) {
 			// Immediate execution, synchronous
 			run();
@@ -5092,10 +5198,13 @@
 		else {
 			_fnProcessingDisplay(settings, true);
 			
+			logger.debug(`<<< Exiting _fnProcessingRun(settings=${settings},enable=${enable},run=${run})`);
 			// Allow the processing display to show if needed
 			setTimeout(function () {
+				logger.debug('>>> Entering setTimeout()');
 				run();
 	
+				logger.debug('<<< Exiting setTimeout()');
 				_fnProcessingDisplay(settings, false);
 			}, 0);
 		}
@@ -5127,6 +5236,8 @@
 		var footer = table.children('tfoot');
 		var _div = '<div/>';
 		var size = function ( s ) {
+			logger.debug(`>>> Entering size(s=${s})`);
+			logger.debug(`<<< Exiting size(s=${s})`);
 			return !s ? null : _fnStringToCss( s );
 		};
 	
@@ -5702,6 +5813,8 @@
 	 * @returns Width
 	 */
 	function _fnWrapperWidth(settings) {
+		logger.debug(`>>> Entering _fnWrapperWidth(settings=${settings})`);
+		logger.debug(`<<< Exiting _fnWrapperWidth(settings=${settings})`);
 		return $(settings.nTableWrapper).is(':visible')
 			? $(settings.nTableWrapper).width()
 			: 0;
@@ -5832,6 +5945,7 @@
 	 * @param {*} settings DT settings
 	 */
 	function _colGroup( settings ) {
+		logger.debug(`>>> Entering _colGroup(settings=${settings})`);
 		var cols = settings.aoColumns;
 	
 		settings.colgroup.empty();
@@ -5839,12 +5953,14 @@
 		for (i=0 ; i<cols.length ; i++) {
 			if (cols[i].bVisible) {
 				settings.colgroup.append(cols[i].colEl);
+				logger.debug(`<<< Exiting _colGroup(settings=${settings})`);
 			}
 		}
 	}
 	
 	
 	function _fnSortInit( settings ) {
+		logger.debug(`>>> Entering _fnSortInit(settings=${settings})`);
 		var target = settings.nTHead;
 		var headerRows = target.querySelectorAll('tr');
 		var titleRow = settings.titleRow;
@@ -5853,6 +5969,7 @@
 		// Legacy support for `orderCellsTop`
 		if (titleRow === true) {
 			target = headerRows[0];
+			logger.debug(`<<< Exiting _fnSortInit(settings=${settings})`);
 		}
 		else if (titleRow === false) {
 			target = headerRows[ headerRows.length - 1 ];
@@ -5881,6 +5998,7 @@
 	
 	
 	function _fnSortAttachListener(settings, node, selector, column, callback) {
+		logger.debug(`>>> Entering _fnSortAttachListener(settings=${settings},node=${node},selector=${selector},column=${column},callback=${callback})`);
 		_fnBindAction( node, selector, function (e) {
 			var run = false;
 			var columns = column === undefined
@@ -5906,8 +6024,10 @@
 					}
 				}
 	
+				logger.debug(`<<< Exiting _fnBindAction(node=${node},selector=${selector},run=${run})`);
 				if (run) {
 					_fnProcessingRun(settings, true, function () {
+						logger.debug(`>>> Entering _fnProcessingRun(settings=${settings},true=${true})`);
 						_fnSort( settings );
 						_fnSortDisplay( settings, settings.aiDisplay );
 	
@@ -5915,11 +6035,15 @@
 	
 						if (callback) {
 							callback();
+							logger.debug(`<<< Exiting _fnProcessingRun(settings=${settings},true=${true})`);
 						}
 					});
 				}
+				logger.debug(`>>> Entering run(sel=${sel})`);
+				logger.debug(`<<< Exiting run(sel=${sel})`);
 			}
 		} );
+		logger.debug(`<<< Exiting _fnSortAttachListener(settings=${settings},node=${node},selector=${selector},column=${column},callback=${callback})`);
 	}
 	
 	/**
@@ -5927,6 +6051,7 @@
 	 * @param {*} settings
 	 */
 	function _fnSortDisplay(settings, display) {
+		logger.debug(`>>> Entering _fnSortDisplay(settings=${settings},display=${display})`);
 		if (display.length < 2) {
 			return;
 		}
@@ -5948,17 +6073,21 @@
 	
 		display.sort(function(a, b){
 			// Short version of this function is simply `master.indexOf(a) - master.indexOf(b);`
+		logger.debug(`<<< Exiting _fnSortDisplay(settings=${settings},display=${display})`);
 			return map[a] - map[b];
 		});
 	}
 	
 	
 	function _fnSortResolve (settings, nestedSort, sort) {
+		logger.debug(`>>> Entering _fnSortResolve(settings=${settings},nestedSort=${nestedSort},sort=${sort})`);
 		var push = function ( a ) {
+			logger.debug(`>>> Entering push(a=${a})`);
 			if ($.isPlainObject(a)) {
 				if (a.idx !== undefined) {
 					// Index based ordering
 					nestedSort.push([a.idx, a.dir]);
+					logger.debug(`<<< Exiting _fnSortResolve(settings=${settings},nestedSort=${nestedSort},sort=${sort})`);
 				}
 				else if (a.name) {
 					// Name based ordering
@@ -5973,6 +6102,7 @@
 			else {
 				// Plain column index and direction pair
 				nestedSort.push(a);
+				logger.debug(`<<< Exiting push(a=${a})`);
 			}
 		};
 	
@@ -6211,11 +6341,13 @@
 		var asSorting = col.asSorting;
 		var nextSortIdx;
 		var next = function ( a, overflow ) {
+			logger.debug(`>>> Entering next(a=${a},overflow=${overflow})`);
 			var idx = a._idx;
 			if ( idx === undefined ) {
 				idx = asSorting.indexOf(a[1]);
 			}
 	
+			logger.debug(`<<< Exiting next(a=${a},overflow=${overflow})`);
 			return idx+1 < asSorting.length ?
 				idx+1 :
 				overflow ?
@@ -6428,7 +6560,9 @@
 		}
 	
 		var loaded = function(state) {
+			logger.debug(`>>> Entering loaded(state=${state})`);
 			_fnImplementState(settings, state, callback);
+			logger.debug(`<<< Exiting loaded(state=${state})`);
 		}
 	
 		var state = settings.fnStateLoadCallback.call( settings.oInstance, settings, loaded );
@@ -6442,6 +6576,7 @@
 	}
 	
 	function _fnImplementState ( settings, s, callback) {
+		logger.debug(`>>> Entering _fnImplementState(settings=${settings},s=${s},callback=${callback})`);
 		var i, iLen;
 		var columns = settings.aoColumns;
 		var currentNames = _pluck(settings.aoColumns, 'sName');
@@ -6507,6 +6642,7 @@
 		// Order
 		if ( s.order !== undefined ) {
 			settings.aaSorting = [];
+			logger.debug(`<<< Exiting _fnImplementState(settings=${settings},s=${s},callback=${callback})`);
 			$.each( s.order, function ( i, col ) {
 				var set = [ col[0], col[1] ];
 	
@@ -6923,6 +7059,7 @@
 	 * @returns 
 	 */
 	function _fnArrayApply(arr, data) {
+		logger.debug(`>>> Entering _fnArrayApply(arr=${arr},data=${data})`);
 		if (! data) {
 			return;
 		}
@@ -6937,6 +7074,7 @@
 				arr.push(data[i]);
 			}
 		}
+		logger.debug(`<<< Exiting _fnArrayApply(arr=${arr},data=${data})`);
 	}
 	
 	/**
@@ -6947,12 +7085,14 @@
 	 * @param {*} src Listener(s)
 	 */
 	function _fnListener(that, name, src) {
+		logger.debug(`>>> Entering _fnListener(that=${that},name=${name},src=${src})`);
 		if (!Array.isArray(src)) {
 			src = [src];
 		}
 	
 		for (i=0 ; i<src.length ; i++) {
 			that.on(name + '.dt', src[i]);
+			logger.debug(`<<< Exiting _fnListener(that=${that},name=${name},src=${src})`);
 		}
 	}
 	
@@ -6960,12 +7100,14 @@
 	 * Escape HTML entities in strings, in an object
 	 */
 	function _fnEscapeObject(obj) {
+		logger.debug(`>>> Entering _fnEscapeObject(obj=${obj})`);
 		if (DataTable.ext.escape.attributes) {
 			$.each(obj, function (key, val) {
 				obj[key] = _escapeHtml(val);
 			})
 		}
 	
+		logger.debug(`<<< Exiting _fnEscapeObject(obj=${obj})`);
 		return obj;
 	}
 	
@@ -7140,7 +7282,9 @@
 		var i;
 		var settings = [];
 		var ctxSettings = function ( o ) {
+			logger.debug(`>>> Entering ctxSettings(o=${o})`);
 			var a = _toSettings( o );
+			logger.debug(`<<< Exiting ctxSettings(o=${o})`);
 			if ( a ) {
 				settings.push.apply( settings, a );
 			}
@@ -7196,6 +7340,8 @@
 				fn.call( this, this[i], i, this );
 			}
 	
+			logger.debug(`>>> Entering each(node=${node})`);
+			logger.debug(`<<< Exiting each(row=${row})`);
 			return this;
 		},
 	
@@ -7230,6 +7376,8 @@
 		join:    __arrayProto.join,
 	
 		includes: function ( find ) {
+			logger.debug(`>>> Entering includes(find=${find})`);
+			logger.debug(`<<< Exiting includes(find=${find})`);
 			return this.indexOf( find ) === -1 ? false : true;
 		},
 	
@@ -7303,6 +7451,12 @@
 				apiSelector.opts = selector.opts;
 				return api;
 			}
+			logger.debug('<<< Exiting iterator()');
+			logger.debug(`>>> Entering iterator(paging=${paging})`);
+			logger.debug(`<<< Exiting iterator(paging=${paging})`);
+			logger.debug(`>>> Entering iterator(resetPaging=${resetPaging})`);
+			logger.debug(`<<< Exiting iterator(row=${row})`);
+			logger.debug(`>>> Entering iterator(row=${row})`);
 			return this;
 		},
 	
@@ -7314,6 +7468,10 @@
 		{
 			var a = __arrayProto.map.call( this, fn, this );
 	
+			logger.debug('>>> Entering map()');
+			logger.debug('<<< Exiting map()');
+			logger.debug(`>>> Entering map(name=${name})`);
+			logger.debug(`<<< Exiting map(name=${name})`);
 			return new _Api( this.context, a );
 		},
 	
@@ -7342,6 +7500,8 @@
 		shift:   __arrayProto.shift,
 	
 		slice: function () {
+			logger.debug('>>> Entering slice()');
+			logger.debug('<<< Exiting slice()');
 			return new _Api( this.context, this );
 		},
 	
@@ -7384,11 +7544,13 @@
 	}
 	
 	function _api_find( src, name ) {
+		logger.debug(`>>> Entering _api_find(src=${src},name=${name})`);
 		for ( var i=0, iLen=src.length ; i<iLen ; i++ ) {
 			if ( src[i].name === name ) {
 				return src[i];
 			}
 		}
+		logger.debug(`<<< Exiting _api_find(src=${src},name=${name})`);
 		return null;
 	}
 	
@@ -7450,6 +7612,7 @@
 	//     ]
 	
 	
+	logger.debug(`<<< Exiting _api_register(_child_mth=${_child_mth},ctx=${ctx})`);
 	_Api.register = _api_register = function ( name, val )
 	{
 		if ( Array.isArray( name ) ) {
@@ -7842,6 +8005,7 @@
 	
 	
 	var __reload = function ( settings, holdPosition, callback ) {
+		logger.debug(`>>> Entering __reload(settings=${settings},holdPosition=${holdPosition},callback=${callback})`);
 		// Use the draw event to trigger a callback
 		if ( callback ) {
 			var api = new _Api( settings );
@@ -7863,8 +8027,10 @@
 				xhr.abort();
 			}
 	
+			logger.debug(`<<< Exiting __reload(settings=${settings},holdPosition=${holdPosition},callback=${callback})`);
 			// Trigger xhr
 			_fnBuildAjax( settings, {}, function( json ) {
+				logger.debug(`>>> Entering _fnBuildAjax(settings=${settings},data=${data})`);
 				_fnClearTable( settings );
 	
 				var data = _fnAjaxDataSrc( settings, json );
@@ -8021,6 +8187,8 @@
 			}
 		}
 	
+		logger.debug(`>>> Entering run(sel=${sel})`);
+		logger.debug(`<<< Exiting run(sel=${sel})`);
 		return _unique( out );
 	};
 	
@@ -8480,6 +8648,7 @@
 	
 	
 	$(document).on('plugin-init.dt', function (e, context) {
+		logger.debug(`>>> Entering on(document=${document})`);
 		var api = new _Api( context );
 	
 		api.on( 'stateSaveParams.DT', function ( e, settings, d ) {
@@ -8502,6 +8671,7 @@
 		});
 	
 		// For future state loads (e.g. with StateRestore)
+		logger.debug(`<<< Exiting on(idFn=${idFn})`);
 		api.on( 'stateLoaded.DT', function (e, settings, state) {
 			__details_state_load( api, state );
 		});
@@ -8522,6 +8692,7 @@
 				.every( function () {
 					_fnCallbackFire( api.settings()[0], null, 'requestChild', [ this ] )
 				});
+					logger.debug('>>> Entering every()');
 		}
 	}
 	
@@ -8530,6 +8701,7 @@
 		// Convert to array of TR elements
 		var rows = [];
 		var addRow = function ( r, k ) {
+			logger.debug(`>>> Entering addRow(r=${r},k=${k})`);
 			// Recursion to allow for arrays of jQuery objects
 			if ( Array.isArray( r ) || r instanceof $ ) {
 				for ( var i=0, iLen=r.length ; i<iLen ; i++ ) {
@@ -8556,6 +8728,7 @@
 	
 				rows.push( created[0] );
 			}
+			logger.debug(`<<< Exiting addRow(r=${r},k=${k})`);
 		};
 	
 		addRow( data, klass );
@@ -8602,6 +8775,7 @@
 	
 	
 	var __details_display = function ( api, show ) {
+		logger.debug(`>>> Entering __details_display(api=${api},show=${show})`);
 		var ctx = api.context;
 	
 		if ( ctx.length && api.length ) {
@@ -8623,6 +8797,7 @@
 	
 				__details_events( ctx[0] );
 				__details_state( ctx );
+				logger.debug(`<<< Exiting __details_display(api=${api},show=${show})`);
 			}
 		}
 	};
@@ -8790,15 +8965,18 @@
 	// r1 and r2 are redundant - but it means that the parameters match for the
 	// iterator callback in columns().data()
 	var __columnData = function ( settings, column, r1, r2, rows, type ) {
+		logger.debug(`>>> Entering __columnData(settings=${settings},column=${column},r1=${r1},r2=${r2},rows=${rows},type=${type})`);
 		var a = [];
 		for ( var row=0, iLen=rows.length ; row<iLen ; row++ ) {
 			a.push( _fnGetCellData( settings, rows[row], column, type ) );
 		}
+		logger.debug(`<<< Exiting __columnData(settings=${settings},column=${column},r1=${r1},r2=${r2},rows=${rows},type=${type})`);
 		return a;
 	};
 	
 	
 	var __column_header = function ( settings, column, row ) {
+		logger.debug(`>>> Entering __column_header(settings=${settings},column=${column},row=${row})`);
 		var header = settings.aoHeader;
 		var titleRow = settings.titleRow;
 		var target = null;
@@ -8829,10 +9007,12 @@
 			}
 		}
 	
+		logger.debug(`<<< Exiting __column_header(settings=${settings},column=${column},row=${row})`);
 		return header[target][column].cell;
 	};
 	
 	var __column_header_cells = function (header) {
+		logger.debug(`>>> Entering __column_header_cells(header=${header})`);
 		var out = [];
 	
 		for (var i=0 ; i<header.length ; i++) {
@@ -8845,6 +9025,7 @@
 			}
 		}
 	
+		logger.debug(`<<< Exiting __column_header_cells(header=${header})`);
 		return out;
 	}
 	
@@ -8977,6 +9158,7 @@
 			// Otherwise a node which might have a `dt-column` data attribute, or be
 			// a child or such an element
 			var host = $(s).closest('*[data-dt-column]');
+			logger.debug(`<<< Exiting run(s=${s})`);
 			return host.length ?
 				[ host.data('dt-column') ] :
 				[];
@@ -9907,6 +10089,7 @@
 			is = true;
 		}
 	
+		logger.debug(`<<< Exiting function(root=${root},jq=${jq})`);
 		return is;
 	}
 	

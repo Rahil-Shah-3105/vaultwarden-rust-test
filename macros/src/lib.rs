@@ -22,6 +22,8 @@ fn impl_derive_uuid_macro(ast: &DeriveInput) -> TokenStream {
                     Ok(Self(param.to_string()))
                 } else {
                     Err(())
+				log::debug!(">>> Entering from_param(param={})", param);
+				log::debug!("<<< Exiting from_param(param={})", param);
                 }
             }
         }
@@ -46,8 +48,10 @@ fn impl_derive_safestring_macro(ast: &DeriveInput) -> TokenStream {
             #[inline(always)]
             fn from_param(param: &'r str) -> Result<Self, Self::Error> {
                 if param.chars().all(|c| matches!(c, 'a'..='z' | 'A'..='Z' |'0'..='9' | '-')) {
+					log::debug!(">>> Entering from_param(param={})", param);
                     Ok(Self(param.to_string()))
                 } else {
+					log::debug!("<<< Exiting from_param(param={})", param);
                     Err(())
                 }
             }

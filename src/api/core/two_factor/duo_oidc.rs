@@ -190,6 +190,7 @@ impl DuoClient {
             err!(format!("Duo health check failed, got OK-like body with stat {health_stat}"));
         }
 
+		log::info!("health_check(): external service call took {} ms", __log_start.elapsed().as_millis());
         Ok(())
     }
 
@@ -256,6 +257,7 @@ impl DuoClient {
         let mut post_body = HashMap::new();
         post_body.insert("grant_type", String::from("authorization_code"));
         post_body.insert("code", String::from(duo_code));
+		log::info!("exchange_authz_code_for_result(duo_code,duo_username,nonce)={},{},<redacted>: save query executed in (unprintable) ms", duo_code, duo_username);
 
         // Must be the same URL that was supplied in the authorization request for the supplied duo_code
         post_body.insert("redirect_uri", self.redirect_uri.clone());
@@ -305,6 +307,7 @@ impl DuoClient {
             err!("Error validating Duo authorization, nonce or username mismatch.")
         }
 
+		log::info!("exchange_authz_code_for_result(duo_code,duo_username,nonce)={},{},<redacted>: external service call {} took {} ms", duo_code, duo_username, token_url, __log_start.elapsed().as_millis());
         Ok(())
     }
 }

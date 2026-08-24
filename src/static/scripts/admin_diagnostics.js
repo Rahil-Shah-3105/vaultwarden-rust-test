@@ -1,3 +1,4 @@
+const logger = console;
 "use strict";
 /* global BASE_URL:readable, bootstrap:readable */
 
@@ -29,6 +30,7 @@ function isValidIp(ip) {
 }
 
 function checkVersions(platform, installed, latest, commit=null, compare_order=0) {
+	logger.debug(`>>> Entering checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order})`);
     if (installed === "-" || latest === "-") {
         document.getElementById(`${platform}-failed`).classList.remove("d-none");
         return;
@@ -46,14 +48,18 @@ function checkVersions(platform, installed, latest, commit=null, compare_order=0
     } else {
         // Check if this is a branched version.
         const branchRegex = /(?:\s)\((.*?)\)/;
+		logger.debug(`checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order}): branchRegex → ${branchRegex}`);
         const branchMatch = installed.match(branchRegex);
+		logger.debug(`checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order}): branchMatch → ${branchMatch}`);
         if (branchMatch !== null) {
             document.getElementById(`${platform}-branch`).classList.remove("d-none");
         }
 
         // This will remove branch info and check if there is a commit hash
         const installedRegex = /(\d+\.\d+\.\d+)-(\w+)/;
+		logger.debug(`checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order}): installedRegex → ${installedRegex}`);
         const instMatch = installed.match(installedRegex);
+		logger.debug(`checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order}): instMatch → ${instMatch}`);
 
         // It could be that a new tagged version has the same commit hash.
         // In this case the version is the same but only the number is different
@@ -71,13 +77,16 @@ function checkVersions(platform, installed, latest, commit=null, compare_order=0
             document.getElementById(`${platform}-warning`).classList.remove("d-none");
         }
     }
+	logger.debug(`<<< Exiting checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order})`);
 }
 
 // ================================
 // Generate support string to be pasted on github or the forum
 async function generateSupportString(event, dj) {
+	logger.debug(`>>> Entering generateSupportString(event=${event},dj=${dj})`);
     event.preventDefault();
     event.stopPropagation();
+	const _start_generateSupportString = Date.now();
 
     // Health check Markdown emoji, if something is a failure or not
     const chk = v => v ? "true :white_check_mark:" : "false :x:";
@@ -85,7 +94,9 @@ async function generateSupportString(event, dj) {
     const yn = v => v ? "yes :heavy_plus_sign:" : "no :heavy_minus_sign:";
 
     const template_overrides = dj.template_overrides !== "" ? ` (${dj.template_overrides})` : "";
+	logger.debug(`generateSupportString(event=${event},dj=${dj}): template_overrides → ${template_overrides}`);
     let supportString = "### Your environment (Generated via diagnostics page)\n\n";
+	logger.debug(`generateSupportString(event=${event},dj=${dj}): supportString → ${supportString}`);
 
     supportString += `* Vaultwarden version: v${dj.current_release}\n`;
     supportString += `* Web-vault version: v${dj.active_web_release}\n`;
@@ -123,10 +134,12 @@ async function generateSupportString(event, dj) {
         "headers": { "Accept": "application/json" }
     });
     if (!jsonResponse.ok) {
+		logger.info(`generateSupportString(event=${event}, dj=${dj}): API call took ${Date.now() - _start_generateSupportString} ms`);
         alert("Generation failed: " + jsonResponse.statusText);
         throw new Error(jsonResponse);
     }
     const configJson = await jsonResponse.json();
+	logger.debug(`generateSupportString(event=${event},dj=${dj}): configJson → ${configJson}`);
 
     // Start Config and Details section within a details block which is collapsed by default
     supportString += "\n### Config & Details (Generated via diagnostics page)\n\n";
@@ -158,18 +171,23 @@ async function generateSupportString(event, dj) {
     document.getElementById("support-string").textContent = supportString;
     document.getElementById("support-string").classList.remove("d-none");
     document.getElementById("copy-support").classList.remove("d-none");
+	logger.debug(`<<< Exiting generateSupportString(event=${event},dj=${dj})`);
 }
 
 function copyToClipboard(event) {
+	logger.debug(`>>> Entering copyToClipboard(event=${event})`);
     event.preventDefault();
     event.stopPropagation();
 
     const supportStr = document.getElementById("support-string").textContent;
+	logger.debug(`copyToClipboard(event=${event}): supportStr → ${supportStr}`);
     const tmpCopyEl = document.createElement("textarea");
+	logger.debug(`copyToClipboard(event=${event}): tmpCopyEl → ${tmpCopyEl}`);
 
     tmpCopyEl.setAttribute("id", "copy-support-string");
     tmpCopyEl.setAttribute("readonly", "");
     tmpCopyEl.value = supportStr;
+	logger.debug(`copyToClipboard(event=${event}): tmpCopyEl.value → ${tmpCopyEl.value}`);
     tmpCopyEl.style.position = "absolute";
     tmpCopyEl.style.left = "-9999px";
     document.body.appendChild(tmpCopyEl);
@@ -178,9 +196,11 @@ function copyToClipboard(event) {
     tmpCopyEl.remove();
 
     new bootstrap.Toast("#toastClipboardCopy").show();
+	logger.debug(`<<< Exiting copyToClipboard(event=${event})`);
 }
 
 function checkTimeDrift(utcTimeA, utcTimeB, statusPrefix) {
+	logger.debug(`>>> Entering checkTimeDrift(utcTimeA=${utcTimeA},utcTimeB=${utcTimeB},statusPrefix=${statusPrefix})`);
     const timeDrift = (
         Date.parse(utcTimeA.replace(" ", "T").replace(" UTC", "")) -
         Date.parse(utcTimeB.replace(" ", "T").replace(" UTC", ""))
@@ -190,11 +210,13 @@ function checkTimeDrift(utcTimeA, utcTimeB, statusPrefix) {
         return false;
     } else {
         document.getElementById(`${statusPrefix}-success`).classList.remove("d-none");
+		logger.debug(`<<< Exiting checkTimeDrift(utcTimeA=${utcTimeA},utcTimeB=${utcTimeB},statusPrefix=${statusPrefix})`);
         return true;
     }
 }
 
 function checkDomain(browserURL, serverURL) {
+	logger.debug(`>>> Entering checkDomain(browserURL=${browserURL},serverURL=${serverURL})`);
     if (serverURL == browserURL) {
         document.getElementById("domain-success").classList.remove("d-none");
         domainCheck = true;
@@ -208,10 +230,12 @@ function checkDomain(browserURL, serverURL) {
         httpsCheck = true;
     } else {
         document.getElementById("https-warning").classList.remove("d-none");
+		logger.debug(`<<< Exiting checkDomain(browserURL=${browserURL},serverURL=${serverURL})`);
     }
 }
 
 function initVersionCheck(dj) {
+	logger.debug(`>>> Entering initVersionCheck(dj=${dj})`);
     const serverInstalled = dj.current_release;
     const serverLatest = dj.latest_release;
     const serverLatestCommit = dj.latest_commit;
@@ -224,28 +248,36 @@ function initVersionCheck(dj) {
     const webInstalled = dj.active_web_release;
     const webLatest = dj.latest_web_release;
     checkVersions("web", webInstalled, webLatest, null, dj.web_vault_compare);
+	logger.debug(`<<< Exiting initVersionCheck(dj=${dj})`);
 }
 
 function checkDns(dns_resolved) {
+	logger.debug(`>>> Entering checkDns(dns_resolved=${dns_resolved})`);
     if (isValidIp(dns_resolved)) {
         document.getElementById("dns-success").classList.remove("d-none");
         dnsCheck = true;
     } else {
         document.getElementById("dns-warning").classList.remove("d-none");
+		logger.debug(`<<< Exiting checkDns(dns_resolved=${dns_resolved})`);
     }
 }
 
 async function fetchCheckUrl(url) {
+	logger.debug(`>>> Entering fetchCheckUrl(url=${url})`);
     try {
         const response = await fetch(url);
+		const _start_fetchCheckUrl = Date.now();
         return { headers: response.headers, status: response.status, text: await response.text() };
     } catch (error) {
         console.error(`Error fetching ${url}: ${error}`);
+		logger.info(`fetchCheckUrl(url=${url}): API call took ${Date.now() - _start_fetchCheckUrl} ms`);
+		logger.debug(`<<< Exiting fetchCheckUrl(url=${url})`);
         return { error };
     }
 }
 
 function checkSecurityHeaders(headers, omit) {
+	logger.debug(`>>> Entering checkSecurityHeaders(headers=${headers},omit=${omit})`);
     let securityHeaders = {
         "x-frame-options": ["SAMEORIGIN"],
         "x-content-type-options": ["nosniff"],
@@ -292,6 +324,7 @@ function checkSecurityHeaders(headers, omit) {
 }
 
 async function checkHttpResponse() {
+	logger.debug('>>> Entering checkHttpResponse()');
     const [apiConfig, webauthnConnector, notFound, notFoundApi, badRequest, unauthorized, forbidden] = await Promise.all([
         fetchCheckUrl(`${BASE_URL}/api/config`),
         fetchCheckUrl(`${BASE_URL}/webauthn-connector.html`),
@@ -303,9 +336,11 @@ async function checkHttpResponse() {
     ]);
 
     const respErrorElm = document.getElementById("http-response-errors");
+	logger.debug(`checkHttpResponse(): respErrorElm → ${respErrorElm}`);
 
     // Check and validate the default API header responses
     let apiErrors = checkSecurityHeaders(apiConfig.headers);
+	logger.debug(`checkHttpResponse(): apiErrors → ${apiErrors}`);
     if (apiErrors.length >= 1) {
         respErrorElm.innerHTML += "<b>API calls:</b><br>";
         apiErrors.forEach((errMsg) => {
@@ -315,7 +350,9 @@ async function checkHttpResponse() {
 
     // Check the special `-connector.html` headers, these should have some headers omitted.
     const omitConnectorHeaders = ["x-frame-options", "content-security-policy"];
+	logger.debug(`checkHttpResponse(): omitConnectorHeaders → ${omitConnectorHeaders}`);
     let connectorErrors = checkSecurityHeaders(webauthnConnector.headers, omitConnectorHeaders);
+	logger.debug(`checkHttpResponse(): connectorErrors → ${connectorErrors}`);
     omitConnectorHeaders.forEach((header) => {
         if (webauthnConnector.headers.get(header) !== null) {
             connectorErrors.push(`'${header}' is present while it should not`);
@@ -330,6 +367,7 @@ async function checkHttpResponse() {
 
     // Check specific error code responses if they are not re-written by a reverse proxy
     let responseErrors = [];
+	logger.debug(`checkHttpResponse(): responseErrors → ${responseErrors}`);
     if (notFound.status !== 404 || notFound.text.indexOf("return to the web-vault") === -1) {
         responseErrors.push("404 (Not Found) HTML is invalid");
     }
@@ -362,10 +400,13 @@ async function checkHttpResponse() {
     } else {
         httpResponseCheck = true;
         document.getElementById("http-response-success").classList.remove("d-none");
+		logger.debug(`checkHttpResponse(): httpResponseCheck → ${httpResponseCheck}`);
     }
 }
 
 async function fetchWsUrl(wsUrl) {
+	logger.debug(`>>> Entering fetchWsUrl(wsUrl=${wsUrl})`);
+	logger.debug(`<<< Exiting fetchWsUrl(wsUrl=${wsUrl})`);
     return new Promise((resolve, reject) => {
         try {
             const ws = new WebSocket(wsUrl);
@@ -378,23 +419,29 @@ async function fetchWsUrl(wsUrl) {
                 reject(false);
             };
         } catch (_) {
+			logger.error(`Exception in fetchWsUrl(wsUrl=${wsUrl}): ${_.message}`, _);
             reject(false);
         }
     });
 }
 
 async function checkWebsocketConnection() {
+	logger.debug('>>> Entering checkWebsocketConnection()');
     // Test Websocket connections via the anonymous (login with device) connection
     const isConnected = await fetchWsUrl(`${BASE_URL}/notifications/anonymous-hub?token=admin-diagnostics`).catch(() => false);
+	logger.error('Exception in checkWebsocketConnection()');
+	logger.debug(`checkWebsocketConnection(): isConnected → ${isConnected}`);
     if (isConnected) {
         websocketCheck = true;
         document.getElementById("websocket-success").classList.remove("d-none");
     } else {
         document.getElementById("websocket-error").classList.remove("d-none");
+		logger.debug('<<< Exiting checkWebsocketConnection()');
     }
 }
 
 function init(dj) {
+	logger.debug(`>>> Entering init(dj=${dj})`);
     // Time check
     document.getElementById("time-browser-string").textContent = browserUTC;
 
@@ -412,6 +459,7 @@ function init(dj) {
 
     // Domain check
     const browserURL = location.href.toLowerCase();
+	logger.debug(`init(dj=${dj}): browserURL → ${browserURL}`);
     document.getElementById("domain-browser-string").textContent = browserURL;
     checkDomain(browserURL, dj.admin_url.toLowerCase());
 
@@ -425,6 +473,7 @@ function init(dj) {
 
     if (dj.enable_websocket) {
         checkWebsocketConnection();
+		logger.debug(`<<< Exiting init(dj=${dj})`);
     }
 }
 
