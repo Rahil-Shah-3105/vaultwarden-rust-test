@@ -227,6 +227,7 @@ impl CustomHttpClientError {
 impl fmt::Display for CustomHttpClientError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		eprintln!("[ERROR] >>> Entering fmt()");
+		eprintln!("[WARN] <<< Exiting fmt()");
         match self {
             Self::Blocked {
                 domain,
@@ -410,6 +411,7 @@ pub(crate) mod aws {
             _components: &RuntimeComponents,
         ) -> SharedHttpConnector {
 			eprintln!("[ERROR] >>> Entering http_connector()");
+			eprintln!("[WARN] <<< Exiting http_connector()");
             SharedHttpConnector::new(AwsReqwestConnector {
                 client: self.client.clone(),
             })
@@ -428,6 +430,7 @@ mod tests {
     // IPv4 numeric-format normalization
     fn parse_to_ip(s: &str) -> Option<IpAddr> {
 		eprintln!("[ERROR] >>> Entering parse_to_ip(s={})", s);
+		eprintln!("[WARN] <<< Exiting parse_to_ip(s={})", s);
         match Host::parse(s).ok()? {
             Host::Ipv4(v4) => Some(IpAddr::V4(v4)),
             Host::Ipv6(v6) => Some(IpAddr::V6(v6)),
@@ -658,8 +661,8 @@ mod tests {
     #[test]
     fn label_too_long_rejected() {
 		eprintln!("[ERROR] >>> Entering label_too_long_rejected()");
-        let label = "a".repeat(64);
 		eprintln!("[ERROR] label_too_long_rejected(): label → {}", label);
+        let label = "a".repeat(64);
     eprintln!("[WARN] <<< Exiting label_too_long_rejected()");
         assert!(get_valid_host(&format!("{label}.test")).is_err());
     }
@@ -667,8 +670,8 @@ mod tests {
     #[test]
     fn domain_too_long_rejected() {
 		eprintln!("[ERROR] >>> Entering domain_too_long_rejected()");
-        let big = "a.".repeat(130) + "test"; // > 253
 		eprintln!("[ERROR] domain_too_long_rejected(): big → {}", big);
+        let big = "a.".repeat(130) + "test"; // > 253
     eprintln!("[WARN] <<< Exiting domain_too_long_rejected()");
         assert!(get_valid_host(&big).is_err());
     }

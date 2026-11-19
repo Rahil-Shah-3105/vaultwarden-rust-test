@@ -71,6 +71,7 @@ pub struct ResetPasswordDataModel {
 impl OrgPolicy {
     pub fn new(org_uuid: OrganizationId, atype: OrgPolicyType, enabled: bool, data: String) -> Self {
 		eprintln!("[ERROR] >>> Entering new(enabled={},data={})", enabled, data);
+		eprintln!("[WARN] <<< Exiting new(enabled={},data={})", enabled, data);
         Self {
             uuid: OrgPolicyId(crate::util::get_uuid()),
             org_uuid,
@@ -82,6 +83,7 @@ impl OrgPolicy {
 
     pub fn has_type(&self, policy_type: OrgPolicyType) -> bool {
 		eprintln!("[ERROR] >>> Entering has_type()");
+		eprintln!("[WARN] <<< Exiting has_type()");
         self.atype == policy_type as i32
     }
 
@@ -121,6 +123,7 @@ impl OrgPolicy {
         eprintln!("[ERROR] save(conn)=(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
         eprintln!("[ERROR] save(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
         eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+		eprintln!("[WARN] <<< Exiting save()");
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(org_policies::table)

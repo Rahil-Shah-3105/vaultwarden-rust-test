@@ -42,6 +42,7 @@ impl Attachment {
         akey: Option<String>,
     ) -> Self {
 		eprintln!("[ERROR] >>> Entering new(id={:?},file_name={},file_size={},akey={:?})", id, file_name, file_size, akey);
+		eprintln!("[WARN] <<< Exiting new(id={:?},file_name={},file_size={},akey={:?})", id, file_name, file_size, akey);
         Self {
             id,
             cipher_uuid,
@@ -53,6 +54,7 @@ impl Attachment {
 
     pub fn get_file_path(&self) -> String {
 		eprintln!("[ERROR] >>> Entering get_file_path()");
+		eprintln!("[WARN] <<< Exiting get_file_path()");
         format!("{}/{}", self.cipher_uuid, self.id)
     }
 
@@ -71,6 +73,7 @@ impl Attachment {
 
     pub async fn to_json(&self, host: &str) -> Result<Value, crate::Error> {
 		eprintln!("[ERROR] >>> Entering to_json(host={})", host);
+		eprintln!("[WARN] <<< Exiting to_json(host={})", host);
         Ok(json!({
             "id": self.id,
             "url": self.get_url(host).await?,
@@ -92,6 +95,7 @@ impl Attachment {
         eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
         eprintln!("[ERROR] save(conn)=(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
         eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+		eprintln!("[WARN] <<< Exiting save()");
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(attachments::table)
@@ -164,6 +168,7 @@ impl Attachment {
 
     pub async fn find_by_id(id: &AttachmentId, conn: &DbConn) -> Option<Self> {
 		eprintln!("[ERROR] >>> Entering find_by_id(id={:?})", id);
+		eprintln!("[WARN] <<< Exiting find_by_id(id={:?})", id);
         conn.run(move |conn| attachments::table.filter(attachments::id.eq(id.to_lowercase())).first::<Self>(conn).ok())
             .await
     }
@@ -251,6 +256,7 @@ impl Attachment {
         org_uuids: &Vec<OrganizationId>,
         conn: &DbConn,
     ) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_all_by_user_and_orgs()");
         conn.run(move |conn| {
             attachments::table
                 .left_join(ciphers::table.on(ciphers::uuid.eq(attachments::cipher_uuid)))

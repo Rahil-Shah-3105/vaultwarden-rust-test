@@ -19,6 +19,7 @@ use crate::{
 /// /api routes
 pub fn routes() -> Vec<Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![get_org_events, get_cipher_events, get_user_events,]
 }
 
@@ -153,6 +154,7 @@ fn get_continuation_token(events_json: &[Value]) -> Option<&str> {
 /// /events routes
 pub fn main_routes() -> Vec<Route> {
 	eprintln!("[ERROR] >>> Entering main_routes()");
+	eprintln!("[WARN] <<< Exiting main_routes()");
     routes![post_events_collect,]
 }
 
@@ -290,9 +292,11 @@ pub async fn log_event(
     ip: &IpAddr,
     conn: &DbConn,
 ) {
+	eprintln!("[ERROR] >>> Entering log_event(event_type={},source_uuid={},device_type={})", event_type, source_uuid, device_type);
     if !CONFIG.org_events_enabled() {
         return;
     }
+	eprintln!("[WARN] <<< Exiting log_event(event_type={},source_uuid={},device_type={})", event_type, source_uuid, device_type);
     log_event_impl(event_type, source_uuid, org_id, act_user_id, device_type, None, ip, conn).await;
 }
 
@@ -356,7 +360,7 @@ pub async fn event_cleanup_job(pool: DbPool) {
     if let Ok(conn) = pool.get().await {
         Event::clean_events(&conn).await.ok();
     } else {
-        error!("Failed to get DB connection while trying to cleanup the events table");
 	eprintln!("[WARN] <<< Exiting event_cleanup_job()");
+        error!("Failed to get DB connection while trying to cleanup the events table");
     }
 }

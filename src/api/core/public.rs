@@ -23,6 +23,7 @@ use crate::{
 
 pub fn routes() -> Vec<Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![ldap_import]
 }
 

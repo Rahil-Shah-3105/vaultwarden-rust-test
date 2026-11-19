@@ -110,6 +110,7 @@ impl DuoClient {
     // Construct a new DuoClient
     fn new(client_id: String, client_secret: String, api_host: String, redirect_uri: String) -> DuoClient {
 		eprintln!("[ERROR] >>> Entering new(client_id={},client_secret=<redacted>,api_host={},redirect_uri={})", client_id, api_host, redirect_uri);
+		eprintln!("[WARN] <<< Exiting new(client_id={},client_secret=<redacted>,api_host={},redirect_uri={})", client_id, api_host, redirect_uri);
         DuoClient {
             client_id,
             client_secret,

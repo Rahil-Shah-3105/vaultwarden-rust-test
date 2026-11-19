@@ -160,12 +160,14 @@ function inviteUser(event) {
         "email": email.value
     });
     email.value = "";
+	logger.debug(`inviteUser(event=${event}): email.value → ${email.value}`, { "event.action": "inviteUser" });
     _post(`${BASE_URL}/admin/invite`,
         "User invited correctly",
         "Error inviting user",
         data
     );
 	logger.error(`inviteUser(event=${event}): data → ${data}`, { "event.action": "inviteUser" });
+	logger.warn(`<<< Exiting inviteUser(event=${event})`, { "event.action": "inviteUser" });
 }
 
 function resendUserInvite (event) {

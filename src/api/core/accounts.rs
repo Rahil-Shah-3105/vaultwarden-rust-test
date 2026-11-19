@@ -36,6 +36,7 @@ use super::{
 
 pub fn routes() -> Vec<rocket::Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![
         profile,
         put_profile,
@@ -120,16 +121,19 @@ pub struct RegisterData {
 impl RegisterData {
     fn hash(&self) -> String {
 		eprintln!("[ERROR] >>> Entering hash()");
+		eprintln!("[WARN] <<< Exiting hash()");
         self.compat.fold(|rdc| &rdc.master_password_hash, |rdcu| &rdcu.master_password_authentication.hash).to_owned()
     }
 
     fn kdf(&self) -> &KDFData {
 		eprintln!("[ERROR] >>> Entering kdf()");
+		eprintln!("[WARN] <<< Exiting kdf()");
         self.compat.fold(|rdc| &rdc.kdf, |rdcu| &rdcu.master_password_authentication.kdf)
     }
 
     fn key(&self) -> String {
 		eprintln!("[ERROR] >>> Entering key()");
+		eprintln!("[WARN] <<< Exiting key()");
         self.compat.fold(|rdc| &rdc.key, |rdcu| &rdcu.master_password_unlock.key).to_owned()
     }
 
@@ -234,6 +238,7 @@ pub struct SetPasswordData {
 /// Trims whitespace from password hints, and converts blank password hints to `None`.
 fn clean_password_hint(password_hint: Option<&String>) -> Option<String> {
 	eprintln!("[ERROR] >>> Entering clean_password_hint(password_hint=<redacted>)");
+	eprintln!("[WARN] <<< Exiting clean_password_hint(password_hint=<redacted>)");
     match password_hint {
         None => None,
         Some(h) => match h.trim() {
@@ -298,8 +303,8 @@ pub async fn register(data: Json<RegisterData>, email_verification: bool, conn: 
                 if claims.name.is_some() {
                     data.name = claims.name;
                 }
-                email_verified = claims.verified;
 				eprintln!("[ERROR] register(data={:?},email_verification=<redacted>): email_verified → <redacted>", data);
+                email_verified = claims.verified;
             }
             // Emergency access registration
             (None, Some(accept_emergency_access_id), Some(accept_emergency_access_invite_token), None, None) => {
@@ -519,6 +524,7 @@ async fn post_set_password(data: Json<SetPasswordData>, headers: Headers, conn: 
 #[get("/accounts/profile")]
 async fn profile(headers: Headers, conn: DbConn) -> Json<Value> {
 	eprintln!("[ERROR] >>> Entering profile()");
+	eprintln!("[WARN] <<< Exiting profile()");
     Json(headers.user.to_json(&conn).await)
 }
 
@@ -532,6 +538,7 @@ struct ProfileData {
 #[put("/accounts/profile", data = "<data>")]
 async fn put_profile(data: Json<ProfileData>, headers: Headers, conn: DbConn) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering put_profile()");
+	eprintln!("[WARN] <<< Exiting put_profile()");
     post_profile(data, headers, conn).await
 }
 
@@ -1297,6 +1304,7 @@ async fn post_delete_recover_token(data: Json<DeleteRecoverTokenData>, conn: DbC
 #[post("/accounts/delete", data = "<data>")]
 async fn post_delete_account(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> EmptyResult {
 	eprintln!("[ERROR] >>> Entering post_delete_account()");
+	eprintln!("[WARN] <<< Exiting post_delete_account()");
     delete_account(data, headers, conn).await
 }
 
@@ -1381,6 +1389,7 @@ pub struct PreloginData {
 #[post("/accounts/prelogin", data = "<data>")]
 async fn post_prelogin(data: Json<PreloginData>, conn: DbConn) -> Json<Value> {
 	eprintln!("[ERROR] >>> Entering post_prelogin()");
+	eprintln!("[WARN] <<< Exiting post_prelogin()");
     prelogin(data, conn).await
 }
 
@@ -1471,12 +1480,14 @@ async fn update_api_key(data: Json<PasswordOrOtpData>, rotate: bool, headers: He
 #[post("/accounts/api-key", data = "<data>")]
 async fn post_api_key(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering post_api_key()");
+	eprintln!("[WARN] <<< Exiting post_api_key()");
     update_api_key(data, false, headers, conn).await
 }
 
 #[post("/accounts/rotate-api-key", data = "<data>")]
 async fn rotate_api_key(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering rotate_api_key()");
+	eprintln!("[WARN] <<< Exiting rotate_api_key()");
     update_api_key(data, true, headers, conn).await
 }
 
@@ -1568,6 +1579,7 @@ struct PushToken {
 #[post("/devices/identifier/<device_id>/token", data = "<data>")]
 async fn post_device_token(device_id: DeviceId, data: Json<PushToken>, headers: Headers, conn: DbConn) -> EmptyResult {
 	eprintln!("[ERROR] >>> Entering post_device_token()");
+	eprintln!("[WARN] <<< Exiting post_device_token()");
     put_device_token(device_id, data, headers, conn).await
 }
 
@@ -1629,12 +1641,14 @@ async fn put_clear_device_token(device_id: DeviceId, ip: ClientIp, conn: DbConn)
 #[post("/devices/identifier/<device_id>/clear-token")]
 async fn post_clear_device_token(device_id: DeviceId, ip: ClientIp, conn: DbConn) -> EmptyResult {
 	eprintln!("[ERROR] >>> Entering post_clear_device_token()");
+	eprintln!("[WARN] <<< Exiting post_clear_device_token()");
     put_clear_device_token(device_id, ip, conn).await
 }
 
 #[get("/tasks")]
 fn get_tasks(_client_headers: ClientHeaders) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering get_tasks()");
+	eprintln!("[WARN] <<< Exiting get_tasks()");
     Ok(Json(json!({
         "data": [],
         "object": "list"
@@ -1862,6 +1876,7 @@ async fn get_auth_request_response(
 #[get("/auth-requests")]
 async fn get_auth_requests(headers: Headers, conn: DbConn) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering get_auth_requests()");
+	eprintln!("[WARN] <<< Exiting get_auth_requests()");
     get_auth_requests_pending(headers, conn).await
 }
 

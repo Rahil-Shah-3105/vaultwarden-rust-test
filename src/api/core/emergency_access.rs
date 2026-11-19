@@ -22,6 +22,7 @@ use crate::{
 
 pub fn routes() -> Vec<Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![
         get_contacts,
         get_grantees,
@@ -127,6 +128,7 @@ async fn put_emergency_access(
     conn: DbConn,
 ) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering put_emergency_access()");
+	eprintln!("[WARN] <<< Exiting put_emergency_access()");
     post_emergency_access(emer_id, data, headers, conn).await
 }
 
@@ -195,6 +197,7 @@ async fn delete_emergency_access(emer_id: EmergencyAccessId, headers: Headers, c
 #[post("/emergency-access/<emer_id>/delete")]
 async fn post_delete_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> EmptyResult {
 	eprintln!("[ERROR] >>> Entering post_delete_emergency_access()");
+	eprintln!("[WARN] <<< Exiting post_delete_emergency_access()");
     delete_emergency_access(emer_id, headers, conn).await
 }
 
@@ -739,6 +742,7 @@ fn is_valid_request(
     requesting_user_id: &UserId,
     requested_access_type: EmergencyAccessType,
 ) -> bool {
+	eprintln!("[ERROR] >>> Entering is_valid_request()");
     emergency_access.grantee_uuid.is_some()
         && emergency_access.grantee_uuid.as_ref().unwrap() == requesting_user_id
         && emergency_access.status == EmergencyAccessStatus::RecoveryApproved as i32
@@ -806,8 +810,8 @@ pub async fn emergency_request_timeout_job(pool: DbPool) {
             }
         }
     } else {
-        error!("Failed to get DB connection while searching emergency request timed out");
 	eprintln!("[WARN] <<< Exiting emergency_request_timeout_job()");
+        error!("Failed to get DB connection while searching emergency request timed out");
     }
 }
 
@@ -867,7 +871,7 @@ pub async fn emergency_notification_reminder_job(pool: DbPool) {
             }
         }
     } else {
-        error!("Failed to get DB connection while searching emergency notification reminder");
 	eprintln!("[WARN] <<< Exiting emergency_notification_reminder_job()");
+        error!("Failed to get DB connection while searching emergency notification reminder");
     }
 }

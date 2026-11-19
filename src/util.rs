@@ -155,6 +155,7 @@ pub struct Cors();
 impl Cors {
     fn get_header(headers: &HeaderMap<'_>, name: &str) -> String {
 		eprintln!("[ERROR] >>> Entering get_header(name={})", name);
+		eprintln!("[WARN] <<< Exiting get_header(name={})", name);
         match headers.get_one(name) {
             Some(h) => h.to_owned(),
             _ => String::new(),
@@ -227,6 +228,7 @@ pub struct Cached<R> {
 impl<R> Cached<R> {
     pub fn long(response: R, is_immutable: bool) -> Cached<R> {
 		eprintln!("[ERROR] >>> Entering long(is_immutable={})", is_immutable);
+		eprintln!("[WARN] <<< Exiting long(is_immutable={})", is_immutable);
         Self {
             response,
             is_immutable,
@@ -236,6 +238,7 @@ impl<R> Cached<R> {
 
     pub fn short(response: R, is_immutable: bool) -> Cached<R> {
 		eprintln!("[ERROR] >>> Entering short(is_immutable={})", is_immutable);
+		eprintln!("[WARN] <<< Exiting short(is_immutable={})", is_immutable);
         Self {
             response,
             is_immutable,
@@ -245,6 +248,7 @@ impl<R> Cached<R> {
 
     pub fn ttl(response: R, ttl: u64, is_immutable: bool) -> Cached<R> {
 		eprintln!("[ERROR] >>> Entering ttl(ttl={},is_immutable={})", ttl, is_immutable);
+		eprintln!("[WARN] <<< Exiting ttl(ttl={},is_immutable={})", ttl, is_immutable);
         Self {
             response,
             is_immutable,
@@ -280,6 +284,7 @@ impl<R> EtagCached<R> {
     /// An `etag` response should always be quoted
     pub fn new(response: R, etag: &str) -> Self {
 		eprintln!("[ERROR] >>> Entering new(etag={})", etag);
+		eprintln!("[WARN] <<< Exiting new(etag={})", etag);
         Self {
             response,
             etag: format!("\"{etag}\""),
@@ -322,6 +327,7 @@ pub struct BetterLogging(pub bool);
 impl Fairing for BetterLogging {
     fn info(&self) -> Info {
 		eprintln!("[ERROR] >>> Entering info()");
+		eprintln!("[WARN] <<< Exiting info()");
         Info {
             name: "Better Logging",
             kind: Kind::Liftoff | Kind::Request | Kind::Response,
@@ -370,7 +376,6 @@ impl Fairing for BetterLogging {
                 Some(q) => info!(target: "request", "{method} {uri_path_str}?{}", &q[..q.len().min(30)]),
                 None => info!(target: "request", "{method} {uri_path_str}"),
             }
-		eprintln!("[WARN] <<< Exiting on_request()");
         }
     }
 
@@ -417,6 +422,7 @@ pub fn get_display_size(size: i64) -> String {
 
 pub fn get_uuid() -> String {
 	eprintln!("[ERROR] >>> Entering get_uuid()");
+	eprintln!("[WARN] <<< Exiting get_uuid()");
     uuid::Uuid::new_v4().to_string()
 }
 
@@ -487,6 +493,7 @@ where
     V: FromStr,
 {
 	eprintln!("[ERROR] >>> Entering get_env(key={})", key);
+	eprintln!("[WARN] <<< Exiting get_env(key={})", key);
     try_parse_string(get_env_str_value(key))
 }
 
@@ -511,6 +518,7 @@ pub fn get_env_bool(key: &str) -> Option<bool> {
 /// responses with "date" fields (`CreationDate`, `RevisionDate`, etc.).
 pub fn format_date(dt: &NaiveDateTime) -> String {
 	eprintln!("[ERROR] >>> Entering format_date()");
+	eprintln!("[WARN] <<< Exiting format_date()");
     dt.and_utc().to_rfc3339_opts(chrono::SecondsFormat::Micros, true)
 }
 
@@ -518,6 +526,7 @@ pub fn format_date(dt: &NaiveDateTime) -> String {
 /// If parsing fails it will return the start of the unix datetime
 pub fn validate_and_format_date(dt: &str) -> String {
 	eprintln!("[ERROR] >>> Entering validate_and_format_date(dt={})", dt);
+	eprintln!("[WARN] <<< Exiting validate_and_format_date(dt={})", dt);
     match DateTime::parse_from_rfc3339(dt) {
         Ok(dt) => dt.to_rfc3339_opts(chrono::SecondsFormat::Micros, true),
         _ => String::from("1970-01-01T00:00:00.000000Z"),
@@ -550,6 +559,7 @@ pub fn format_datetime_local(dt: &DateTime<Local>, fmt: &str) -> String {
 /// and then calls [format_datetime_local](crate::util::format_datetime_local).
 pub fn format_naive_datetime_local(dt: &NaiveDateTime, fmt: &str) -> String {
 	eprintln!("[ERROR] >>> Entering format_naive_datetime_local(fmt={})", fmt);
+	eprintln!("[WARN] <<< Exiting format_naive_datetime_local(fmt={})", fmt);
     format_datetime_local(&Local.from_utc_datetime(dt), fmt)
 }
 
@@ -568,6 +578,7 @@ pub fn format_datetime_http(dt: &DateTime<Local>) -> String {
 
 pub fn parse_date(date: &str) -> NaiveDateTime {
 	eprintln!("[ERROR] >>> Entering parse_date(date={})", date);
+	eprintln!("[WARN] <<< Exiting parse_date(date={})", date);
     DateTime::parse_from_rfc3339(date).unwrap().naive_utc()
 }
 
@@ -597,6 +608,7 @@ pub fn is_valid_email(email: &str) -> bool {
 #[must_use]
 pub fn is_running_in_container() -> bool {
 	eprintln!("[ERROR] >>> Entering is_running_in_container()");
+	eprintln!("[WARN] <<< Exiting is_running_in_container()");
     Path::new("/.dockerenv").exists()
         || Path::new("/run/.containerenv").exists()
         || Path::new("/run/secrets/kubernetes.io").exists()
@@ -655,6 +667,7 @@ pub struct LowerCase<T: DeserializeOwned> {
 impl Default for LowerCase<Value> {
     fn default() -> Self {
 		eprintln!("[ERROR] >>> Entering default()");
+		eprintln!("[WARN] <<< Exiting default()");
         Self {
             data: Value::Null,
         }
@@ -680,6 +693,7 @@ impl<'de> Visitor<'de> for LowerCaseVisitor {
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
 		eprintln!("[ERROR] >>> Entering expecting()");
+		eprintln!("[WARN] <<< Exiting expecting()");
         formatter.write_str("an object or an array")
     }
 
@@ -718,6 +732,7 @@ impl<'de> Visitor<'de> for LowerCaseVisitor {
 // This key is part of the Identity Cipher (Social Security Number)
 fn process_json_key(key: &str) -> String {
 	eprintln!("[ERROR] >>> Entering process_json_key(key={})", key);
+	eprintln!("[WARN] <<< Exiting process_json_key(key={})", key);
     match key.to_lowercase().as_ref() {
         "ssn" => "ssn".into(),
         _ => lcase_first(key),
@@ -751,6 +766,7 @@ pub enum NumberOrString {
 impl NumberOrString {
     pub fn into_string(self) -> String {
 		eprintln!("[ERROR] >>> Entering into_string()");
+		eprintln!("[WARN] <<< Exiting into_string()");
         match self {
             NumberOrString::Number(n) => n.to_string(),
             NumberOrString::String(s) => s,
@@ -902,6 +918,7 @@ pub fn parse_experimental_client_feature_flags(
     filter_mode: &FeatureFlagFilter,
 ) -> HashMap<String, bool> {
 	eprintln!("[ERROR] >>> Entering parse_experimental_client_feature_flags(experimental_client_feature_flags={})", experimental_client_feature_flags);
+	eprintln!("[WARN] <<< Exiting parse_experimental_client_feature_flags(experimental_client_feature_flags={})", experimental_client_feature_flags);
     experimental_client_feature_flags
         .split(',')
         .map(str::trim)
@@ -985,6 +1002,7 @@ pub use is_global_hardcoded as is_global;
 #[inline(always)]
 pub fn is_global(ip: std::net::IpAddr) -> bool {
 	eprintln!("[ERROR] >>> Entering is_global()");
+	eprintln!("[WARN] <<< Exiting is_global()");
     ip.is_global()
 }
 
@@ -1036,8 +1054,8 @@ mod tests {
                         assert_eq!(ip.is_global(), is_global_hardcoded(ip), "IP mismatch: {}", ip)
                     }
                 }
-            }
 		eprintln!("[WARN] <<< Exiting test_ipv4_global()");
+            }
         }
     }
 
@@ -1062,8 +1080,8 @@ mod tests {
                         }
                     }
                 });
-            }
 		eprintln!("[WARN] <<< Exiting test_ipv6_global()");
+            }
         });
     }
 }

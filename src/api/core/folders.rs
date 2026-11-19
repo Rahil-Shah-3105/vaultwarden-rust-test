@@ -13,6 +13,7 @@ use crate::{
 
 pub fn routes() -> Vec<rocket::Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![get_folders, get_folder, post_folders, post_folder, put_folder, delete_folder_post, delete_folder,]
 }
 
@@ -72,6 +73,7 @@ async fn post_folder(
     nt: Notify<'_>,
 ) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering post_folder()");
+	eprintln!("[WARN] <<< Exiting post_folder()");
     put_folder(folder_id, data, headers, conn, nt).await
 }
 
@@ -102,6 +104,7 @@ async fn put_folder(
 #[post("/folders/<folder_id>/delete")]
 async fn delete_folder_post(folder_id: FolderId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
 	eprintln!("[ERROR] >>> Entering delete_folder_post()");
+	eprintln!("[WARN] <<< Exiting delete_folder_post()");
     delete_folder(folder_id, headers, conn, nt).await
 }
 

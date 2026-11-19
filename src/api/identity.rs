@@ -43,6 +43,7 @@ use crate::{
 
 pub fn routes() -> Vec<Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![
         login,
         post_prelogin,
@@ -64,6 +65,7 @@ async fn login(
     client_version: Option<ClientVersion>,
     conn: DbConn,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering login(data={:?})", data);
     let data: ConnectData = data.into_inner();
 
     let mut user_id: Option<UserId> = None;
@@ -202,6 +204,7 @@ async fn sso_login(
     ip: &ClientIp,
     client_version: Option<&ClientVersion>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering sso_login(data={:?})", data);
     AuthMethod::Sso.check_scope(data.scope.as_ref())?;
 
     // Ratelimit the login
@@ -361,6 +364,7 @@ async fn sso_login(
     // We passed 2FA get auth tokens
     let auth_tokens = sso::redeem(&device, &user, data.client_id, sso_user, sso_auth, user_infos, conn).await?;
 
+	eprintln!("[WARN] <<< Exiting sso_login(data={:?})", data);
     authenticated_response(&user, &mut device, auth_tokens, twofactor_token, conn, ip).await
 }
 
@@ -497,9 +501,11 @@ async fn authenticated_response(
     conn: &DbConn,
     ip: &ClientIp,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering authenticated_response(twofactor_token=<redacted>)");
     if CONFIG.mail_enabled() && device.is_new() {
         let now = Utc::now().naive_utc();
         if let Err(e) = mail::send_new_device_logged_in(&user.email, &ip.ip.to_string(), &now, device).await {
+			eprintln!("[ERROR] Exception in authenticated_response(twofactor_token=<redacted>): (unprintable)");
             error!("Error sending new device email: {e:#?}");
 
             if CONFIG.require_device_email() {
@@ -586,6 +592,7 @@ async fn authenticated_response(
     }
 
     info!("User {} logged in successfully. IP: {}", user.email, ip.ip);
+	eprintln!("[WARN] <<< Exiting authenticated_response(twofactor_token=<redacted>)");
     Ok(Json(result))
 }
 
@@ -926,6 +933,7 @@ async fn twofactor_auth(
 
 fn selected_data(tf: Option<TwoFactor>) -> ApiResult<String> {
 	eprintln!("[ERROR] >>> Entering selected_data()");
+	eprintln!("[WARN] <<< Exiting selected_data()");
     tf.map(|t| t.data).map_res("Two factor doesn't exist")
 }
 
@@ -1047,18 +1055,21 @@ async fn json_err_twofactor(
 #[post("/accounts/prelogin", data = "<data>")]
 async fn post_prelogin(data: Json<PreloginData>, conn: DbConn) -> Json<Value> {
 	eprintln!("[ERROR] >>> Entering post_prelogin()");
+	eprintln!("[WARN] <<< Exiting post_prelogin()");
     prelogin(data, conn).await
 }
 
 #[post("/accounts/prelogin/password", data = "<data>")]
 async fn prelogin_password(data: Json<PreloginData>, conn: DbConn) -> Json<Value> {
 	eprintln!("[ERROR] >>> Entering prelogin_password()");
+	eprintln!("[WARN] <<< Exiting prelogin_password()");
     prelogin(data, conn).await
 }
 
 #[post("/accounts/register", data = "<data>")]
 async fn identity_register(data: Json<RegisterData>, conn: DbConn) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering identity_register()");
+	eprintln!("[WARN] <<< Exiting identity_register()");
     register(data, false, conn).await
 }
 
@@ -1126,6 +1137,7 @@ async fn register_verification_email(
 #[post("/accounts/register/finish", data = "<data>")]
 async fn register_finish(data: Json<RegisterData>, conn: DbConn) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering register_finish()");
+	eprintln!("[WARN] <<< Exiting register_finish()");
     register(data, true, conn).await
 }
 
@@ -1221,6 +1233,7 @@ const SSO_BINDING_COOKIE: &str = "VW_SSO_BINDING";
 #[get("/connect/oidc-signin?<code>&<state>", rank = 1)]
 async fn oidcsignin(code: OIDCCode, state: String, cookies: &CookieJar<'_>, mut conn: DbConn) -> ApiResult<Redirect> {
 	eprintln!("[ERROR] >>> Entering oidcsignin(state={})", state);
+	eprintln!("[WARN] <<< Exiting oidcsignin(state={})", state);
     oidcsignin_redirect(state, code, None, cookies, &mut conn).await
 }
 

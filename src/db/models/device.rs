@@ -61,6 +61,7 @@ impl Device {
     #[inline(always)]
     pub fn generate_refresh_token() -> String {
 		eprintln!("[ERROR] >>> Entering generate_refresh_token()");
+		eprintln!("[WARN] <<< Exiting generate_refresh_token()");
         crypto::encode_random_bytes::<64>(&BASE64URL)
     }
 
@@ -73,8 +74,8 @@ impl Device {
             "identifier": self.uuid,
             "creationDate": format_date(&self.created_at),
             "isTrusted": false,
-            "object":"device"
 		eprintln!("[WARN] <<< Exiting to_json()");
+            "object":"device"
         })
     }
 
@@ -99,21 +100,25 @@ impl Device {
     // This rely on the fact we only update the device after a successful login
     pub fn is_new(&self) -> bool {
 		eprintln!("[ERROR] >>> Entering is_new()");
+		eprintln!("[WARN] <<< Exiting is_new()");
         self.created_at == self.updated_at
     }
 
     pub fn is_push_device(&self) -> bool {
 		eprintln!("[ERROR] >>> Entering is_push_device()");
+		eprintln!("[WARN] <<< Exiting is_push_device()");
         matches!(DeviceType::from_i32(self.atype), DeviceType::Android | DeviceType::Ios)
     }
 
     pub fn is_cli(&self) -> bool {
 		eprintln!("[ERROR] >>> Entering is_cli()");
+		eprintln!("[WARN] <<< Exiting is_cli()");
         matches!(DeviceType::from_i32(self.atype), DeviceType::WindowsCLI | DeviceType::MacOsCLI | DeviceType::LinuxCLI)
     }
 
     pub fn is_mobile(&self) -> bool {
 		eprintln!("[ERROR] >>> Entering is_mobile()");
+		eprintln!("[WARN] <<< Exiting is_mobile()");
         matches!(DeviceType::from_i32(self.atype), DeviceType::Android | DeviceType::Ios)
     }
 }
@@ -145,6 +150,7 @@ impl DeviceWithAuthRequest {
 
     pub fn from(c: Device, a: Option<AuthRequest>) -> Self {
 		eprintln!("[ERROR] >>> Entering from()");
+		eprintln!("[WARN] <<< Exiting from()");
         Self {
             device: c,
             pending_auth_request: a,
@@ -234,6 +240,7 @@ impl Device {
 
     pub async fn find_by_uuid(uuid: &DeviceId, conn: &DbConn) -> Option<Self> {
 		eprintln!("[ERROR] >>> Entering find_by_uuid(uuid={:?})", uuid);
+		eprintln!("[WARN] <<< Exiting find_by_uuid(uuid={:?})", uuid);
         conn.run(move |conn| devices::table.filter(devices::uuid.eq(uuid)).first::<Self>(conn).ok()).await
     }
 
@@ -253,6 +260,7 @@ impl Device {
     }
     pub async fn find_by_refresh_token(refresh_token: &str, conn: &DbConn) -> Option<Self> {
 		eprintln!("[ERROR] >>> Entering find_by_refresh_token(refresh_token=<redacted>)");
+		eprintln!("[WARN] <<< Exiting find_by_refresh_token(refresh_token=<redacted>)");
         conn.run(move |conn| devices::table.filter(devices::refresh_token.eq(refresh_token)).first::<Self>(conn).ok())
             .await
     }
@@ -372,6 +380,7 @@ impl DeviceType {
     #[expect(clippy::match_same_arms, reason = "Specifically define 14 and have a fallback for new types")]
     pub fn from_i32(value: i32) -> DeviceType {
 		eprintln!("[ERROR] >>> Entering from_i32(value={})", value);
+		eprintln!("[WARN] <<< Exiting from_i32(value={})", value);
         match value {
             0 => DeviceType::Android,
             1 => DeviceType::Ios,

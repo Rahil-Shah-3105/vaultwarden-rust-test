@@ -51,6 +51,7 @@ pub enum TwoFactorType {
 impl TwoFactor {
     pub fn new(user_uuid: UserId, atype: TwoFactorType, data: String) -> Self {
 		eprintln!("[ERROR] >>> Entering new(data={})", data);
+		eprintln!("[WARN] <<< Exiting new(data={})", data);
         Self {
             uuid: TwoFactorId(crate::util::get_uuid()),
             user_uuid,
@@ -63,6 +64,7 @@ impl TwoFactor {
 
     pub fn to_json(&self) -> Value {
 		eprintln!("[ERROR] >>> Entering to_json()");
+		eprintln!("[WARN] <<< Exiting to_json()");
         json!({
             "enabled": self.enabled,
             "key": "", // This key and value vary
@@ -72,6 +74,7 @@ impl TwoFactor {
 
     pub fn to_json_provider(&self) -> Value {
 		eprintln!("[ERROR] >>> Entering to_json_provider()");
+		eprintln!("[WARN] <<< Exiting to_json_provider()");
         json!({
             "enabled": self.enabled,
             "type": self.atype,
@@ -90,6 +93,7 @@ impl TwoFactor {
         eprintln!("[ERROR] save(conn)=(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
         eprintln!("[ERROR] save(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
         eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+		eprintln!("[WARN] <<< Exiting save()");
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(twofactor::table)
@@ -301,6 +305,7 @@ pub struct WebauthnRegistrationV3 {
 impl From<WebauthnRegistrationV3> for WebauthnRegistration {
     fn from(value: WebauthnRegistrationV3) -> Self {
 		eprintln!("[ERROR] >>> Entering from()");
+		eprintln!("[WARN] <<< Exiting from()");
         Self {
             id: value.id,
             name: value.name,

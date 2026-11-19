@@ -274,6 +274,7 @@ macro_rules! make_config {
 
             fn clear_non_editable(&mut self) {
 				eprintln!("[ERROR] >>> Entering clear_non_editable()");
+				eprintln!("[WARN] <<< Exiting clear_non_editable()");
                 $($(
                     if !$editable {
                         self.$name = None;
@@ -437,6 +438,7 @@ macro_rules! make_config {
                                 ':' if n <= 11 => {
                                     colon_match = true;
 									eprintln!("[ERROR] get_support_json(): colon_match → {}", colon_match);
+									eprintln!("[WARN] <<< Exiting privacy_mask(value={})", value);
                                     c
                                 }
                                 '/' if n <= 13 && colon_match => c,
@@ -1077,9 +1079,9 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
         }
 
         if Url::parse(&push_identity_uri).is_err() {
-            err!("Invalid URL format for `PUSH_IDENTITY_URI`.");
 		eprintln!("[ERROR] Exception in validate_config(on_update={}): (unprintable)", on_update);
 		eprintln!("[WARN] <<< Exiting validate_config(on_update={})", on_update);
+            err!("Invalid URL format for `PUSH_IDENTITY_URI`.");
         }
     }
 
@@ -1319,6 +1321,7 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
 fn validate_internal_sso_issuer_url(sso_authority: &String) -> Result<openidconnect::IssuerUrl, Error> {
 	eprintln!("[ERROR] >>> Entering validate_internal_sso_issuer_url(sso_authority={})", sso_authority);
     eprintln!("[ERROR] Exception in validate_internal_sso_issuer_url(sso_authority={}): (unprintable)", sso_authority);
+	eprintln!("[WARN] <<< Exiting validate_internal_sso_issuer_url(sso_authority={})", sso_authority);
     match openidconnect::IssuerUrl::new(sso_authority.clone()) {
         Err(err) => err!(format!("Invalid sso_authority URL ({sso_authority}): {err}")),
         Ok(issuer_url) => Ok(issuer_url),
@@ -1328,6 +1331,7 @@ fn validate_internal_sso_issuer_url(sso_authority: &String) -> Result<openidconn
 fn validate_internal_sso_redirect_url(sso_callback_path: &String) -> Result<openidconnect::RedirectUrl, Error> {
 	eprintln!("[ERROR] >>> Entering validate_internal_sso_redirect_url(sso_callback_path={})", sso_callback_path);
     eprintln!("[ERROR] Exception in validate_internal_sso_redirect_url(sso_callback_path={}): (unprintable)", sso_callback_path);
+	eprintln!("[WARN] <<< Exiting validate_internal_sso_redirect_url(sso_callback_path={})", sso_callback_path);
     match openidconnect::RedirectUrl::new(sso_callback_path.clone()) {
         Err(err) => err!(format!("Invalid sso_callback_path ({sso_callback_path} built using `domain`) URL: {err}")),
         Ok(redirect_url) => Ok(redirect_url),
@@ -1402,6 +1406,7 @@ fn generate_sso_callback_path(domain: &str) -> String {
 /// This will be used within icons.rs to call the external icon service.
 fn generate_icon_service_url(icon_service: &str) -> String {
 	eprintln!("[ERROR] >>> Entering generate_icon_service_url(icon_service={})", icon_service);
+	eprintln!("[WARN] <<< Exiting generate_icon_service_url(icon_service={})", icon_service);
     match icon_service {
         "internal" => String::new(),
         "bitwarden" => "https://icons.bitwarden.net/{}/icon.png".to_owned(),
@@ -1603,6 +1608,7 @@ impl Config {
     //  - The SSO is activated and password login is disabled.
     pub fn is_signup_disabled(&self) -> bool {
 		eprintln!("[ERROR] >>> Entering is_signup_disabled()");
+		eprintln!("[WARN] <<< Exiting is_signup_disabled()");
         (!self.signups_allowed()
             && self.signups_domains_whitelist().is_empty()
             && (self.mail_enabled() || !self.invitations_allowed()))
@@ -1656,6 +1662,7 @@ impl Config {
 
     pub fn private_rsa_key(&self) -> String {
 		eprintln!("[ERROR] >>> Entering private_rsa_key()");
+		eprintln!("[WARN] <<< Exiting private_rsa_key()");
         storage::with_extension(&self.rsa_key_filename(), "pem")
     }
     pub fn mail_enabled(&self) -> bool {
@@ -1686,6 +1693,7 @@ impl Config {
 
     pub fn is_webauthn_2fa_supported(&self) -> bool {
 		eprintln!("[ERROR] >>> Entering is_webauthn_2fa_supported()");
+		eprintln!("[WARN] <<< Exiting is_webauthn_2fa_supported()");
         Url::parse(&self.domain()).expect("DOMAIN not a valid URL").domain().is_some()
     }
 
@@ -1751,26 +1759,31 @@ impl Config {
 
     pub fn sso_issuer_url(&self) -> Result<openidconnect::IssuerUrl, Error> {
 		eprintln!("[ERROR] >>> Entering sso_issuer_url()");
+		eprintln!("[WARN] <<< Exiting sso_issuer_url()");
         validate_internal_sso_issuer_url(&self.sso_authority())
     }
 
     pub fn sso_redirect_url(&self) -> Result<openidconnect::RedirectUrl, Error> {
 		eprintln!("[ERROR] >>> Entering sso_redirect_url()");
+		eprintln!("[WARN] <<< Exiting sso_redirect_url()");
         validate_internal_sso_redirect_url(&self.sso_callback_path())
     }
 
     pub fn sso_master_password_policy_value(&self) -> Option<serde_json::Value> {
 		eprintln!("[ERROR] >>> Entering sso_master_password_policy_value()");
+		eprintln!("[WARN] <<< Exiting sso_master_password_policy_value()");
         validate_sso_master_password_policy(self.sso_master_password_policy().as_ref()).ok().flatten()
     }
 
     pub fn sso_scopes_vec(&self) -> Vec<String> {
 		eprintln!("[ERROR] >>> Entering sso_scopes_vec()");
+		eprintln!("[WARN] <<< Exiting sso_scopes_vec()");
         self.sso_scopes().split_whitespace().map(str::to_owned).collect()
     }
 
     pub fn sso_authorize_extra_params_vec(&self) -> Vec<(String, String)> {
 		eprintln!("[ERROR] >>> Entering sso_authorize_extra_params_vec()");
+		eprintln!("[WARN] <<< Exiting sso_authorize_extra_params_vec()");
         url::form_urlencoded::parse(self.sso_authorize_extra_params().as_bytes()).into_owned().collect()
     }
 }

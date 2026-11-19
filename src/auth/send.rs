@@ -33,6 +33,7 @@ pub struct SendTokens {
 impl SendTokens {
     pub fn as_send_id(access_id: &str) -> Option<SendId> {
 		eprintln!("[ERROR] >>> Entering as_send_id(access_id={})", access_id);
+		eprintln!("[WARN] <<< Exiting as_send_id(access_id={})", access_id);
         data_encoding::BASE64URL_NOPAD
             .decode(access_id.as_bytes())
             .ok()
@@ -41,6 +42,7 @@ impl SendTokens {
 
     pub fn to_json(&self) -> serde_json::Value {
 		eprintln!("[ERROR] >>> Entering to_json()");
+		eprintln!("[WARN] <<< Exiting to_json()");
         json!({
             "access_token": self.access_claims.token(),
             "expires_in": self.access_claims.expires_in(),

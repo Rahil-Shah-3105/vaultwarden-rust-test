@@ -19,6 +19,7 @@ use crate::{
 
 pub fn routes() -> Vec<Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![get_email, send_email_login, send_email, email,]
 }
 
@@ -327,6 +328,7 @@ pub struct EmailTokenData {
 impl EmailTokenData {
     pub fn new(email: String, token: String) -> EmailTokenData {
 		eprintln!("[ERROR] >>> Entering new(email=<redacted>,token=<redacted>)");
+		eprintln!("[WARN] <<< Exiting new(email=<redacted>,token=<redacted>)");
         EmailTokenData {
             email,
             last_token: Some(token),
@@ -357,6 +359,7 @@ impl EmailTokenData {
 
     pub fn to_json(&self) -> String {
 		eprintln!("[ERROR] >>> Entering to_json()");
+		eprintln!("[WARN] <<< Exiting to_json()");
         serde_json::to_string(&self).unwrap()
     }
 

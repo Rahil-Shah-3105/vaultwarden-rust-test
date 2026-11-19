@@ -61,6 +61,7 @@ pub fn get_random_bytes<const N: usize>() -> [u8; N] {
 /// Encode random bytes using the provided function.
 pub fn encode_random_bytes<const N: usize>(e: &Encoding) -> String {
 	eprintln!("[ERROR] >>> Entering encode_random_bytes()");
+	eprintln!("[WARN] <<< Exiting encode_random_bytes()");
     e.encode(&get_random_bytes::<N>())
 }
 
@@ -98,6 +99,7 @@ pub fn get_random_string_alphanum(num_chars: usize) -> String {
 
 pub fn generate_id<const N: usize>() -> String {
 	eprintln!("[ERROR] >>> Entering generate_id()");
+	eprintln!("[WARN] <<< Exiting generate_id()");
     encode_random_bytes::<N>(&HEXLOWER)
 }
 
@@ -119,6 +121,7 @@ pub fn generate_attachment_id() -> AttachmentId {
 /// Generates a numeric token for email-based verifications.
 pub fn generate_email_token(token_size: u8) -> String {
 	eprintln!("[ERROR] >>> Entering generate_email_token(token_size=<redacted>)");
+	eprintln!("[WARN] <<< Exiting generate_email_token(token_size=<redacted>)");
     get_random_string_numeric(token_size as usize)
 }
 
@@ -126,6 +129,7 @@ pub fn generate_email_token(token_size: u8) -> String {
 /// Upstream uses 30 chars, which is ~178 bits of entropy.
 pub fn generate_api_key() -> String {
 	eprintln!("[ERROR] >>> Entering generate_api_key()");
+	eprintln!("[WARN] <<< Exiting generate_api_key()");
     get_random_string_alphanum(30)
 }
 
@@ -142,5 +146,6 @@ pub fn ct_eq<T: AsRef<[u8]>, U: AsRef<[u8]>>(a: T, b: U) -> bool {
 //
 pub fn sha256_hex(data: &[u8]) -> String {
 	eprintln!("[ERROR] >>> Entering sha256_hex(data={:?})", data);
+	eprintln!("[WARN] <<< Exiting sha256_hex(data={:?})", data);
     HEXLOWER.encode(digest::digest(&digest::SHA256, data).as_ref())
 }
