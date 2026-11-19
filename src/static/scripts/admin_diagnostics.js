@@ -1,3 +1,4 @@
+var logger = (typeof logger !== 'undefined' && logger) || console;
 "use strict";
 /* global BASE_URL:readable, bootstrap:readable */
 
@@ -29,6 +30,7 @@ function isValidIp(ip) {
 }
 
 function checkVersions(platform, installed, latest, commit=null, compare_order=0) {
+	logger.error(`>>> Entering checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order})`, { "event.action": "checkVersions", "logrite.platform": platform, "logrite.installed": installed, "logrite.latest": latest, "logrite.commit": commit, "logrite.compare_order": compare_order });
     if (installed === "-" || latest === "-") {
         document.getElementById(`${platform}-failed`).classList.remove("d-none");
         return;
@@ -46,14 +48,18 @@ function checkVersions(platform, installed, latest, commit=null, compare_order=0
     } else {
         // Check if this is a branched version.
         const branchRegex = /(?:\s)\((.*?)\)/;
+		logger.error(`checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order}): branchRegex → ${branchRegex}`, { "event.action": "checkVersions", "logrite.platform": platform, "logrite.installed": installed, "logrite.latest": latest, "logrite.commit": commit, "logrite.compare_order": compare_order });
         const branchMatch = installed.match(branchRegex);
+		logger.error(`checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order}): branchMatch → ${branchMatch}`, { "event.action": "checkVersions", "logrite.platform": platform, "logrite.installed": installed, "logrite.latest": latest, "logrite.commit": commit, "logrite.compare_order": compare_order });
         if (branchMatch !== null) {
             document.getElementById(`${platform}-branch`).classList.remove("d-none");
         }
 
         // This will remove branch info and check if there is a commit hash
         const installedRegex = /(\d+\.\d+\.\d+)-(\w+)/;
+		logger.error(`checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order}): installedRegex → ${installedRegex}`, { "event.action": "checkVersions", "logrite.platform": platform, "logrite.installed": installed, "logrite.latest": latest, "logrite.commit": commit, "logrite.compare_order": compare_order });
         const instMatch = installed.match(installedRegex);
+		logger.error(`checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order}): instMatch → ${instMatch}`, { "event.action": "checkVersions", "logrite.platform": platform, "logrite.installed": installed, "logrite.latest": latest, "logrite.commit": commit, "logrite.compare_order": compare_order });
 
         // It could be that a new tagged version has the same commit hash.
         // In this case the version is the same but only the number is different
@@ -71,13 +77,16 @@ function checkVersions(platform, installed, latest, commit=null, compare_order=0
             document.getElementById(`${platform}-warning`).classList.remove("d-none");
         }
     }
+	logger.warn(`<<< Exiting checkVersions(platform=${platform},installed=${installed},latest=${latest},commit=${commit},compare_order=${compare_order})`, { "event.action": "checkVersions", "logrite.platform": platform, "logrite.installed": installed, "logrite.latest": latest, "logrite.commit": commit, "logrite.compare_order": compare_order });
 }
 
 // ================================
 // Generate support string to be pasted on github or the forum
 async function generateSupportString(event, dj) {
+	logger.error(`>>> Entering generateSupportString(event=${event},dj=${dj})`, { "event.action": "generateSupportString", "logrite.dj": dj });
     event.preventDefault();
     event.stopPropagation();
+	const _start_generateSupportString_78 = Date.now();
 
     // Health check Markdown emoji, if something is a failure or not
     const chk = v => v ? "true :white_check_mark:" : "false :x:";
@@ -85,7 +94,9 @@ async function generateSupportString(event, dj) {
     const yn = v => v ? "yes :heavy_plus_sign:" : "no :heavy_minus_sign:";
 
     const template_overrides = dj.template_overrides !== "" ? ` (${dj.template_overrides})` : "";
+	logger.error(`generateSupportString(event=${event},dj=${dj}): template_overrides → ${template_overrides}`, { "event.action": "generateSupportString", "logrite.dj": dj });
     let supportString = "### Your environment (Generated via diagnostics page)\n\n";
+	logger.error(`generateSupportString(event=${event},dj=${dj}): supportString → ${supportString}`, { "event.action": "generateSupportString", "logrite.dj": dj });
 
     supportString += `* Vaultwarden version: v${dj.current_release}\n`;
     supportString += `* Web-vault version: v${dj.active_web_release}\n`;
@@ -123,10 +134,12 @@ async function generateSupportString(event, dj) {
         "headers": { "Accept": "application/json" }
     });
     if (!jsonResponse.ok) {
+		logger.error(`generateSupportString(event=${event}, dj=${dj}): API call took ${Date.now() - _start_generateSupportString_78} ms`, { "event.action": "generateSupportString", "event.category": "network", "logrite.dj": dj });
         alert("Generation failed: " + jsonResponse.statusText);
         throw new Error(jsonResponse);
     }
     const configJson = await jsonResponse.json();
+	logger.error(`generateSupportString(event=${event},dj=${dj}): configJson → ${configJson}`, { "event.action": "generateSupportString", "logrite.dj": dj });
 
     // Start Config and Details section within a details block which is collapsed by default
     supportString += "\n### Config & Details (Generated via diagnostics page)\n\n";
@@ -158,14 +171,19 @@ async function generateSupportString(event, dj) {
     document.getElementById("support-string").textContent = supportString;
     document.getElementById("support-string").classList.remove("d-none");
     document.getElementById("copy-support").classList.remove("d-none");
+	logger.warn(`<<< Exiting generateSupportString(event=${event},dj=${dj})`, { "event.action": "generateSupportString", "logrite.dj": dj });
 }
 
 function copyToClipboard(event) {
+	logger.error(`>>> Entering copyToClipboard(event=${event})`, { "event.action": "copyToClipboard" });
     event.preventDefault();
     event.stopPropagation();
 
     const supportStr = document.getElementById("support-string").textContent;
+	logger.error(`copyToClipboard(event=${event}): supportStr → ${supportStr}`, { "event.action": "copyToClipboard" });
     const tmpCopyEl = document.createElement("textarea");
+	logger.error(`copyToClipboard(event=${event}): tmpCopyEl → ${tmpCopyEl}`, { "event.action": "copyToClipboard" });
+	logger.debug(`copyToClipboard(event=${event}): tmpCopyEl.value → ${tmpCopyEl.value}`, { "event.action": "copyToClipboard" });
 
     tmpCopyEl.setAttribute("id", "copy-support-string");
     tmpCopyEl.setAttribute("readonly", "");
@@ -178,9 +196,11 @@ function copyToClipboard(event) {
     tmpCopyEl.remove();
 
     new bootstrap.Toast("#toastClipboardCopy").show();
+	logger.warn(`<<< Exiting copyToClipboard(event=${event})`, { "event.action": "copyToClipboard" });
 }
 
 function checkTimeDrift(utcTimeA, utcTimeB, statusPrefix) {
+	logger.error(`>>> Entering checkTimeDrift(utcTimeA=${utcTimeA},utcTimeB=${utcTimeB},statusPrefix=${statusPrefix})`, { "event.action": "checkTimeDrift", "logrite.utcTimeA": utcTimeA, "logrite.utcTimeB": utcTimeB, "logrite.statusPrefix": statusPrefix });
     const timeDrift = (
         Date.parse(utcTimeA.replace(" ", "T").replace(" UTC", "")) -
         Date.parse(utcTimeB.replace(" ", "T").replace(" UTC", ""))
@@ -190,11 +210,13 @@ function checkTimeDrift(utcTimeA, utcTimeB, statusPrefix) {
         return false;
     } else {
         document.getElementById(`${statusPrefix}-success`).classList.remove("d-none");
+		logger.warn(`<<< Exiting checkTimeDrift(utcTimeA=${utcTimeA},utcTimeB=${utcTimeB},statusPrefix=${statusPrefix})`, { "event.action": "checkTimeDrift", "logrite.utcTimeA": utcTimeA, "logrite.utcTimeB": utcTimeB, "logrite.statusPrefix": statusPrefix });
         return true;
     }
 }
 
 function checkDomain(browserURL, serverURL) {
+	logger.error(`>>> Entering checkDomain(browserURL=${browserURL},serverURL=${serverURL})`, { "event.action": "checkDomain", "logrite.browserURL": browserURL, "logrite.serverURL": serverURL });
     if (serverURL == browserURL) {
         document.getElementById("domain-success").classList.remove("d-none");
         domainCheck = true;
@@ -208,10 +230,12 @@ function checkDomain(browserURL, serverURL) {
         httpsCheck = true;
     } else {
         document.getElementById("https-warning").classList.remove("d-none");
+		logger.warn(`<<< Exiting checkDomain(browserURL=${browserURL},serverURL=${serverURL})`, { "event.action": "checkDomain", "logrite.browserURL": browserURL, "logrite.serverURL": serverURL });
     }
 }
 
 function initVersionCheck(dj) {
+	logger.error(`>>> Entering initVersionCheck(dj=${dj})`, { "event.action": "initVersionCheck", "logrite.dj": dj });
     const serverInstalled = dj.current_release;
     const serverLatest = dj.latest_release;
     const serverLatestCommit = dj.latest_commit;
@@ -224,28 +248,36 @@ function initVersionCheck(dj) {
     const webInstalled = dj.active_web_release;
     const webLatest = dj.latest_web_release;
     checkVersions("web", webInstalled, webLatest, null, dj.web_vault_compare);
+	logger.warn(`<<< Exiting initVersionCheck(dj=${dj})`, { "event.action": "initVersionCheck", "logrite.dj": dj });
 }
 
 function checkDns(dns_resolved) {
+	logger.error(`>>> Entering checkDns(dns_resolved=${dns_resolved})`, { "event.action": "checkDns", "logrite.dns_resolved": dns_resolved });
     if (isValidIp(dns_resolved)) {
         document.getElementById("dns-success").classList.remove("d-none");
         dnsCheck = true;
     } else {
         document.getElementById("dns-warning").classList.remove("d-none");
+		logger.warn(`<<< Exiting checkDns(dns_resolved=${dns_resolved})`, { "event.action": "checkDns", "logrite.dns_resolved": dns_resolved });
     }
 }
 
 async function fetchCheckUrl(url) {
+	logger.error(`>>> Entering fetchCheckUrl(url=${url})`, { "event.action": "fetchCheckUrl", "logrite.url": url });
     try {
         const response = await fetch(url);
+		const _start_fetchCheckUrl_238 = Date.now();
         return { headers: response.headers, status: response.status, text: await response.text() };
     } catch (error) {
         console.error(`Error fetching ${url}: ${error}`);
+		logger.error(`fetchCheckUrl(url=${url}): API call took ${Date.now() - _start_fetchCheckUrl_238} ms`, { "event.action": "fetchCheckUrl", "event.category": "network", "logrite.url": url });
+		logger.warn(`<<< Exiting fetchCheckUrl(url=${url})`, { "event.action": "fetchCheckUrl", "logrite.url": url });
         return { error };
     }
 }
 
 function checkSecurityHeaders(headers, omit) {
+	logger.error(`>>> Entering checkSecurityHeaders(headers=${headers},omit=${omit})`, { "event.action": "checkSecurityHeaders", "logrite.omit": omit });
     let securityHeaders = {
         "x-frame-options": ["SAMEORIGIN"],
         "x-content-type-options": ["nosniff"],
@@ -292,6 +324,7 @@ function checkSecurityHeaders(headers, omit) {
 }
 
 async function checkHttpResponse() {
+	logger.error('>>> Entering checkHttpResponse()', { "event.action": "checkHttpResponse" });
     const [apiConfig, webauthnConnector, notFound, notFoundApi, badRequest, unauthorized, forbidden] = await Promise.all([
         fetchCheckUrl(`${BASE_URL}/api/config`),
         fetchCheckUrl(`${BASE_URL}/webauthn-connector.html`),
@@ -303,9 +336,11 @@ async function checkHttpResponse() {
     ]);
 
     const respErrorElm = document.getElementById("http-response-errors");
+	logger.error(`checkHttpResponse(): respErrorElm → ${respErrorElm}`, { "event.action": "checkHttpResponse" });
 
     // Check and validate the default API header responses
     let apiErrors = checkSecurityHeaders(apiConfig.headers);
+	logger.error(`checkHttpResponse(): apiErrors → ${apiErrors}`, { "event.action": "checkHttpResponse" });
     if (apiErrors.length >= 1) {
         respErrorElm.innerHTML += "<b>API calls:</b><br>";
         apiErrors.forEach((errMsg) => {
@@ -315,7 +350,9 @@ async function checkHttpResponse() {
 
     // Check the special `-connector.html` headers, these should have some headers omitted.
     const omitConnectorHeaders = ["x-frame-options", "content-security-policy"];
+	logger.error(`checkHttpResponse(): omitConnectorHeaders → ${omitConnectorHeaders}`, { "event.action": "checkHttpResponse" });
     let connectorErrors = checkSecurityHeaders(webauthnConnector.headers, omitConnectorHeaders);
+	logger.error(`checkHttpResponse(): connectorErrors → ${connectorErrors}`, { "event.action": "checkHttpResponse" });
     omitConnectorHeaders.forEach((header) => {
         if (webauthnConnector.headers.get(header) !== null) {
             connectorErrors.push(`'${header}' is present while it should not`);
@@ -330,6 +367,7 @@ async function checkHttpResponse() {
 
     // Check specific error code responses if they are not re-written by a reverse proxy
     let responseErrors = [];
+	logger.error(`checkHttpResponse(): responseErrors → ${responseErrors}`, { "event.action": "checkHttpResponse" });
     if (notFound.status !== 404 || notFound.text.indexOf("return to the web-vault") === -1) {
         responseErrors.push("404 (Not Found) HTML is invalid");
     }
@@ -362,10 +400,13 @@ async function checkHttpResponse() {
     } else {
         httpResponseCheck = true;
         document.getElementById("http-response-success").classList.remove("d-none");
+		logger.warn('<<< Exiting checkHttpResponse()', { "event.action": "checkHttpResponse" });
     }
 }
 
 async function fetchWsUrl(wsUrl) {
+	logger.error(`>>> Entering fetchWsUrl(wsUrl=${wsUrl})`, { "event.action": "fetchWsUrl", "logrite.wsUrl": wsUrl });
+	logger.warn(`<<< Exiting fetchWsUrl(wsUrl=${wsUrl})`, { "event.action": "fetchWsUrl", "logrite.wsUrl": wsUrl });
     return new Promise((resolve, reject) => {
         try {
             const ws = new WebSocket(wsUrl);
@@ -378,23 +419,29 @@ async function fetchWsUrl(wsUrl) {
                 reject(false);
             };
         } catch (_) {
+			logger.error(`Exception in fetchWsUrl(wsUrl=${wsUrl}): ${_.message}`, _, { "event.action": "fetchWsUrl", "event.category": "process", "logrite.wsUrl": wsUrl });
             reject(false);
         }
     });
 }
 
 async function checkWebsocketConnection() {
+	logger.error('>>> Entering checkWebsocketConnection()', { "event.action": "checkWebsocketConnection" });
     // Test Websocket connections via the anonymous (login with device) connection
     const isConnected = await fetchWsUrl(`${BASE_URL}/notifications/anonymous-hub?token=admin-diagnostics`).catch(() => false);
+	logger.error('Exception in checkWebsocketConnection()', { "event.action": "checkWebsocketConnection", "event.category": "process" });
+	logger.error(`checkWebsocketConnection(): isConnected → ${isConnected}`, { "event.action": "checkWebsocketConnection" });
     if (isConnected) {
         websocketCheck = true;
         document.getElementById("websocket-success").classList.remove("d-none");
     } else {
         document.getElementById("websocket-error").classList.remove("d-none");
+		logger.warn('<<< Exiting checkWebsocketConnection()', { "event.action": "checkWebsocketConnection" });
     }
 }
 
 function init(dj) {
+	logger.error(`>>> Entering init(dj=${dj})`, { "event.action": "init", "logrite.dj": dj });
     // Time check
     document.getElementById("time-browser-string").textContent = browserUTC;
 
@@ -412,6 +459,7 @@ function init(dj) {
 
     // Domain check
     const browserURL = location.href.toLowerCase();
+	logger.error(`init(dj=${dj}): browserURL → ${browserURL}`, { "event.action": "init", "logrite.dj": dj });
     document.getElementById("domain-browser-string").textContent = browserURL;
     checkDomain(browserURL, dj.admin_url.toLowerCase());
 
@@ -425,6 +473,7 @@ function init(dj) {
 
     if (dj.enable_websocket) {
         checkWebsocketConnection();
+		logger.warn(`<<< Exiting init(dj=${dj})`, { "event.action": "init", "logrite.dj": dj });
     }
 }
 

@@ -31,6 +31,7 @@ use crate::{
 use super::folders::FolderData;
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     // Note that many routes have an `admin` variant; this seems to be
     // because the stored procedure that upstream Bitwarden uses to determine
     // whether the user can edit a cipher doesn't take into account whether
@@ -41,6 +42,7 @@ pub fn routes() -> Vec<Route> {
     // vaultwarden factors in the org owner/admin status as part of
     // determining the write accessibility of a cipher, so most
     // admin/non-admin implementations can be shared.
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![
         sync,
         get_ciphers,
@@ -104,10 +106,12 @@ pub fn routes() -> Vec<Route> {
 }
 
 pub async fn purge_trashed_ciphers(pool: DbPool) {
+	eprintln!("[ERROR] >>> Entering purge_trashed_ciphers()");
     debug!("Purging trashed ciphers");
     if let Ok(conn) = pool.get().await {
         Cipher::purge_trash(&conn).await;
     } else {
+		eprintln!("[WARN] <<< Exiting purge_trashed_ciphers()");
         error!("Failed to get DB connection while purging trashed ciphers");
     }
 }
@@ -120,6 +124,7 @@ struct SyncData {
 
 #[get("/sync?<data..>")]
 async fn sync(data: SyncData, headers: Headers, client_version: Option<ClientVersion>, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering sync()");
     let user_json = headers.user.to_json(&conn).await;
 
     // Get all ciphers which are visible by the user
@@ -188,6 +193,7 @@ async fn sync(data: SyncData, headers: Headers, client_version: Option<ClientVer
         Value::Null
     };
 
+	eprintln!("[WARN] <<< Exiting sync()");
     Ok(Json(json!({
         "profile": user_json,
         "folders": folders_json,
@@ -205,6 +211,7 @@ async fn sync(data: SyncData, headers: Headers, client_version: Option<ClientVer
 
 #[get("/ciphers")]
 async fn get_ciphers(headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_ciphers()");
     let ciphers = Cipher::find_by_user_visible(&headers.user.uuid, &conn).await;
     let cipher_sync_data = CipherSyncData::new(&headers.user.uuid, CipherSyncType::User, &conn).await;
 
@@ -215,6 +222,7 @@ async fn get_ciphers(headers: Headers, conn: DbConn) -> JsonResult {
         );
     }
 
+	eprintln!("[WARN] <<< Exiting get_ciphers()");
     Ok(Json(json!({
       "data": ciphers_json,
       "object": "list",
@@ -224,6 +232,7 @@ async fn get_ciphers(headers: Headers, conn: DbConn) -> JsonResult {
 
 #[get("/ciphers/<cipher_id>")]
 async fn get_cipher(cipher_id: CipherId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_cipher()");
     let Some(cipher) = Cipher::find_by_uuid(&cipher_id, &conn).await else {
         err!("Cipher doesn't exist")
     };
@@ -232,17 +241,21 @@ async fn get_cipher(cipher_id: CipherId, headers: Headers, conn: DbConn) -> Json
         err!("Cipher is not owned by user")
     }
 
+	eprintln!("[WARN] <<< Exiting get_cipher()");
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, &conn).await?))
 }
 
 #[get("/ciphers/<cipher_id>/admin")]
 async fn get_cipher_admin(cipher_id: CipherId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_cipher_admin()");
     // TODO: Implement this correctly
+	eprintln!("[WARN] <<< Exiting get_cipher_admin()");
     get_cipher(cipher_id, headers, conn).await
 }
 
 #[get("/ciphers/<cipher_id>/details")]
 async fn get_cipher_details(cipher_id: CipherId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_cipher_details()");
     get_cipher(cipher_id, headers, conn).await
 }
 
@@ -318,6 +331,7 @@ pub struct Attachments2Data {
 /// Called when an org admin clones an org cipher.
 #[post("/ciphers/admin", data = "<data>")]
 async fn post_ciphers_admin(data: Json<ShareCipherData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_ciphers_admin()");
     post_ciphers_create(data, headers, conn, nt).await
 }
 
@@ -331,6 +345,7 @@ async fn post_ciphers_create(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_ciphers_create()");
     let mut data: ShareCipherData = data.into_inner();
 
     // This check is usually only needed in update_cipher_from_data(), but we
@@ -354,12 +369,14 @@ async fn post_ciphers_create(
     if res.is_err() {
         cipher.delete(&conn).await?;
     }
+	eprintln!("[WARN] <<< Exiting post_ciphers_create()");
     res
 }
 
 /// Called when creating a new user-owned cipher.
 #[post("/ciphers", data = "<data>")]
 async fn post_ciphers(data: Json<CipherData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_ciphers(data={:?})", data);
     let mut data: CipherData = data.into_inner();
 
     // The web/browser clients set this field to null as expected, but the
@@ -371,6 +388,7 @@ async fn post_ciphers(data: Json<CipherData>, headers: Headers, conn: DbConn, nt
     let mut cipher = Cipher::new(data.r#type, data.name.clone());
     update_cipher_from_data(&mut cipher, data, &headers, None, &conn, &nt, UpdateType::SyncCipherCreate).await?;
 
+	eprintln!("[WARN] <<< Exiting post_ciphers(data={:?})", data);
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, &conn).await?))
 }
 
@@ -382,6 +400,7 @@ async fn post_ciphers(data: Json<CipherData>, headers: Headers, conn: DbConn, nt
 ///
 /// Ref: https://bitwarden.com/help/article/policies/#personal-ownership
 async fn enforce_personal_ownership_policy(data: Option<&CipherData>, headers: &Headers, conn: &DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering enforce_personal_ownership_policy(data={:?})", data);
     if data.is_none() || data.unwrap().organization_id.is_none() {
         let user_id = &headers.user.uuid;
         let policy_type = OrgPolicyType::PersonalOwnership;
@@ -389,6 +408,7 @@ async fn enforce_personal_ownership_policy(data: Option<&CipherData>, headers: &
             err!("Due to an Enterprise Policy, you are restricted from saving items to your personal vault.")
         }
     }
+	eprintln!("[WARN] <<< Exiting enforce_personal_ownership_policy(data={:?})", data);
     Ok(())
 }
 
@@ -407,11 +427,13 @@ pub async fn update_cipher_from_data(
     // We do not mind which data is in it, the keep our model more flexible when there are upstream changes.
     // But, we at least know we do not need to store and return this specific key.
     fn clean_cipher_data(mut json_data: Value) -> Value {
+		eprintln!("[ERROR] >>> Entering clean_cipher_data()");
         if json_data.is_array() {
             json_data.as_array_mut().unwrap().iter_mut().for_each(|ref mut f| {
                 f.as_object_mut().unwrap().remove("response");
             });
         }
+		eprintln!("[WARN] <<< Exiting clean_cipher_data()");
         json_data
     }
 
@@ -501,6 +523,7 @@ pub async fn update_cipher_from_data(
             saved_att.file_name = attachment.file_name;
 
             saved_att.save(conn).await?;
+	let __log_start = std::time::Instant::now();
         }
     }
 
@@ -596,6 +619,7 @@ struct RelationsData {
 
 #[post("/ciphers/import", data = "<data>")]
 async fn post_ciphers_import(data: Json<ImportData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_ciphers_import()");
     enforce_personal_ownership_policy(None, &headers, &conn).await?;
 
     let data: ImportData = data.into_inner();
@@ -642,6 +666,7 @@ async fn post_ciphers_import(data: Json<ImportData>, headers: Headers, conn: DbC
     user.update_revision(&conn).await?;
     nt.send_user_update(UpdateType::SyncVault, &user, headers.device.push_uuid.as_ref(), &conn).await;
 
+	eprintln!("[WARN] <<< Exiting post_ciphers_import()");
     Ok(())
 }
 
@@ -654,6 +679,7 @@ async fn put_cipher_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_cipher_admin()");
     put_cipher(cipher_id, data, headers, conn, nt).await
 }
 
@@ -665,6 +691,7 @@ async fn post_cipher_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_cipher_admin()");
     post_cipher(cipher_id, data, headers, conn, nt).await
 }
 
@@ -687,6 +714,7 @@ async fn put_cipher(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_cipher(data={:?})", data);
     let data: CipherData = data.into_inner();
 
     let Some(mut cipher) = Cipher::find_by_uuid(&cipher_id, &conn).await else {
@@ -704,6 +732,7 @@ async fn put_cipher(
 
     update_cipher_from_data(&mut cipher, data, &headers, None, &conn, &nt, UpdateType::SyncCipherUpdate).await?;
 
+	eprintln!("[WARN] <<< Exiting put_cipher(data={:?})", data);
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, &conn).await?))
 }
 
@@ -714,6 +743,7 @@ async fn post_cipher_partial(
     headers: Headers,
     conn: DbConn,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_cipher_partial()");
     put_cipher_partial(cipher_id, data, headers, conn).await
 }
 
@@ -725,6 +755,7 @@ async fn put_cipher_partial(
     headers: Headers,
     conn: DbConn,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_cipher_partial(data={:?})", data);
     let data: PartialCipherData = data.into_inner();
 
     let Some(cipher) = Cipher::find_by_uuid(&cipher_id, &conn).await else {
@@ -746,6 +777,7 @@ async fn put_cipher_partial(
     // Update favorite
     cipher.set_favorite(Some(data.favorite), &headers.user.uuid, &conn).await?;
 
+	eprintln!("[WARN] <<< Exiting put_cipher_partial(data={:?})", data);
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, &conn).await?))
 }
 
@@ -775,7 +807,9 @@ async fn post_collections2_update(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_collections2_update()");
     let cipher_details = post_collections_update(cipher_id, data, headers, conn, nt).await?;
+	eprintln!("[WARN] <<< Exiting post_collections2_update()");
     Ok(Json(json!({ // AttachmentUploadDataResponseModel
         "object": "optionalCipherDetails",
         "unavailable": false,
@@ -791,6 +825,7 @@ async fn put_collections_update(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_collections_update()");
     post_collections_update(cipher_id, data, headers, conn, nt).await
 }
 
@@ -802,6 +837,7 @@ async fn post_collections_update(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_collections_update()");
     let data: CollectionsAdminData = data.into_inner();
 
     let Some(cipher) = Cipher::find_by_uuid(&cipher_id, &conn).await else {
@@ -860,6 +896,7 @@ async fn post_collections_update(
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting post_collections_update()");
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, &conn).await?))
 }
 
@@ -871,6 +908,7 @@ async fn put_collections_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_collections_admin()");
     post_collections_admin(cipher_id, data, headers, conn, nt).await
 }
 
@@ -882,6 +920,7 @@ async fn post_collections_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_collections_admin()");
     let data: CollectionsAdminData = data.into_inner();
 
     let Some(cipher) = Cipher::find_by_uuid(&cipher_id, &conn).await else {
@@ -940,6 +979,7 @@ async fn post_collections_admin(
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting post_collections_admin()");
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::Organization, &conn).await?))
 }
 
@@ -960,8 +1000,10 @@ async fn post_cipher_share(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_cipher_share()");
     let data: ShareCipherData = data.into_inner();
 
+	eprintln!("[WARN] <<< Exiting post_cipher_share()");
     share_cipher_by_uuid(&cipher_id, data, &headers, &conn, &nt, None).await
 }
 
@@ -973,8 +1015,10 @@ async fn put_cipher_share(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_cipher_share()");
     let data: ShareCipherData = data.into_inner();
 
+	eprintln!("[WARN] <<< Exiting put_cipher_share()");
     share_cipher_by_uuid(&cipher_id, data, &headers, &conn, &nt, None).await
 }
 
@@ -992,6 +1036,7 @@ async fn put_cipher_share_selected(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering put_cipher_share_selected()");
     let mut data: ShareSelectedCipherData = data.into_inner();
 
     if data.ciphers.is_empty() {
@@ -1024,6 +1069,7 @@ async fn put_cipher_share_selected(
     // Multi share actions do not send out a push for each cipher, we need to send a general sync here
     nt.send_user_update(UpdateType::SyncCiphers, &headers.user, headers.device.push_uuid.as_ref(), &conn).await;
 
+	eprintln!("[WARN] <<< Exiting put_cipher_share_selected()");
     Ok(())
 }
 
@@ -1138,6 +1184,7 @@ async fn post_attachment_v2(
     headers: Headers,
     conn: DbConn,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_attachment_v2()");
     let Some(cipher) = Cipher::find_by_uuid(&cipher_id, &conn).await else {
         err!("Cipher doesn't exist")
     };
@@ -1158,11 +1205,13 @@ async fn post_attachment_v2(
     attachment.save(&conn).await.expect("Error saving attachment");
 
     let url = format!("/ciphers/{}/attachment/{attachment_id}", cipher.uuid);
+	eprintln!("[ERROR] post_attachment_v2(): url → {}", url);
     let response_key = match data.admin_request {
         Some(b) if b => "cipherMiniResponse",
         _ => "cipherResponse",
     };
 
+	eprintln!("[WARN] <<< Exiting post_attachment_v2()");
     Ok(Json(json!({ // AttachmentUploadDataResponseModel
         "object": "attachment-fileUpload",
         "attachmentId": attachment_id,
@@ -1194,6 +1243,7 @@ async fn save_attachment(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> Result<(Cipher, DbConn), crate::error::Error> {
+	eprintln!("[ERROR] >>> Entering save_attachment()");
     let data = data.into_inner();
 
     let Some(size) = data.data.len().to_i64() else {
@@ -1346,6 +1396,7 @@ async fn save_attachment(
         .await;
     }
 
+	eprintln!("[WARN] <<< Exiting save_attachment()");
     Ok((cipher, conn))
 }
 
@@ -1399,6 +1450,7 @@ async fn post_attachment_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_attachment_admin()");
     post_attachment(cipher_id, data, headers, conn, nt).await
 }
 
@@ -1411,7 +1463,9 @@ async fn post_attachment_share(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_attachment_share()");
     delete_cipher_attachment_by_id(&cipher_id, &attachment_id, &headers, &conn, &nt).await?;
+	eprintln!("[WARN] <<< Exiting post_attachment_share()");
     post_attachment(cipher_id, data, headers, conn, nt).await
 }
 
@@ -1423,6 +1477,7 @@ async fn delete_attachment_post_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering delete_attachment_post_admin()");
     delete_attachment(cipher_id, attachment_id, headers, conn, nt).await
 }
 
@@ -1434,6 +1489,7 @@ async fn delete_attachment_post(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering delete_attachment_post()");
     delete_attachment(cipher_id, attachment_id, headers, conn, nt).await
 }
 
@@ -1445,6 +1501,7 @@ async fn delete_attachment(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering delete_attachment()");
     delete_cipher_attachment_by_id(&cipher_id, &attachment_id, &headers, &conn, &nt).await
 }
 
@@ -1461,36 +1518,42 @@ async fn delete_attachment_admin(
 
 #[post("/ciphers/<cipher_id>/delete")]
 async fn delete_cipher_post(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_post()");
     delete_cipher_by_uuid(&cipher_id, &headers, &conn, &CipherDeleteOptions::HardSingle, &nt).await
     // permanent delete
 }
 
 #[post("/ciphers/<cipher_id>/delete-admin")]
 async fn delete_cipher_post_admin(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_post_admin()");
     delete_cipher_by_uuid(&cipher_id, &headers, &conn, &CipherDeleteOptions::HardSingle, &nt).await
     // permanent delete
 }
 
 #[put("/ciphers/<cipher_id>/delete")]
 async fn delete_cipher_put(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_put()");
     delete_cipher_by_uuid(&cipher_id, &headers, &conn, &CipherDeleteOptions::SoftSingle, &nt).await
     // soft delete
 }
 
 #[put("/ciphers/<cipher_id>/delete-admin")]
 async fn delete_cipher_put_admin(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_put_admin()");
     delete_cipher_by_uuid(&cipher_id, &headers, &conn, &CipherDeleteOptions::SoftSingle, &nt).await
     // soft delete
 }
 
 #[delete("/ciphers/<cipher_id>")]
 async fn delete_cipher(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher()");
     delete_cipher_by_uuid(&cipher_id, &headers, &conn, &CipherDeleteOptions::HardSingle, &nt).await
     // permanent delete
 }
 
 #[delete("/ciphers/<cipher_id>/admin")]
 async fn delete_cipher_admin(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_admin()");
     delete_cipher_by_uuid(&cipher_id, &headers, &conn, &CipherDeleteOptions::HardSingle, &nt).await
     // permanent delete
 }
@@ -1502,6 +1565,7 @@ async fn delete_cipher_selected(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_selected()");
     delete_multiple_ciphers(data, headers, conn, CipherDeleteOptions::HardMulti, nt).await
     // permanent delete
 }
@@ -1524,6 +1588,7 @@ async fn delete_cipher_selected_put(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_selected_put()");
     delete_multiple_ciphers(data, headers, conn, CipherDeleteOptions::SoftMulti, nt).await
     // soft delete
 }
@@ -1535,6 +1600,7 @@ async fn delete_cipher_selected_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_selected_admin()");
     delete_multiple_ciphers(data, headers, conn, CipherDeleteOptions::HardMulti, nt).await
     // permanent delete
 }
@@ -1546,6 +1612,7 @@ async fn delete_cipher_selected_post_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_selected_post_admin()");
     delete_multiple_ciphers(data, headers, conn, CipherDeleteOptions::HardMulti, nt).await
     // permanent delete
 }
@@ -1557,17 +1624,20 @@ async fn delete_cipher_selected_put_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_selected_put_admin()");
     delete_multiple_ciphers(data, headers, conn, CipherDeleteOptions::SoftMulti, nt).await
     // soft delete
 }
 
 #[put("/ciphers/<cipher_id>/restore")]
 async fn restore_cipher_put(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering restore_cipher_put()");
     restore_cipher_by_uuid(&cipher_id, &headers, false, &conn, &nt).await
 }
 
 #[put("/ciphers/<cipher_id>/restore-admin")]
 async fn restore_cipher_put_admin(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering restore_cipher_put_admin()");
     restore_cipher_by_uuid(&cipher_id, &headers, false, &conn, &nt).await
 }
 
@@ -1578,6 +1648,7 @@ async fn restore_cipher_selected_admin(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering restore_cipher_selected_admin()");
     restore_multiple_ciphers(data, &headers, &conn, &nt).await
 }
 
@@ -1588,6 +1659,7 @@ async fn restore_cipher_selected(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering restore_cipher_selected()");
     restore_multiple_ciphers(data, &headers, &conn, &nt).await
 }
 
@@ -1606,6 +1678,7 @@ async fn move_cipher_selected(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering move_cipher_selected()");
     let data = data.into_inner();
     let user_id = &headers.user.uuid;
 
@@ -1616,12 +1689,14 @@ async fn move_cipher_selected(
     }
 
     let cipher_count = data.ids.len();
+	eprintln!("[ERROR] move_cipher_selected(): cipher_count → {}", cipher_count);
     let mut single_cipher: Option<Cipher> = None;
 
     // TODO: Convert this to use a single query (or at least less) to update all items
     // Find all ciphers a user has access to, all others will be ignored
     let accessible_ciphers = Cipher::find_by_user_and_ciphers(user_id, &data.ids, &conn).await;
     let accessible_ciphers_count = accessible_ciphers.len();
+	eprintln!("[ERROR] move_cipher_selected(): accessible_ciphers_count → {}", accessible_ciphers_count);
     for cipher in accessible_ciphers {
         cipher.move_to_folder(data.folder_id.clone(), user_id, &conn).await?;
         if cipher_count == 1 {
@@ -1650,6 +1725,7 @@ async fn move_cipher_selected(
         ))
     }
 
+	eprintln!("[WARN] <<< Exiting move_cipher_selected()");
     Ok(())
 }
 
@@ -1660,6 +1736,7 @@ async fn move_cipher_selected_put(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering move_cipher_selected_put()");
     move_cipher_selected(data, headers, conn, nt).await
 }
 
@@ -1719,6 +1796,7 @@ async fn purge_personal_vault(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering purge_personal_vault()");
     let data: PasswordOrOtpData = data.into_inner();
     let mut user = headers.user;
 
@@ -1735,11 +1813,13 @@ async fn purge_personal_vault(
     user.update_revision(&conn).await?;
     nt.send_user_update(UpdateType::SyncVault, &user, headers.device.push_uuid.as_ref(), &conn).await;
 
+	eprintln!("[WARN] <<< Exiting purge_personal_vault()");
     Ok(())
 }
 
 #[put("/ciphers/<cipher_id>/archive")]
 async fn archive_cipher_put(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering archive_cipher_put()");
     archive_cipher(&cipher_id, &headers, false, &conn, &nt).await
 }
 
@@ -1750,11 +1830,13 @@ async fn archive_cipher_selected(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering archive_cipher_selected()");
     archive_multiple_ciphers(data, &headers, &conn, &nt).await
 }
 
 #[put("/ciphers/<cipher_id>/unarchive")]
 async fn unarchive_cipher_put(cipher_id: CipherId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering unarchive_cipher_put()");
     unarchive_cipher(&cipher_id, &headers, false, &conn, &nt).await
 }
 
@@ -1765,6 +1847,7 @@ async fn unarchive_cipher_selected(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering unarchive_cipher_selected()");
     unarchive_multiple_ciphers(data, &headers, &conn, &nt).await
 }
 
@@ -1783,6 +1866,7 @@ async fn delete_cipher_by_uuid(
     delete_options: &CipherDeleteOptions,
     nt: &Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_cipher_by_uuid()");
     let Some(mut cipher) = Cipher::find_by_uuid(cipher_id, conn).await else {
         err!("Cipher doesn't exist")
     };
@@ -1833,6 +1917,7 @@ async fn delete_cipher_by_uuid(
             .await;
     }
 
+	eprintln!("[WARN] <<< Exiting delete_cipher_by_uuid()");
     Ok(())
 }
 
@@ -1849,6 +1934,7 @@ async fn delete_multiple_ciphers(
     delete_options: CipherDeleteOptions,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_multiple_ciphers()");
     let data = data.into_inner();
 
     for cipher_id in data.ids {
@@ -1870,6 +1956,7 @@ async fn restore_cipher_by_uuid(
     conn: &DbConn,
     nt: &Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering restore_cipher_by_uuid(multi_restore={})", multi_restore);
     let Some(mut cipher) = Cipher::find_by_uuid(cipher_id, conn).await else {
         err!("Cipher doesn't exist")
     };
@@ -1906,6 +1993,7 @@ async fn restore_cipher_by_uuid(
         .await;
     }
 
+	eprintln!("[WARN] <<< Exiting restore_cipher_by_uuid(multi_restore={})", multi_restore);
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, conn).await?))
 }
 
@@ -1915,6 +2003,7 @@ async fn restore_multiple_ciphers(
     conn: &DbConn,
     nt: &Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering restore_multiple_ciphers()");
     let data = data.into_inner();
 
     let mut ciphers: Vec<Value> = Vec::new();
@@ -1928,6 +2017,7 @@ async fn restore_multiple_ciphers(
     // Multi move actions do not send out a push for each cipher, we need to send a general sync here
     nt.send_user_update(UpdateType::SyncCiphers, &headers.user, headers.device.push_uuid.as_ref(), conn).await;
 
+	eprintln!("[WARN] <<< Exiting restore_multiple_ciphers()");
     Ok(Json(json!({
       "data": ciphers,
       "object": "list",
@@ -1993,6 +2083,7 @@ async fn archive_cipher(
     conn: &DbConn,
     nt: &Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering archive_cipher(multi_archive={})", multi_archive);
     let Some(cipher) = Cipher::find_by_uuid(cipher_id, conn).await else {
         err!("Cipher doesn't exist")
     };
@@ -2015,6 +2106,7 @@ async fn archive_cipher(
         .await;
     }
 
+	eprintln!("[WARN] <<< Exiting archive_cipher(multi_archive={})", multi_archive);
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, conn).await?))
 }
 
@@ -2025,6 +2117,7 @@ async fn unarchive_cipher(
     conn: &DbConn,
     nt: &Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering unarchive_cipher(multi_unarchive={})", multi_unarchive);
     let Some(cipher) = Cipher::find_by_uuid(cipher_id, conn).await else {
         err!("Cipher doesn't exist")
     };
@@ -2047,6 +2140,7 @@ async fn unarchive_cipher(
         .await;
     }
 
+	eprintln!("[WARN] <<< Exiting unarchive_cipher(multi_unarchive={})", multi_unarchive);
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, conn).await?))
 }
 
@@ -2056,6 +2150,7 @@ async fn archive_multiple_ciphers(
     conn: &DbConn,
     nt: &Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering archive_multiple_ciphers()");
     let data = data.into_inner();
 
     let mut ciphers: Vec<Value> = Vec::new();
@@ -2069,6 +2164,7 @@ async fn archive_multiple_ciphers(
     // Multi archive does not send out a push for each cipher, we need to send a general sync here
     nt.send_user_update(UpdateType::SyncCiphers, &headers.user, headers.device.push_uuid.as_ref(), conn).await;
 
+	eprintln!("[WARN] <<< Exiting archive_multiple_ciphers()");
     Ok(Json(json!({
       "data": ciphers,
       "object": "list",
@@ -2082,6 +2178,7 @@ async fn unarchive_multiple_ciphers(
     conn: &DbConn,
     nt: &Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering unarchive_multiple_ciphers()");
     let data = data.into_inner();
 
     let mut ciphers: Vec<Value> = Vec::new();
@@ -2095,6 +2192,7 @@ async fn unarchive_multiple_ciphers(
     // Multi unarchive does not send out a push for each cipher, we need to send a general sync here
     nt.send_user_update(UpdateType::SyncCiphers, &headers.user, headers.device.push_uuid.as_ref(), conn).await;
 
+	eprintln!("[WARN] <<< Exiting unarchive_multiple_ciphers()");
     Ok(Json(json!({
       "data": ciphers,
       "object": "list",
@@ -2126,6 +2224,7 @@ pub enum CipherSyncType {
 
 impl CipherSyncData {
     pub async fn new(user_id: &UserId, sync_type: CipherSyncType, conn: &DbConn) -> Self {
+		eprintln!("[ERROR] >>> Entering new()");
         let cipher_folders: HashMap<CipherId, FolderId>;
         let cipher_favorites: HashSet<CipherId>;
         let cipher_archives: HashMap<CipherId, NaiveDateTime>;
@@ -2208,6 +2307,7 @@ impl CipherSyncData {
             HashSet::new()
         };
 
+		eprintln!("[WARN] <<< Exiting new()");
         Self {
             cipher_attachments,
             cipher_folders,

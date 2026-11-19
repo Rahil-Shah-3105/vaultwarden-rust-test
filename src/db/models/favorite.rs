@@ -19,6 +19,7 @@ pub struct Favorite {
 impl Favorite {
     // Returns whether the specified cipher is a favorite of the specified user.
     pub async fn is_favorite(cipher_uuid: &CipherId, user_uuid: &UserId, conn: &DbConn) -> bool {
+		eprintln!("[ERROR] >>> Entering is_favorite()");
         conn.run(move |conn| {
             let query = favorites::table
                 .filter(favorites::cipher_uuid.eq(cipher_uuid))
@@ -37,6 +38,7 @@ impl Favorite {
         user_uuid: &UserId,
         conn: &DbConn,
     ) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering set_favorite(favorite={})", favorite);
         let (old, new) = (Self::is_favorite(cipher_uuid, user_uuid, conn).await, favorite);
         match (old, new) {
             (false, true) => {
@@ -69,6 +71,10 @@ impl Favorite {
 
     // Delete all favorite entries associated with the specified cipher.
     pub async fn delete_all_by_cipher(cipher_uuid: &CipherId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete_all_by_cipher(cipher_uuid,conn)=(unprintable),(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete_all_by_cipher(cipher_uuid,conn)=(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete_all_by_cipher()");
         conn.run(move |conn| {
             diesel::delete(favorites::table.filter(favorites::cipher_uuid.eq(cipher_uuid)))
                 .execute(conn)
@@ -79,6 +85,10 @@ impl Favorite {
 
     // Delete all favorite entries associated with the specified user.
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete_all_by_user(user_uuid,conn)=(unprintable),(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete_all_by_user(user_uuid,conn)=(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete_all_by_user()");
         conn.run(move |conn| {
             diesel::delete(favorites::table.filter(favorites::user_uuid.eq(user_uuid)))
                 .execute(conn)
@@ -90,6 +100,7 @@ impl Favorite {
     /// Return a vec with (cipher_uuid) this will only contain favorite flagged ciphers
     /// This is used during a full sync so we only need one query for all favorite cipher matches.
     pub async fn get_all_cipher_uuid_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<CipherId> {
+		eprintln!("[ERROR] >>> Entering get_all_cipher_uuid_by_user()");
         conn.run(move |conn| {
             favorites::table
                 .filter(favorites::user_uuid.eq(user_uuid))

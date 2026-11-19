@@ -18,6 +18,7 @@ use crate::{
 /// ###############################################################################################################
 /// /api routes
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![get_org_events, get_cipher_events, get_user_events,]
 }
 
@@ -32,6 +33,7 @@ struct EventRange {
 // Upstream: https://github.com/bitwarden/server/blob/9ebe16587175b1c0e9208f84397bb75d0d595510/src/Api/AdminConsole/Controllers/EventsController.cs#L87
 #[get("/organizations/<org_id>/events?<data..>")]
 async fn get_org_events(org_id: OrganizationId, data: EventRange, headers: AdminHeaders, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_org_events()");
     if org_id != headers.org_id {
         err!("Organization not found", "Organization id's do not match");
     }
@@ -55,6 +57,7 @@ async fn get_org_events(org_id: OrganizationId, data: EventRange, headers: Admin
         Vec::new()
     };
 
+	eprintln!("[WARN] <<< Exiting get_org_events()");
     Ok(Json(json!({
         "data": events_json,
         "object": "list",
@@ -64,6 +67,7 @@ async fn get_org_events(org_id: OrganizationId, data: EventRange, headers: Admin
 
 #[get("/ciphers/<cipher_id>/events?<data..>")]
 async fn get_cipher_events(cipher_id: CipherId, data: EventRange, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_cipher_events()");
     // Return an empty vec when org events are disabled.
     // This prevents client errors
     let events_json: Vec<Value> = if CONFIG.org_events_enabled()
@@ -81,6 +85,7 @@ async fn get_cipher_events(cipher_id: CipherId, data: EventRange, headers: Heade
         Vec::new()
     };
 
+	eprintln!("[WARN] <<< Exiting get_cipher_events()");
     Ok(Json(json!({
         "data": events_json,
         "object": "list",
@@ -96,6 +101,7 @@ async fn get_user_events(
     headers: AdminHeaders,
     conn: DbConn,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_user_events()");
     if org_id != headers.org_id {
         err!("Organization not found", "Organization id's do not match");
     }
@@ -118,6 +124,7 @@ async fn get_user_events(
         Vec::new()
     };
 
+	eprintln!("[WARN] <<< Exiting get_user_events()");
     Ok(Json(json!({
         "data": events_json,
         "object": "list",
@@ -126,6 +133,7 @@ async fn get_user_events(
 }
 
 fn get_continuation_token(events_json: &[Value]) -> Option<&str> {
+	eprintln!("[ERROR] >>> Entering get_continuation_token()");
     // When the length of the vec equals the max page_size there probably is more data
     // When it is less, then all events are loaded.
     #[expect(clippy::cast_possible_truncation, reason = "PAGE_SIZE fits within usize")]
@@ -136,6 +144,7 @@ fn get_continuation_token(events_json: &[Value]) -> Option<&str> {
             None
         }
     } else {
+		eprintln!("[WARN] <<< Exiting get_continuation_token()");
         None
     }
 }
@@ -143,6 +152,7 @@ fn get_continuation_token(events_json: &[Value]) -> Option<&str> {
 /// ###############################################################################################################
 /// /events routes
 pub fn main_routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering main_routes()");
     routes![post_events_collect,]
 }
 
@@ -163,6 +173,7 @@ struct EventCollection {
 // https://github.com/bitwarden/server/blob/9ebe16587175b1c0e9208f84397bb75d0d595510/src/Core/AdminConsole/Services/Implementations/EventService.cs
 #[post("/collect", format = "application/json", data = "<data>")]
 async fn post_events_collect(data: Json<Vec<EventCollection>>, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_events_collect()");
     if !CONFIG.org_events_enabled() {
         return Ok(());
     }
@@ -226,9 +237,11 @@ async fn post_events_collect(data: Json<Vec<EventCollection>>, headers: Headers,
 }
 
 pub async fn log_user_event(event_type: i32, user_id: &UserId, device_type: i32, ip: &IpAddr, conn: &DbConn) {
+	eprintln!("[ERROR] >>> Entering log_user_event(event_type={},device_type={})", event_type, device_type);
     if !CONFIG.org_events_enabled() {
         return;
     }
+	eprintln!("[WARN] <<< Exiting log_user_event(event_type={},device_type={})", event_type, device_type);
     log_user_event_impl(event_type, user_id, device_type, None, ip, conn).await;
 }
 
@@ -240,6 +253,7 @@ async fn log_user_event_impl(
     ip: &IpAddr,
     conn: &DbConn,
 ) {
+	eprintln!("[ERROR] >>> Entering log_user_event_impl(event_type={},device_type={})", event_type, device_type);
     let memberships = Membership::find_confirmed_by_user(user_id, conn).await;
     let mut events: Vec<Event> = Vec::with_capacity(memberships.len() + 1); // We need an event per org and one without an org
 
@@ -263,6 +277,7 @@ async fn log_user_event_impl(
         events.push(event);
     }
 
+	eprintln!("[WARN] <<< Exiting log_user_event_impl(event_type={},device_type={})", event_type, device_type);
     Event::save_user_event(events, conn).await.unwrap_or(());
 }
 
@@ -292,6 +307,7 @@ async fn log_event_impl(
     ip: &IpAddr,
     conn: &DbConn,
 ) {
+	eprintln!("[ERROR] >>> Entering log_event_impl(event_type={},source_uuid={},device_type={})", event_type, source_uuid, device_type);
     // Create a new empty event
     let mut event = Event::new(event_type, event_date);
     match event_type {
@@ -325,10 +341,12 @@ async fn log_event_impl(
     event.act_user_uuid = Some(act_user_id.clone());
     event.device_type = Some(device_type);
     event.ip_address = Some(ip.to_string());
+	eprintln!("[WARN] <<< Exiting log_event_impl(event_type={},source_uuid={},device_type={})", event_type, source_uuid, device_type);
     event.save(conn).await.unwrap_or(());
 }
 
 pub async fn event_cleanup_job(pool: DbPool) {
+	eprintln!("[ERROR] >>> Entering event_cleanup_job()");
     debug!("Start events cleanup job");
     if CONFIG.events_days_retain().is_none() {
         debug!("events_days_retain is not configured, abort");
@@ -339,5 +357,6 @@ pub async fn event_cleanup_job(pool: DbPool) {
         Event::clean_events(&conn).await.ok();
     } else {
         error!("Failed to get DB connection while trying to cleanup the events table");
+	eprintln!("[WARN] <<< Exiting event_cleanup_job()");
     }
 }

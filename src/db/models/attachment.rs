@@ -41,6 +41,7 @@ impl Attachment {
         file_size: i64,
         akey: Option<String>,
     ) -> Self {
+		eprintln!("[ERROR] >>> Entering new(id={:?},file_name={},file_size={},akey={:?})", id, file_name, file_size, akey);
         Self {
             id,
             cipher_uuid,
@@ -51,21 +52,25 @@ impl Attachment {
     }
 
     pub fn get_file_path(&self) -> String {
+		eprintln!("[ERROR] >>> Entering get_file_path()");
         format!("{}/{}", self.cipher_uuid, self.id)
     }
 
     pub async fn get_url(&self, host: &str) -> Result<String, crate::Error> {
+		eprintln!("[ERROR] >>> Entering get_url(host={})", host);
         let operator = CONFIG.opendal_operator_for_path_type(&PathType::Attachments)?;
 
         if crate::storage::is_fs_operator(&operator) {
             let token = encode_jwt(&generate_file_download_claims(self.cipher_uuid.clone(), self.id.clone()));
             Ok(format!("{host}/attachments/{}/{}?token={token}", self.cipher_uuid, self.id))
         } else {
+			eprintln!("[WARN] <<< Exiting get_url(host={})", host);
             Ok(operator.presign_read(&self.get_file_path(), Duration::from_mins(5)).await?.uri().to_string())
         }
     }
 
     pub async fn to_json(&self, host: &str) -> Result<Value, crate::Error> {
+		eprintln!("[ERROR] >>> Entering to_json(host={})", host);
         Ok(json!({
             "id": self.id,
             "url": self.get_url(host).await?,
@@ -81,6 +86,12 @@ impl Attachment {
 /// Database methods
 impl Attachment {
     pub async fn save(&self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save()");
+        let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] Exception in save(): (unprintable)");
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(attachments::table)
@@ -112,6 +123,8 @@ impl Attachment {
     }
 
     pub async fn delete(&self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete()");
+        let __log_start = std::time::Instant::now();
         conn.run(move |conn| {
             crate::util::retry(
                 || diesel::delete(attachments::table.filter(attachments::id.eq(&self.id))).execute(conn),
@@ -121,9 +134,11 @@ impl Attachment {
             .map_res("Error deleting attachment")
         })
         .await?;
+		eprintln!("[ERROR] delete(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
 
         let operator = CONFIG.opendal_operator_for_path_type(&PathType::Attachments)?;
         let file_path = self.get_file_path();
+		eprintln!("[ERROR] delete(): file_path → {}", file_path);
 
         if let Err(e) = operator.delete(&file_path).await {
             if e.kind() == opendal::ErrorKind::NotFound {
@@ -133,22 +148,28 @@ impl Attachment {
             }
         }
 
+		eprintln!("[ERROR] Exception in delete(): (unprintable)");
+        eprintln!("[WARN] <<< Exiting delete()");
         Ok(())
     }
 
     pub async fn delete_all_by_cipher(cipher_uuid: &CipherId, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete_all_by_cipher()");
         for attachment in Attachment::find_by_cipher(cipher_uuid, conn).await {
             attachment.delete(conn).await?;
         }
+		eprintln!("[WARN] <<< Exiting delete_all_by_cipher()");
         Ok(())
     }
 
     pub async fn find_by_id(id: &AttachmentId, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_id(id={:?})", id);
         conn.run(move |conn| attachments::table.filter(attachments::id.eq(id.to_lowercase())).first::<Self>(conn).ok())
             .await
     }
 
     pub async fn find_by_cipher(cipher_uuid: &CipherId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_cipher()");
         conn.run(move |conn| {
             attachments::table
                 .filter(attachments::cipher_uuid.eq(cipher_uuid))
@@ -159,6 +180,7 @@ impl Attachment {
     }
 
     pub async fn size_by_user(user_uuid: &UserId, conn: &DbConn) -> i64 {
+		eprintln!("[ERROR] >>> Entering size_by_user()");
         conn.run(move |conn| {
             let result: Option<BigDecimal> = attachments::table
                 .left_join(ciphers::table.on(ciphers::uuid.eq(attachments::cipher_uuid)))
@@ -177,6 +199,7 @@ impl Attachment {
     }
 
     pub async fn count_by_user(user_uuid: &UserId, conn: &DbConn) -> i64 {
+		eprintln!("[ERROR] >>> Entering count_by_user()");
         conn.run(move |conn| {
             attachments::table
                 .left_join(ciphers::table.on(ciphers::uuid.eq(attachments::cipher_uuid)))
@@ -189,6 +212,7 @@ impl Attachment {
     }
 
     pub async fn size_by_org(org_uuid: &OrganizationId, conn: &DbConn) -> i64 {
+		eprintln!("[ERROR] >>> Entering size_by_org()");
         conn.run(move |conn| {
             let result: Option<BigDecimal> = attachments::table
                 .left_join(ciphers::table.on(ciphers::uuid.eq(attachments::cipher_uuid)))
@@ -207,6 +231,7 @@ impl Attachment {
     }
 
     pub async fn count_by_org(org_uuid: &OrganizationId, conn: &DbConn) -> i64 {
+		eprintln!("[ERROR] >>> Entering count_by_org()");
         conn.run(move |conn| {
             attachments::table
                 .left_join(ciphers::table.on(ciphers::uuid.eq(attachments::cipher_uuid)))

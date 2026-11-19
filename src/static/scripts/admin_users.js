@@ -1,13 +1,17 @@
+var logger = (typeof logger !== 'undefined' && logger) || console;
 "use strict";
 /* global jQuery, _post:readable, _delete:readable, BASE_URL:readable, reload:readable, jdenticon:readable */
 
 function deleteUser(event) {
+	logger.error(`>>> Entering deleteUser(event=${event})`, { "event.action": "deleteUser" });
     event.preventDefault();
     event.stopPropagation();
     const id = event.target.parentNode.dataset.vwUserUuid;
+	logger.error(`deleteUser(event=${event}): id → ${id}`, { "event.action": "deleteUser" });
     const email = event.target.parentNode.dataset.vwUserEmail;
     if (!id || !email) {
         alert("Required parameters not found!");
+		logger.warn(`<<< Exiting deleteUser(event=${event})`, { "event.action": "deleteUser" });
         return false;
     }
     const input_email = prompt(`To delete user "${email}", please type the email below`);
@@ -24,12 +28,15 @@ function deleteUser(event) {
 }
 
 function deleteSSOUser(event) {
+	logger.error(`>>> Entering deleteSSOUser(event=${event})`, { "event.action": "deleteSSOUser" });
     event.preventDefault();
     event.stopPropagation();
     const id = event.target.parentNode.dataset.vwUserUuid;
+	logger.error(`deleteSSOUser(event=${event}): id → ${id}`, { "event.action": "deleteSSOUser" });
     const email = event.target.parentNode.dataset.vwUserEmail;
     if (!id || !email) {
         alert("Required parameters not found!");
+		logger.warn(`<<< Exiting deleteSSOUser(event=${event})`, { "event.action": "deleteSSOUser" });
         return false;
     }
     const input_email = prompt(`To delete user "${email}" SSO association, please type the email below`);
@@ -46,15 +53,19 @@ function deleteSSOUser(event) {
 }
 
 function remove2fa(event) {
+	logger.error(`>>> Entering remove2fa(event=${event})`, { "event.action": "remove2fa" });
     event.preventDefault();
     event.stopPropagation();
     const id = event.target.parentNode.dataset.vwUserUuid;
+	logger.error(`remove2fa(event=${event}): id → ${id}`, { "event.action": "remove2fa" });
     const email = event.target.parentNode.dataset.vwUserEmail;
     if (!id || !email) {
         alert("Required parameters not found!");
+		logger.warn(`<<< Exiting remove2fa(event=${event})`, { "event.action": "remove2fa" });
         return false;
     }
     const confirmed = confirm(`Are you sure you want to remove 2FA for "${email}"?`);
+	logger.error(`remove2fa(event=${event}): confirmed → ${confirmed}`, { "event.action": "remove2fa" });
     if (confirmed) {
         _post(`${BASE_URL}/admin/users/${id}/remove-2fa`,
             "2FA removed correctly",
@@ -64,15 +75,19 @@ function remove2fa(event) {
 }
 
 function deauthUser(event) {
+	logger.error(`>>> Entering deauthUser(event=${event})`, { "event.action": "deauthUser" });
     event.preventDefault();
     event.stopPropagation();
     const id = event.target.parentNode.dataset.vwUserUuid;
+	logger.error(`deauthUser(event=${event}): id → ${id}`, { "event.action": "deauthUser" });
     const email = event.target.parentNode.dataset.vwUserEmail;
     if (!id || !email) {
         alert("Required parameters not found!");
+		logger.warn(`<<< Exiting deauthUser(event=${event})`, { "event.action": "deauthUser" });
         return false;
     }
     const confirmed = confirm(`Are you sure you want to deauthorize sessions for "${email}"?`);
+	logger.error(`deauthUser(event=${event}): confirmed → ${confirmed}`, { "event.action": "deauthUser" });
     if (confirmed) {
         _post(`${BASE_URL}/admin/users/${id}/deauth`,
             "Sessions deauthorized correctly",
@@ -82,15 +97,19 @@ function deauthUser(event) {
 }
 
 function disableUser(event) {
+	logger.error(`>>> Entering disableUser(event=${event})`, { "event.action": "disableUser" });
     event.preventDefault();
     event.stopPropagation();
     const id = event.target.parentNode.dataset.vwUserUuid;
+	logger.error(`disableUser(event=${event}): id → ${id}`, { "event.action": "disableUser" });
     const email = event.target.parentNode.dataset.vwUserEmail;
     if (!id || !email) {
         alert("Required parameters not found!");
+		logger.warn(`<<< Exiting disableUser(event=${event})`, { "event.action": "disableUser" });
         return false;
     }
     const confirmed = confirm(`Are you sure you want to disable user "${email}"? This will also deauthorize their sessions.`);
+	logger.error(`disableUser(event=${event}): confirmed → ${confirmed}`, { "event.action": "disableUser" });
     if (confirmed) {
         _post(`${BASE_URL}/admin/users/${id}/disable`,
             "User disabled successfully",
@@ -100,15 +119,19 @@ function disableUser(event) {
 }
 
 function enableUser(event) {
+	logger.error(`>>> Entering enableUser(event=${event})`, { "event.action": "enableUser" });
     event.preventDefault();
     event.stopPropagation();
     const id = event.target.parentNode.dataset.vwUserUuid;
+	logger.error(`enableUser(event=${event}): id → ${id}`, { "event.action": "enableUser" });
     const email = event.target.parentNode.dataset.vwUserEmail;
     if (!id || !email) {
         alert("Required parameters not found!");
+		logger.warn(`<<< Exiting enableUser(event=${event})`, { "event.action": "enableUser" });
         return false;
     }
     const confirmed = confirm(`Are you sure you want to enable user "${email}"?`);
+	logger.error(`enableUser(event=${event}): confirmed → ${confirmed}`, { "event.action": "enableUser" });
     if (confirmed) {
         _post(`${BASE_URL}/admin/users/${id}/enable`,
             "User enabled successfully",
@@ -118,15 +141,18 @@ function enableUser(event) {
 }
 
 function updateRevisions(event) {
+	logger.error(`>>> Entering updateRevisions(event=${event})`, { "event.action": "updateRevisions" });
     event.preventDefault();
     event.stopPropagation();
     _post(`${BASE_URL}/admin/users/update_revision`,
         "Success, clients will sync next time they connect",
         "Error forcing clients to sync"
     );
+	logger.warn(`<<< Exiting updateRevisions(event=${event})`, { "event.action": "updateRevisions" });
 }
 
 function inviteUser(event) {
+	logger.error(`>>> Entering inviteUser(event=${event})`, { "event.action": "inviteUser" });
     event.preventDefault();
     event.stopPropagation();
     const email = document.getElementById("inviteEmail");
@@ -139,18 +165,23 @@ function inviteUser(event) {
         "Error inviting user",
         data
     );
+	logger.error(`inviteUser(event=${event}): data → ${data}`, { "event.action": "inviteUser" });
 }
 
 function resendUserInvite (event) {
+	logger.error(`>>> Entering resendUserInvite(event=${event})`, { "event.action": "resendUserInvite" });
     event.preventDefault();
     event.stopPropagation();
     const id = event.target.parentNode.dataset.vwUserUuid;
+	logger.error(`resendUserInvite(event=${event}): id → ${id}`, { "event.action": "resendUserInvite" });
     const email = event.target.parentNode.dataset.vwUserEmail;
     if (!id || !email) {
         alert("Required parameters not found!");
+		logger.warn(`<<< Exiting resendUserInvite(event=${event})`, { "event.action": "resendUserInvite" });
         return false;
     }
     const confirmed = confirm(`Are you sure you want to resend invitation for "${email}"?`);
+	logger.error(`resendUserInvite(event=${event}): confirmed → ${confirmed}`, { "event.action": "resendUserInvite" });
     if (confirmed) {
         _post(`${BASE_URL}/admin/users/${id}/invite/resend`,
             "Invite sent successfully",
@@ -235,19 +266,23 @@ userOrgTypeDialog.addEventListener("hide.bs.modal", function() {
 }, false);
 
 function updateUserOrgType(event) {
+	logger.error(`>>> Entering updateUserOrgType(event=${event})`, { "event.action": "updateUserOrgType" });
     event.preventDefault();
     event.stopPropagation();
 
     const data = JSON.stringify(Object.fromEntries(new FormData(event.target).entries()));
+	logger.error(`updateUserOrgType(event=${event}): data → ${data}`, { "event.action": "updateUserOrgType" });
 
     _post(`${BASE_URL}/admin/users/org_type`,
         "Updated organization type of the user successfully",
         "Error updating organization type of the user",
         data
     );
+	logger.warn(`<<< Exiting updateUserOrgType(event=${event})`, { "event.action": "updateUserOrgType" });
 }
 
 function initUserTable() {
+	logger.error('>>> Entering initUserTable()', { "event.action": "initUserTable" });
     // Color all the org buttons per type
     document.querySelectorAll("button[data-vw-org-type]").forEach(function(e) {
         const orgType = ORG_TYPES[e.dataset.vwOrgType];
@@ -282,6 +317,7 @@ function initUserTable() {
 
     if (jdenticon) {
         jdenticon();
+		logger.warn('<<< Exiting initUserTable()', { "event.action": "initUserTable" });
     }
 }
 

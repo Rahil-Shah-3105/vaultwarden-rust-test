@@ -12,14 +12,17 @@ use crate::{
 };
 
 pub fn routes() -> Vec<rocket::Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![get_folders, get_folder, post_folders, post_folder, put_folder, delete_folder_post, delete_folder,]
 }
 
 #[get("/folders")]
 async fn get_folders(headers: Headers, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering get_folders()");
     let folders = Folder::find_by_user(&headers.user.uuid, &conn).await;
     let folders_json: Vec<Value> = folders.iter().map(Folder::to_json).collect();
 
+	eprintln!("[WARN] <<< Exiting get_folders()");
     Json(json!({
       "data": folders_json,
       "object": "list",
@@ -29,9 +32,11 @@ async fn get_folders(headers: Headers, conn: DbConn) -> Json<Value> {
 
 #[get("/folders/<folder_id>")]
 async fn get_folder(folder_id: FolderId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_folder()");
     if let Some(folder) = Folder::find_by_uuid_and_user(&folder_id, &headers.user.uuid, &conn).await {
         Ok(Json(folder.to_json()))
     } else {
+		eprintln!("[WARN] <<< Exiting get_folder()");
         err!("Invalid folder", "Folder does not exist or belongs to another user")
     }
 }
@@ -46,6 +51,7 @@ pub struct FolderData {
 
 #[post("/folders", data = "<data>")]
 async fn post_folders(data: Json<FolderData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_folders()");
     let data: FolderData = data.into_inner();
 
     let mut folder = Folder::new(headers.user.uuid, data.name);
@@ -53,6 +59,7 @@ async fn post_folders(data: Json<FolderData>, headers: Headers, conn: DbConn, nt
     folder.save(&conn).await?;
     nt.send_folder_update(UpdateType::SyncFolderCreate, &folder, &headers.device, &conn).await;
 
+	eprintln!("[WARN] <<< Exiting post_folders()");
     Ok(Json(folder.to_json()))
 }
 
@@ -64,6 +71,7 @@ async fn post_folder(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_folder()");
     put_folder(folder_id, data, headers, conn, nt).await
 }
 
@@ -75,6 +83,7 @@ async fn put_folder(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_folder()");
     let data: FolderData = data.into_inner();
 
     let Some(mut folder) = Folder::find_by_uuid_and_user(&folder_id, &headers.user.uuid, &conn).await else {
@@ -86,16 +95,19 @@ async fn put_folder(
     folder.save(&conn).await?;
     nt.send_folder_update(UpdateType::SyncFolderUpdate, &folder, &headers.device, &conn).await;
 
+	eprintln!("[WARN] <<< Exiting put_folder()");
     Ok(Json(folder.to_json()))
 }
 
 #[post("/folders/<folder_id>/delete")]
 async fn delete_folder_post(folder_id: FolderId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_folder_post()");
     delete_folder(folder_id, headers, conn, nt).await
 }
 
 #[delete("/folders/<folder_id>")]
 async fn delete_folder(folder_id: FolderId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_folder()");
     let Some(folder) = Folder::find_by_uuid_and_user(&folder_id, &headers.user.uuid, &conn).await else {
         err!("Invalid folder", "Folder does not exist or belongs to another user")
     };
@@ -104,5 +116,6 @@ async fn delete_folder(folder_id: FolderId, headers: Headers, conn: DbConn, nt: 
     folder.delete(&conn).await?;
 
     nt.send_folder_update(UpdateType::SyncFolderDelete, &folder, &headers.device, &conn).await;
+	eprintln!("[WARN] <<< Exiting delete_folder()");
     Ok(())
 }

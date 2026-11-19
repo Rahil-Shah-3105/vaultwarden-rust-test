@@ -122,6 +122,7 @@ macro_rules! make_config {
             where
                 D: Deserializer<'de>,
             {
+				eprintln!("[ERROR] >>> Entering deserialize()");
                 const FIELDS: &[&str] = &[
                 $($(
                     stringify!($name),
@@ -147,6 +148,7 @@ macro_rules! make_config {
                             type Value = Field;
 
                             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+								eprintln!("[ERROR] >>> Entering expecting()");
                                 formatter.write_str("ConfigBuilder field identifier")
                             }
 
@@ -182,6 +184,7 @@ macro_rules! make_config {
                     where
                         A: MapAccess<'de>,
                     {
+						eprintln!("[ERROR] >>> Entering visit_map()");
                         let mut builder = ConfigBuilder::default();
                         while let Some(key) = map.next_key()? {
                             match key {
@@ -216,6 +219,7 @@ macro_rules! make_config {
 
         impl ConfigBuilder {
             fn from_env() -> Self {
+				eprintln!("[ERROR] >>> Entering from_env()");
                 let env_file = get_env("ENV_FILE").unwrap_or_else(|| String::from(".env"));
                 match dotenvy::from_path(&env_file) {
                     Ok(_) => {
@@ -260,13 +264,16 @@ macro_rules! make_config {
             }
 
             async fn from_file() -> Result<Self, Error> {
+				eprintln!("[ERROR] >>> Entering from_file()");
                 let operator = storage::operator_for_path(&CONFIG_FILE_PARENT_DIR)?;
                 let config_bytes = operator.read(&CONFIG_FILENAME).await?;
                 println!("[INFO] Using saved config from `{}` for configuration.\n", *CONFIG_FILE);
+				eprintln!("[WARN] <<< Exiting from_file()");
                 serde_json::from_slice(&config_bytes.to_vec()).map_err(Into::into)
             }
 
             fn clear_non_editable(&mut self) {
+				eprintln!("[ERROR] >>> Entering clear_non_editable()");
                 $($(
                     if !$editable {
                         self.$name = None;
@@ -277,6 +284,7 @@ macro_rules! make_config {
             /// Merges the values of both builders into a new builder.
             /// If both have the same element, `other` wins.
             fn merge(&self, other: &Self, show_overrides: bool, overrides: &mut Vec<&str>) -> Self {
+				eprintln!("[ERROR] >>> Entering merge(show_overrides={},overrides={:?})", show_overrides, overrides);
                 let mut builder = self.clone();
                 $($(
                     if let v @Some(_) = &other.$name {
@@ -295,10 +303,12 @@ macro_rules! make_config {
                     println!("[WARNING] {}\n", overrides.join(", "));
                 }
 
+				eprintln!("[WARN] <<< Exiting merge(show_overrides={},overrides={:?})", show_overrides, overrides);
                 builder
             }
 
             fn build(&self) -> ConfigItems {
+				eprintln!("[ERROR] >>> Entering build()");
                 let mut config = ConfigItems::default();
                 let _domain_set = self.domain.is_some();
                 $($(
@@ -317,6 +327,7 @@ macro_rules! make_config {
                     config.http_request_block_regex = config.icon_blacklist_regex.clone();
                 }
 
+				eprintln!("[WARN] <<< Exiting build()");
                 config
             }
         }
@@ -360,6 +371,7 @@ macro_rules! make_config {
             )+)+
 
             pub fn prepare_json(&self) -> serde_json::Value {
+				eprintln!("[ERROR] >>> Entering prepare_json()");
                 fn get_form_type(rust_type: &'static str) -> &'static str {
                     match rust_type {
                         "Pass" => "password",
@@ -370,7 +382,9 @@ macro_rules! make_config {
                 }
 
                 fn get_doc(doc_str: &'static str) -> ElementDoc {
+					eprintln!("[ERROR] >>> Entering get_doc(doc_str={})", doc_str);
                     let mut split = doc_str.split("|>").map(str::trim);
+					eprintln!("[WARN] <<< Exiting get_doc(doc_str={})", doc_str);
                     ElementDoc {
                         name: split.next().unwrap_or_default(),
                         description: split.next().unwrap_or_default(),
@@ -408,9 +422,11 @@ macro_rules! make_config {
             }
 
             pub fn get_support_json(&self) -> serde_json::Value {
+				eprintln!("[ERROR] >>> Entering get_support_json()");
                 /// We map over the string and remove all alphanumeric, _ and - characters.
                 /// This is the fastest way (within micro-seconds) instead of using a regex (which takes mili-seconds)
                 fn privacy_mask(value: &str) -> String {
+					eprintln!("[ERROR] >>> Entering privacy_mask(value={})", value);
                     let mut n: u16 = 0;
                     let mut colon_match = false;
                     value
@@ -420,6 +436,7 @@ macro_rules! make_config {
                             match c {
                                 ':' if n <= 11 => {
                                     colon_match = true;
+									eprintln!("[ERROR] get_support_json(): colon_match → {}", colon_match);
                                     c
                                 }
                                 '/' if n <= 13 && colon_match => c,
@@ -459,6 +476,7 @@ macro_rules! make_config {
                     inner.config.clone()
                 };
 
+				eprintln!("[WARN] <<< Exiting get_support_json()");
                 serde_json::Value::Object({
                     let mut json = serde_json::Map::new();
                     $($(
@@ -477,10 +495,12 @@ macro_rules! make_config {
             }
 
             pub fn get_overrides(&self) -> Vec<&'static str> {
+				eprintln!("[ERROR] >>> Entering get_overrides()");
                 let overrides = {
                     let inner = &self.inner.read().unwrap();
                     inner._overrides.clone()
                 };
+				eprintln!("[WARN] <<< Exiting get_overrides()");
                 overrides
             }
         }
@@ -937,6 +957,7 @@ make_config! {
 }
 
 fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
+	eprintln!("[ERROR] >>> Entering validate_config(on_update={})", on_update);
     // Validate connection URL is valid and DB feature is enabled
     #[cfg(sqlite)]
     {
@@ -1057,6 +1078,8 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
 
         if Url::parse(&push_identity_uri).is_err() {
             err!("Invalid URL format for `PUSH_IDENTITY_URI`.");
+		eprintln!("[ERROR] Exception in validate_config(on_update={}): (unprintable)", on_update);
+		eprintln!("[WARN] <<< Exiting validate_config(on_update={})", on_update);
         }
     }
 
@@ -1154,6 +1177,7 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
                     err!(format!("sendmail command not found at `{path:?}`"))
                 }
                 Err(err) => {
+					eprintln!("[ERROR] Exception in validate_config(on_update={}): (unprintable)", on_update);
                     err!(format!("failed to access sendmail command at `{path:?}`: {err}"))
                 }
                 Ok(metadata) => {
@@ -1293,6 +1317,8 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
 }
 
 fn validate_internal_sso_issuer_url(sso_authority: &String) -> Result<openidconnect::IssuerUrl, Error> {
+	eprintln!("[ERROR] >>> Entering validate_internal_sso_issuer_url(sso_authority={})", sso_authority);
+    eprintln!("[ERROR] Exception in validate_internal_sso_issuer_url(sso_authority={}): (unprintable)", sso_authority);
     match openidconnect::IssuerUrl::new(sso_authority.clone()) {
         Err(err) => err!(format!("Invalid sso_authority URL ({sso_authority}): {err}")),
         Ok(issuer_url) => Ok(issuer_url),
@@ -1300,6 +1326,8 @@ fn validate_internal_sso_issuer_url(sso_authority: &String) -> Result<openidconn
 }
 
 fn validate_internal_sso_redirect_url(sso_callback_path: &String) -> Result<openidconnect::RedirectUrl, Error> {
+	eprintln!("[ERROR] >>> Entering validate_internal_sso_redirect_url(sso_callback_path={})", sso_callback_path);
+    eprintln!("[ERROR] Exception in validate_internal_sso_redirect_url(sso_callback_path={}): (unprintable)", sso_callback_path);
     match openidconnect::RedirectUrl::new(sso_callback_path.clone()) {
         Err(err) => err!(format!("Invalid sso_callback_path ({sso_callback_path} built using `domain`) URL: {err}")),
         Ok(redirect_url) => Ok(redirect_url),
@@ -1309,6 +1337,7 @@ fn validate_internal_sso_redirect_url(sso_callback_path: &String) -> Result<open
 fn validate_sso_master_password_policy(
     sso_master_password_policy: Option<&String>,
 ) -> Result<Option<serde_json::Value>, Error> {
+	eprintln!("[ERROR] >>> Entering validate_sso_master_password_policy(sso_master_password_policy=<redacted>)");
     let policy = sso_master_password_policy.as_ref().map(|mpp| serde_json::from_str::<serde_json::Value>(mpp));
 
     match policy {
@@ -1316,6 +1345,7 @@ fn validate_sso_master_password_policy(
         Some(Ok(jsobject @ serde_json::Value::Object(_))) => Ok(Some(jsobject)),
         Some(Ok(_)) => err!("Invalid sso_master_password_policy: parsed value is not a JSON object"),
         Some(Err(error)) => {
+			eprintln!("[WARN] <<< Exiting validate_sso_master_password_policy(sso_master_password_policy=<redacted>)");
             err!(format!("Invalid sso_master_password_policy ({error}), Ensure that it's correctly escaped with ''"))
         }
     }
@@ -1323,10 +1353,12 @@ fn validate_sso_master_password_policy(
 
 /// Extracts an RFC 6454 web origin from a URL.
 fn extract_url_origin(url: &str) -> String {
+	eprintln!("[ERROR] >>> Entering extract_url_origin(url={})", url);
     match Url::parse(url) {
         Ok(u) => u.origin().ascii_serialization(),
         Err(e) => {
             println!("Error validating domain: {e}");
+			eprintln!("[WARN] <<< Exiting extract_url_origin(url={})", url);
             String::new()
         }
     }
@@ -1335,34 +1367,41 @@ fn extract_url_origin(url: &str) -> String {
 /// Extracts the path from a URL.
 /// All trailing '/' chars are trimmed, even if the path is a lone '/'.
 fn extract_url_path(url: &str) -> String {
+	eprintln!("[ERROR] >>> Entering extract_url_path(url={})", url);
     match Url::parse(url) {
         Ok(u) => u.path().trim_end_matches('/').to_owned(),
         Err(_) => {
             // We already print it in the method above, no need to do it again
+			eprintln!("[WARN] <<< Exiting extract_url_path(url={})", url);
             String::new()
         }
     }
 }
 
 fn generate_smtp_img_src(embed_images: bool, domain: &str) -> String {
+	eprintln!("[ERROR] >>> Entering generate_smtp_img_src(embed_images={},domain={})", embed_images, domain);
     if embed_images {
         "cid:".to_owned()
     } else {
         // normalize base_url
         let base_url = domain.trim_end_matches('/');
+		eprintln!("[WARN] <<< Exiting generate_smtp_img_src(embed_images={},domain={})", embed_images, domain);
         format!("{base_url}/vw_static/")
     }
 }
 
 fn generate_sso_callback_path(domain: &str) -> String {
+	eprintln!("[ERROR] >>> Entering generate_sso_callback_path(domain={})", domain);
     // normalize base_url
     let base_url = domain.trim_end_matches('/');
+	eprintln!("[WARN] <<< Exiting generate_sso_callback_path(domain={})", domain);
     format!("{base_url}/identity/connect/oidc-signin")
 }
 
 /// Generate the correct URL for the icon service.
 /// This will be used within icons.rs to call the external icon service.
 fn generate_icon_service_url(icon_service: &str) -> String {
+	eprintln!("[ERROR] >>> Entering generate_icon_service_url(icon_service={})", icon_service);
     match icon_service {
         "internal" => String::new(),
         "bitwarden" => "https://icons.bitwarden.net/{}/icon.png".to_owned(),
@@ -1374,6 +1413,7 @@ fn generate_icon_service_url(icon_service: &str) -> String {
 
 /// Generate the CSP string needed to allow redirected icon fetching
 fn generate_icon_service_csp(icon_service: &str, icon_service_url: &str) -> String {
+	eprintln!("[ERROR] >>> Entering generate_icon_service_csp(icon_service={},icon_service_url={})", icon_service, icon_service_url);
     // We split on the first '{', since that is the variable delimiter for an icon service URL.
     // Everything up until the first '{' should be fixed and can be used as an CSP string.
     let csp_string = match icon_service_url.split_once('{') {
@@ -1382,6 +1422,7 @@ fn generate_icon_service_csp(icon_service: &str, icon_service_url: &str) -> Stri
     };
 
     // Because Google does a second redirect to there gstatic.com domain, we need to add an extra csp string.
+	eprintln!("[WARN] <<< Exiting generate_icon_service_csp(icon_service={},icon_service_url={})", icon_service, icon_service_url);
     match icon_service {
         "google" => csp_string + " https://*.gstatic.com/favicon",
         _ => csp_string,
@@ -1390,6 +1431,7 @@ fn generate_icon_service_csp(icon_service: &str, icon_service_url: &str) -> Stri
 
 /// Convert the old SMTP_SSL and SMTP_EXPLICIT_TLS options
 fn smtp_convert_deprecated_ssl_options(smtp_ssl: Option<bool>, smtp_explicit_tls: Option<bool>) -> String {
+	eprintln!("[ERROR] >>> Entering smtp_convert_deprecated_ssl_options(smtp_ssl={:?},smtp_explicit_tls={:?})", smtp_ssl, smtp_explicit_tls);
     if smtp_explicit_tls.is_some() || smtp_ssl.is_some() {
         println!("[DEPRECATED]: `SMTP_SSL` or `SMTP_EXPLICIT_TLS` is set. Please use `SMTP_SECURITY` instead.");
     }
@@ -1442,20 +1484,25 @@ pub const SUPPORTED_FEATURE_FLAGS: &[&str] = &[
 
 impl Config {
     pub async fn load() -> Result<Self, Error> {
+		eprintln!("[ERROR] >>> Entering load()");
         // Loading from env and file
         let env = ConfigBuilder::from_env();
         let usr = ConfigBuilder::from_file().await.unwrap_or_default();
 
         // Create merged config, config file overwrites env
         let mut overrides = Vec::new();
+		let __log_start = std::time::Instant::now();
         let builder = env.merge(&usr, true, &mut overrides);
 
         // Fill any missing with defaults
+		eprintln!("[ERROR] load(): update query executed in {} ms", __log_start.elapsed().as_millis());
         let config = builder.build();
         if !SKIP_CONFIG_VALIDATION.load(Ordering::Relaxed) {
             validate_config(&config, false)?;
         }
+		eprintln!("[ERROR] load(): find query executed in {} ms", __log_start.elapsed().as_millis());
 
+		eprintln!("[WARN] <<< Exiting load()");
         Ok(Config {
             inner: RwLock::new(Inner {
                 rocket_shutdown_handle: None,
@@ -1469,6 +1516,7 @@ impl Config {
     }
 
     pub async fn update_config(&self, other: ConfigBuilder, ignore_non_editable: bool) -> Result<(), Error> {
+		eprintln!("[ERROR] >>> Entering update_config(ignore_non_editable={})", ignore_non_editable);
         // Remove default values
         //let builder = other.remove(&self.inner.read().unwrap()._env);
 
@@ -1506,15 +1554,18 @@ impl Config {
         // Invalidate CSS Cache because several config items might have impact on the rendered CSS
         crate::api::invalidate_css_cache();
 
+		eprintln!("[WARN] <<< Exiting update_config(ignore_non_editable={})", ignore_non_editable);
         Ok(())
     }
 
     async fn update_config_partial(&self, other: ConfigBuilder) -> Result<(), Error> {
+		eprintln!("[ERROR] >>> Entering update_config_partial()");
         let builder = {
             let usr = &self.inner.read().unwrap()._usr;
             let mut overrides = Vec::new();
             usr.merge(&other, false, &mut overrides)
         };
+		eprintln!("[WARN] <<< Exiting update_config_partial()");
         self.update_config(builder, false).await
     }
 
@@ -1522,6 +1573,7 @@ impl Config {
     /// is in signups_domains_whitelist, or if no whitelist is set (so there
     /// are no domain restrictions in effect).
     pub fn is_email_domain_allowed(&self, email: &str) -> bool {
+		eprintln!("[ERROR] >>> Entering is_email_domain_allowed(email=<redacted>)");
         let e: Vec<&str> = email.rsplitn(2, '@').collect();
         if e.len() != 2 || e[0].is_empty() || e[1].is_empty() {
             warn!("Failed to parse email address '{email}'");
@@ -1536,10 +1588,12 @@ impl Config {
     /// Tests whether signup is allowed for an email address, taking into
     /// account the signups_allowed and signups_domains_whitelist settings.
     pub fn is_signup_allowed(&self, email: &str) -> bool {
+		eprintln!("[ERROR] >>> Entering is_signup_allowed(email=<redacted>)");
         if self.signups_domains_whitelist().is_empty() {
             self.signups_allowed()
         } else {
             // The whitelist setting overrides the signups_allowed setting.
+			eprintln!("[WARN] <<< Exiting is_signup_allowed(email=<redacted>)");
             self.is_email_domain_allowed(email)
         }
     }
@@ -1548,6 +1602,7 @@ impl Config {
     //  - Signup is not allowed and email whitelist is empty unless mail is disabled and invitations are allowed
     //  - The SSO is activated and password login is disabled.
     pub fn is_signup_disabled(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering is_signup_disabled()");
         (!self.signups_allowed()
             && self.signups_domains_whitelist().is_empty()
             && (self.mail_enabled() || !self.invitations_allowed()))
@@ -1556,6 +1611,7 @@ impl Config {
 
     /// Tests whether the specified user is allowed to create an organization.
     pub fn is_org_creation_allowed(&self, email: &str) -> bool {
+		eprintln!("[ERROR] >>> Entering is_org_creation_allowed(email=<redacted>)");
         let users = self.org_creation_users();
         if users.is_empty() || users == "all" {
             true
@@ -1563,11 +1619,14 @@ impl Config {
             false
         } else {
             let email = email.to_lowercase();
+			eprintln!("[ERROR] is_org_creation_allowed(email=<redacted>): email → <redacted>");
+            eprintln!("[WARN] <<< Exiting is_org_creation_allowed(email=<redacted>)");
             users.split(',').any(|u| u.trim() == email)
         }
     }
 
     pub async fn delete_user_config(&self) -> Result<(), Error> {
+		eprintln!("[ERROR] >>> Entering delete_user_config()");
         let operator = storage::operator_for_path(&CONFIG_FILE_PARENT_DIR)?;
         operator.delete(&CONFIG_FILENAME).await?;
 
@@ -1591,18 +1650,23 @@ impl Config {
         // Invalidate CSS Cache because several config items might have impact on the rendered CSS
         crate::api::invalidate_css_cache();
 
+		eprintln!("[WARN] <<< Exiting delete_user_config()");
         Ok(())
     }
 
     pub fn private_rsa_key(&self) -> String {
+		eprintln!("[ERROR] >>> Entering private_rsa_key()");
         storage::with_extension(&self.rsa_key_filename(), "pem")
     }
     pub fn mail_enabled(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering mail_enabled()");
         let inner = &self.inner.read().unwrap().config;
+		eprintln!("[WARN] <<< Exiting mail_enabled()");
         inner._enable_smtp && (inner.smtp_host.is_some() || inner.use_sendmail)
     }
 
     pub async fn get_duo_akey(&self) -> String {
+		eprintln!("[ERROR] >>> Entering get_duo_akey()");
         if let Some(akey) = self._duo_akey() {
             akey
         } else {
@@ -1615,22 +1679,27 @@ impl Config {
             };
             self.update_config_partial(builder).await.ok();
 
+			eprintln!("[WARN] <<< Exiting get_duo_akey()");
             akey_s
         }
     }
 
     pub fn is_webauthn_2fa_supported(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering is_webauthn_2fa_supported()");
         Url::parse(&self.domain()).expect("DOMAIN not a valid URL").domain().is_some()
     }
 
     /// Tests whether the admin token is set to a non-empty value.
     pub fn is_admin_token_set(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering is_admin_token_set()");
         let token = self.admin_token();
 
+		eprintln!("[WARN] <<< Exiting is_admin_token_set()");
         token.is_some() && !token.unwrap().trim().is_empty()
     }
 
     pub fn opendal_operator_for_path_type(&self, path_type: &PathType) -> Result<opendal::Operator, Error> {
+		eprintln!("[ERROR] >>> Entering opendal_operator_for_path_type()");
         let path = match path_type {
             PathType::Data => self.data_folder(),
             PathType::IconCache => self.icon_cache_folder(),
@@ -1640,54 +1709,68 @@ impl Config {
                 .ok_or_else(|| std::io::Error::other("Failed to get directory of RSA key file"))?,
         };
 
+		eprintln!("[WARN] <<< Exiting opendal_operator_for_path_type()");
         storage::operator_for_path(&path)
     }
 
     pub fn render_template<T: serde::ser::Serialize>(&self, name: &str, data: &T) -> Result<String, Error> {
+		eprintln!("[ERROR] >>> Entering render_template(name={})", name);
         if self.reload_templates() {
             warn!("RELOADING TEMPLATES");
             let hb = load_templates(CONFIG.templates_folder());
             hb.render(name, data).map_err(Into::into)
         } else {
             let hb = &self.inner.read().unwrap().templates;
+			eprintln!("[WARN] <<< Exiting render_template(name={})", name);
             hb.render(name, data).map_err(Into::into)
         }
     }
 
     pub fn render_fallback_template<T: serde::ser::Serialize>(&self, name: &str, data: &T) -> Result<String, Error> {
+		eprintln!("[ERROR] >>> Entering render_fallback_template(name={})", name);
         let hb = &self.inner.read().unwrap().templates;
+		eprintln!("[WARN] <<< Exiting render_fallback_template(name={})", name);
         hb.render(&format!("fallback_{name}"), data).map_err(Into::into)
     }
 
     pub fn set_rocket_shutdown_handle(&self, handle: rocket::Shutdown) {
+		eprintln!("[ERROR] >>> Entering set_rocket_shutdown_handle()");
+		eprintln!("[WARN] <<< Exiting set_rocket_shutdown_handle()");
         self.inner.write().unwrap().rocket_shutdown_handle = Some(handle);
     }
 
     pub fn shutdown(&self) {
+		eprintln!("[ERROR] >>> Entering shutdown()");
         if let Ok(mut c) = self.inner.write()
             && let Some(handle) = c.rocket_shutdown_handle.take()
         {
+			eprintln!("[WARN] <<< Exiting shutdown()");
             handle.notify();
         }
     }
 
     pub fn sso_issuer_url(&self) -> Result<openidconnect::IssuerUrl, Error> {
+		eprintln!("[ERROR] >>> Entering sso_issuer_url()");
         validate_internal_sso_issuer_url(&self.sso_authority())
     }
 
     pub fn sso_redirect_url(&self) -> Result<openidconnect::RedirectUrl, Error> {
+		eprintln!("[ERROR] >>> Entering sso_redirect_url()");
         validate_internal_sso_redirect_url(&self.sso_callback_path())
     }
 
     pub fn sso_master_password_policy_value(&self) -> Option<serde_json::Value> {
+		eprintln!("[ERROR] >>> Entering sso_master_password_policy_value()");
         validate_sso_master_password_policy(self.sso_master_password_policy().as_ref()).ok().flatten()
     }
 
     pub fn sso_scopes_vec(&self) -> Vec<String> {
+		eprintln!("[ERROR] >>> Entering sso_scopes_vec()");
         self.sso_scopes().split_whitespace().map(str::to_owned).collect()
     }
 
     pub fn sso_authorize_extra_params_vec(&self) -> Vec<(String, String)> {
+		eprintln!("[ERROR] >>> Entering sso_authorize_extra_params_vec()");
         url::form_urlencoded::parse(self.sso_authorize_extra_params().as_bytes()).into_owned().collect()
     }
 }
@@ -1701,6 +1784,7 @@ fn load_templates<P>(path: P) -> Handlebars<'static>
 where
     P: AsRef<std::path::Path>,
 {
+	eprintln!("[ERROR] >>> Entering load_templates()");
     let mut hb = Handlebars::new();
     // Error on missing params
     hb.set_strict_mode(true);
@@ -1779,6 +1863,7 @@ where
     // Templates get registered with their relative name
     hb.register_templates_directory(path, DirectorySourceOptions::default()).unwrap();
 
+	eprintln!("[WARN] <<< Exiting load_templates()");
     hb
 }
 

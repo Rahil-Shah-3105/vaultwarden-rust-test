@@ -45,6 +45,7 @@ static WEBAUTHN: LazyLock<Webauthn> = LazyLock::new(|| {
 });
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![get_webauthn, generate_webauthn_challenge, activate_webauthn, activate_webauthn_put, delete_webauthn,]
 }
 
@@ -81,6 +82,7 @@ pub struct WebauthnRegistration {
 
 impl WebauthnRegistration {
     fn to_json(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json()");
         json!({
             "id": self.id,
             "name": self.name,
@@ -89,12 +91,14 @@ impl WebauthnRegistration {
     }
 
     fn set_backup_eligible(&mut self, backup_eligible: bool, backup_state: bool) -> bool {
+		eprintln!("[ERROR] >>> Entering set_backup_eligible(backup_eligible={},backup_state={})", backup_eligible, backup_state);
         let mut changed = false;
         let mut cred: Credential = self.credential.clone().into();
 
         if cred.backup_state != backup_state {
             cred.backup_state = backup_state;
             changed = true;
+			eprintln!("[ERROR] set_backup_eligible(backup_eligible={},backup_state={}): changed → {}", backup_eligible, backup_state, changed);
         }
 
         if backup_eligible && !cred.backup_eligible {
@@ -103,12 +107,14 @@ impl WebauthnRegistration {
         }
 
         self.credential = cred.into();
+		eprintln!("[WARN] <<< Exiting set_backup_eligible(backup_eligible={},backup_state={})", backup_eligible, backup_state);
         changed
     }
 }
 
 #[post("/two-factor/get-webauthn", data = "<data>")]
 async fn get_webauthn(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_webauthn()");
     if !CONFIG.is_webauthn_2fa_supported() {
         err!("Configured `DOMAIN` is not compatible with Webauthn")
     }
@@ -121,6 +127,7 @@ async fn get_webauthn(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbC
     let (enabled, registrations) = get_webauthn_registrations(&user.uuid, &conn).await?;
     let registrations_json: Vec<Value> = registrations.iter().map(WebauthnRegistration::to_json).collect();
 
+	eprintln!("[WARN] <<< Exiting get_webauthn()");
     Ok(Json(json!({
         "enabled": enabled,
         "keys": registrations_json,
@@ -130,6 +137,7 @@ async fn get_webauthn(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbC
 
 #[post("/two-factor/get-webauthn-challenge", data = "<data>")]
 async fn generate_webauthn_challenge(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering generate_webauthn_challenge()");
     let data: PasswordOrOtpData = data.into_inner();
     let user = headers.user;
 
@@ -166,6 +174,7 @@ async fn generate_webauthn_challenge(data: Json<PasswordOrOtpData>, headers: Hea
     let mut challenge_value = serde_json::to_value(challenge.public_key)?;
     challenge_value["status"] = "ok".into();
     challenge_value["errorMessage"] = "".into();
+	eprintln!("[WARN] <<< Exiting generate_webauthn_challenge()");
     Ok(Json(challenge_value))
 }
 
@@ -237,6 +246,7 @@ pub struct AuthenticatorAssertionResponseRawCopy {
 
 impl From<PublicKeyCredentialCopy> for PublicKeyCredential {
     fn from(r: PublicKeyCredentialCopy) -> Self {
+		eprintln!("[ERROR] >>> Entering from(r={:?})", r);
         Self {
             id: r.id,
             raw_id: r.raw_id,
@@ -254,6 +264,7 @@ impl From<PublicKeyCredentialCopy> for PublicKeyCredential {
 
 #[post("/two-factor/webauthn", data = "<data>")]
 async fn activate_webauthn(data: Json<EnableWebauthnData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering activate_webauthn(data={:?})", data);
     let data: EnableWebauthnData = data.into_inner();
     let mut user = headers.user;
 
@@ -296,6 +307,7 @@ async fn activate_webauthn(data: Json<EnableWebauthnData>, headers: Headers, con
     log_user_event(EventType::UserUpdated2fa as i32, &user.uuid, headers.device.atype, &headers.ip.ip, &conn).await;
 
     let keys_json: Vec<Value> = registrations.iter().map(WebauthnRegistration::to_json).collect();
+	eprintln!("[WARN] <<< Exiting activate_webauthn(data={:?})", data);
     Ok(Json(json!({
         "enabled": true,
         "keys": keys_json,
@@ -305,6 +317,7 @@ async fn activate_webauthn(data: Json<EnableWebauthnData>, headers: Headers, con
 
 #[put("/two-factor/webauthn", data = "<data>")]
 async fn activate_webauthn_put(data: Json<EnableWebauthnData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering activate_webauthn_put()");
     activate_webauthn(data, headers, conn).await
 }
 
@@ -317,6 +330,7 @@ struct DeleteU2FData {
 
 #[delete("/two-factor/webauthn", data = "<data>")]
 async fn delete_webauthn(data: Json<DeleteU2FData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering delete_webauthn(data={:?})", data);
     let id = data.id.into_i32()?;
     if !headers.user.check_valid_password(&data.master_password_hash) {
         err!("Invalid password");
@@ -357,6 +371,7 @@ async fn delete_webauthn(data: Json<DeleteU2FData>, headers: Headers, conn: DbCo
 
     let keys_json: Vec<Value> = data.iter().map(WebauthnRegistration::to_json).collect();
 
+	eprintln!("[WARN] <<< Exiting delete_webauthn(data={:?})", data);
     Ok(Json(json!({
         "enabled": true,
         "keys": keys_json,
@@ -368,7 +383,9 @@ pub async fn get_webauthn_registrations(
     user_id: &UserId,
     conn: &DbConn,
 ) -> Result<(bool, Vec<WebauthnRegistration>), Error> {
+	eprintln!("[ERROR] >>> Entering get_webauthn_registrations()");
     let type_ = TwoFactorType::Webauthn as i32;
+	eprintln!("[WARN] <<< Exiting get_webauthn_registrations()");
     match TwoFactor::find_by_user_and_type(user_id, type_, conn).await {
         Some(tf) => Ok((tf.enabled, serde_json::from_str(&tf.data)?)),
         None => Ok((false, Vec::new())), // If no data, return empty list
@@ -376,6 +393,7 @@ pub async fn get_webauthn_registrations(
 }
 
 pub async fn generate_webauthn_login(user_id: &UserId, conn: &DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering generate_webauthn_login()");
     // Load saved credentials
     let creds: Vec<Passkey> =
         get_webauthn_registrations(user_id, conn).await?.1.into_iter().map(|r| r.credential).collect();
@@ -393,6 +411,7 @@ pub async fn generate_webauthn_login(user_id: &UserId, conn: &DbConn) -> JsonRes
 
     // Add appid, this is only needed for U2F compatibility, so maybe it can be removed as well
     let app_id = format!("{}/app-id.json", CONFIG.domain());
+	eprintln!("[ERROR] generate_webauthn_login(): app_id → {}", app_id);
     state["ast"]["appid"] = Value::String(app_id.clone());
 
     response.public_key.user_verification = UserVerificationPolicy::Discouraged_DO_NOT_USE;
@@ -412,10 +431,12 @@ pub async fn generate_webauthn_login(user_id: &UserId, conn: &DbConn) -> JsonRes
         .await?;
 
     // Return challenge to the clients
+	eprintln!("[WARN] <<< Exiting generate_webauthn_login()");
     Ok(Json(serde_json::to_value(response.public_key)?))
 }
 
 pub async fn validate_webauthn_login(user_id: &UserId, response: &str, conn: &DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering validate_webauthn_login(response={})", response);
     let type_ = TwoFactorType::WebauthnLoginChallenge as i32;
     let mut state = if let Some(tf) = TwoFactor::find_by_user_and_type(user_id, type_, conn).await {
         let state: PasskeyAuthentication = serde_json::from_str(&tf.data)?;
@@ -456,6 +477,8 @@ pub async fn validate_webauthn_login(user_id: &UserId, response: &str, conn: &Db
         }
     }
 
+	eprintln!("[ERROR] validate_webauthn_login(response={}): backup_flags_updated → {}", response, backup_flags_updated);
+    eprintln!("[WARN] <<< Exiting validate_webauthn_login(response={})", response);
     err!(
         "Credential not present",
         ErrorEvent {

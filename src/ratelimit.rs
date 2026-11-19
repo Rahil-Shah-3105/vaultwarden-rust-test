@@ -28,27 +28,36 @@ static LIMITER_UNAUTHENTICATED: LazyLock<Limiter> = LazyLock::new(|| {
 });
 
 pub fn check_limit_unauthenticated(ip: &IpAddr) -> Result<(), Error> {
+	eprintln!("[ERROR] >>> Entering check_limit_unauthenticated()");
     match LIMITER_UNAUTHENTICATED.check_key(ip) {
         Ok(()) => Ok(()),
         Err(_e) => {
+			eprintln!("[ERROR] Exception in check_limit_unauthenticated(): (unprintable)");
+			eprintln!("[WARN] <<< Exiting check_limit_unauthenticated()");
             err_code!("Too many requests", 429);
         }
     }
 }
 
 pub fn check_limit_login(ip: &IpAddr) -> Result<(), Error> {
+	eprintln!("[ERROR] >>> Entering check_limit_login()");
     match LIMITER_LOGIN.check_key(ip) {
         Ok(()) => Ok(()),
         Err(_e) => {
+			eprintln!("[ERROR] Exception in check_limit_login(): (unprintable)");
+			eprintln!("[WARN] <<< Exiting check_limit_login()");
             err_code!("Too many login requests", 429);
         }
     }
 }
 
 pub fn check_limit_admin(ip: &IpAddr) -> Result<(), Error> {
+	eprintln!("[ERROR] >>> Entering check_limit_admin()");
     match LIMITER_ADMIN.check_key(ip) {
         Ok(()) => Ok(()),
         Err(_e) => {
+			eprintln!("[ERROR] Exception in check_limit_admin(): (unprintable)");
+			eprintln!("[WARN] <<< Exiting check_limit_admin()");
             err_code!("Too many admin requests", 429);
         }
     }

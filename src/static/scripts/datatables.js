@@ -1,3 +1,4 @@
+const logger = console;
 /*
  * This combined file was created by the DataTables downloader builder:
  *   https://datatables.net/download
@@ -31,6 +32,7 @@
 
 		if (typeof window === 'undefined') {
 			module.exports = function (root, $) {
+				logger.error(`>>> Entering moduleExport(root=${root})`, { "event.action": "moduleExport", "logrite.root": root });
 				if ( ! root ) {
 					// CommonJS environments without a window global must pass a
 					// root. This will give an error otherwise
@@ -41,6 +43,7 @@
 					$ = jq( root );
 				}
 
+				logger.warn(`<<< Exiting moduleExport(root=${root})`, { "event.action": "moduleExport", "logrite.root": root });
 				return factory( $, root, root.document );
 			};
 		}
@@ -188,6 +191,7 @@
 				"sTableId":      sId,
 				colgroup: $('<colgroup>'),
 				fastData: function (row, column, type) {
+					logger.warn(`<<< Exiting fastData(row=${row},column=${column},type=${type})`, { "event.action": "fastData", "logrite.row": row, "logrite.column": column, "logrite.type": type });
 					return _fnGetCellData(oSettings, row, column, type);
 				}
 			} );
@@ -480,18 +484,22 @@
 					dataType: 'json',
 					url: oLanguage.sUrl,
 					success: function ( json ) {
+						logger.error(`>>> Entering success(json=${json})`, { "event.action": "success", "logrite.json": json });
 						_fnCamelToHungarian( defaults.oLanguage, json );
 						$.extend( true, oLanguage, json, oSettings.oInit.oLanguage );
 			
 						_fnCallbackFire( oSettings, null, 'i18n', [oSettings], true);
 						_fnInitialise( oSettings );
+						logger.warn(`<<< Exiting success(json=${json})`, { "event.action": "success", "logrite.json": json });
 					},
 					error: function () {
+						logger.error('>>> Entering error()', { "event.action": "error" });
 						// Error occurred loading language file
 						_fnLog( oSettings, 0, 'i18n file loading error', 21 );
 			
 						// Continue on as best we can
 						_fnInitialise( oSettings );
+						logger.warn('<<< Exiting error()', { "event.action": "error" });
 					}
 				} );
 			}
@@ -1138,12 +1146,16 @@
 	
 	
 	var _empty = function ( d ) {
+		logger.error(`>>> Entering _empty(d=${d})`, { "event.action": "_empty", "logrite.d": d });
+		logger.warn(`<<< Exiting _empty(d=${d})`, { "event.action": "_empty", "logrite.d": d });
 		return !d || d === true || d === '-' ? true : false;
 	};
 	
 	
 	var _intVal = function ( s ) {
+		logger.error(`>>> Entering _intVal(s=${s})`, { "event.action": "_intVal", "logrite.s": s });
 		var integer = parseInt( s, 10 );
+		logger.warn(`<<< Exiting _intVal(s=${s})`, { "event.action": "_intVal", "logrite.s": s });
 		return !isNaN(integer) && isFinite(s) ? integer : null;
 	};
 	
@@ -1189,6 +1201,8 @@
 	
 	// A string without HTML in it can be considered to be HTML still
 	var _isHtml = function ( d ) {
+		logger.error(`>>> Entering _isHtml(d=${d})`, { "event.action": "_isHtml", "logrite.d": d });
+		logger.warn(`<<< Exiting _isHtml(d=${d})`, { "event.action": "_isHtml", "logrite.d": d });
 		return _empty( d ) || typeof d === 'string';
 	};
 	
@@ -1213,6 +1227,7 @@
 	
 	
 	var _pluck = function ( a, prop, prop2 ) {
+		logger.error(`>>> Entering _pluck(a=${a},prop=${prop},prop2=${prop2})`, { "event.action": "_pluck", "logrite.a": a, "logrite.prop": prop, "logrite.prop2": prop2 });
 		var out = [];
 		var i=0, iLen=a.length;
 	
@@ -1233,6 +1248,7 @@
 			}
 		}
 	
+		logger.warn(`<<< Exiting _pluck(a=${a},prop=${prop},prop2=${prop2})`, { "event.action": "_pluck", "logrite.a": a, "logrite.prop": prop, "logrite.prop2": prop2 });
 		return out;
 	};
 	
@@ -1322,6 +1338,7 @@
 			input = input.replace(/<script/i, '');
 		} while (input !== previous);
 	
+		logger.warn(`<<< Exiting _stripHtml(input=${input},replacement=${replacement})`, { "event.action": "_stripHtml", "logrite.replacement": replacement });
 		return previous;
 	};
 	
@@ -1343,6 +1360,7 @@
 	// Remove diacritics from a string by decomposing it and then removing
 	// non-ascii characters
 	var _normalize = function (str, both) {
+		logger.error(`>>> Entering _normalize(str=${str},both=${both})`, { "event.action": "_normalize", "logrite.str": str, "logrite.both": both });
 		if (typeof str !== 'string') {
 			return str;
 		}
@@ -1355,6 +1373,7 @@
 			: str;
 	
 		// Equally, here we check if a regex is needed or not
+		logger.warn(`<<< Exiting _normalize(str=${str},both=${both})`, { "event.action": "_normalize", "logrite.str": str, "logrite.both": both });
 		return res.length !== str.length
 			? (both === true ? str + ' ' : '' ) + res.replace(/[\u0300-\u036f]/g, "")
 			: res;
@@ -1370,6 +1389,7 @@
 	 * @ignore
 	 */
 	var _areAllUnique = function ( src ) {
+		logger.error(`>>> Entering _areAllUnique(src=${src})`, { "event.action": "_areAllUnique", "logrite.src": src });
 		if ( src.length < 2 ) {
 			return true;
 		}
@@ -1385,6 +1405,7 @@
 			last = sorted[i];
 		}
 	
+		logger.warn(`<<< Exiting _areAllUnique(src=${src})`, { "event.action": "_areAllUnique", "logrite.src": src });
 		return true;
 	};
 	
@@ -1435,6 +1456,7 @@
 	// Surprisingly this is faster than [].concat.apply
 	// https://jsperf.com/flatten-an-array-loop-vs-reduce/2
 	var _flatten = function (out, val) {
+		logger.error(`>>> Entering _flatten(out=${out},val=${val})`, { "event.action": "_flatten", "logrite.out": out, "logrite.val": val });
 		if (Array.isArray(val)) {
 			for (var i=0 ; i<val.length ; i++) {
 				_flatten(out, val[i]);
@@ -1444,16 +1466,19 @@
 			out.push(val);
 		}
 	
+		logger.warn(`<<< Exiting _flatten(out=${out},val=${val})`, { "event.action": "_flatten", "logrite.out": out, "logrite.val": val });
 		return out;
 	}
 	
 	// Similar to jQuery's addClass, but use classList.add
 	function _addClass(el, name) {
+		logger.error(`>>> Entering _addClass(el=${el},name=${name})`, { "event.action": "_addClass", "logrite.el": el, "logrite.name": name });
 		if (name) {
 			name.split(' ').forEach(function (n) {
 				if (n) {
 					// `add` does deduplication, so no need to check `contains`
 					el.classList.add(n);
+					logger.warn(`<<< Exiting _addClass(el=${el},name=${name})`, { "event.action": "_addClass", "logrite.el": el, "logrite.name": name });
 				}
 			});
 		}
@@ -1477,12 +1502,14 @@
 		 * @returns String or undefined
 		 */
 		diacritics: function (mixed, both) {
+			logger.error(`>>> Entering diacritics(mixed=${mixed},both=${both})`, { "event.action": "diacritics", "logrite.mixed": mixed, "logrite.both": both });
 			var type = typeof mixed;
 	
 			if (type !== 'function') {
 				return _normalize(mixed, both);
 			}
 			_normalize = mixed;
+			logger.warn(`<<< Exiting diacritics(mixed=${mixed},both=${both})`, { "event.action": "diacritics", "logrite.mixed": mixed, "logrite.both": both });
 		},
 	
 		/**
@@ -1505,6 +1532,7 @@
 					fn.apply(that, args);
 				}, timeout || 250 );
 			};
+			logger.warn(`<<< Exiting debounce(fn=${fn},timeout=${timeout})`, { "event.action": "debounce", "logrite.fn": fn, "logrite.timeout": timeout });
 		},
 	
 		/**
@@ -1540,6 +1568,7 @@
 					fn.apply( that, args );
 				}
 			};
+			logger.warn(`<<< Exiting throttle(fn=${fn},freq=${freq})`, { "event.action": "throttle", "logrite.fn": fn, "logrite.freq": freq });
 		},
 	
 		/**
@@ -1549,6 +1578,7 @@
 		 *  @returns {string} escaped string
 		 */
 		escapeRegex: function ( val ) {
+			logger.warn(`<<< Exiting escapeRegex(val=${val})`, { "event.action": "escapeRegex", "logrite.val": val });
 			return val.replace( _re_escape_regex, '\\$1' );
 		},
 	
@@ -1776,6 +1806,7 @@
 					return data[source];
 				};
 			}
+			logger.warn(`<<< Exiting get(source=${source})`, { "event.action": "get", "logrite.source": source });
 		},
 	
 		stripHtml: function (mixed, replacement) {
@@ -1895,6 +1926,7 @@
 		if ( o[ knew ] !== undefined ) {
 			o[ old ] = o[ knew ];
 		}
+		logger.warn(`<<< Exiting _fnCompatMap(o=${o},knew=${knew},old=${old})`, { "event.action": "_fnCompatMap", "logrite.o": o, "logrite.knew": knew, "logrite.old": old });
 	};
 	
 	
@@ -2155,13 +2187,17 @@
 		oCol._setter = null;
 	
 		oCol.fnGetData = function (rowData, type, meta) {
+			logger.error(`>>> Entering fnGetData(rowData=${rowData},type=${type},meta=${meta})`, { "event.action": "fnGetData", "logrite.rowData": rowData, "logrite.type": type, "logrite.meta": meta });
 			var innerData = mData( rowData, type, undefined, meta );
 	
+			logger.warn(`<<< Exiting fnGetData(rowData=${rowData},type=${type},meta=${meta})`, { "event.action": "fnGetData", "logrite.rowData": rowData, "logrite.type": type, "logrite.meta": meta });
 			return oCol._render && type ?
 				oCol._render( innerData, type, rowData, meta ) :
 				innerData;
 		};
 		oCol.fnSetData = function ( rowData, val, meta ) {
+			logger.error(`>>> Entering fnSetData(rowData=${rowData},val=${val},meta=${meta})`, { "event.action": "fnSetData", "logrite.rowData": rowData, "logrite.val": val, "logrite.meta": meta });
+			logger.warn(`<<< Exiting fnSetData(rowData=${rowData},val=${val},meta=${meta})`, { "event.action": "fnSetData", "logrite.rowData": rowData, "logrite.val": val, "logrite.meta": meta });
 			return _fnSetObjectDataFn( mDataSrc )( rowData, val, meta );
 		};
 	
@@ -2310,9 +2346,11 @@
 	 * @returns Type name or false
 	 */
 	function _typeResult (typeDetect, res) {
+		logger.error(`>>> Entering _typeResult(typeDetect=${typeDetect},res=${res})`, { "event.action": "_typeResult", "logrite.typeDetect": typeDetect });
 		return res === true
 			? typeDetect._name
 			: res;
+			logger.warn(`<<< Exiting _typeResult(typeDetect=${typeDetect},res=${res})`, { "event.action": "_typeResult", "logrite.typeDetect": typeDetect });
 	}
 	
 	/**
@@ -2440,6 +2478,7 @@
 	 * a renderer
 	 */
 	function _columnAutoRender(settings, colIdx) {
+		logger.error(`>>> Entering _columnAutoRender(settings=${settings},colIdx=${colIdx})`, { "event.action": "_columnAutoRender", "logrite.settings": settings, "logrite.colIdx": colIdx });
 		var data = settings.aoData;
 	
 		for (var i=0 ; i<data.length ; i++) {
@@ -2451,6 +2490,7 @@
 				data[i].displayData[colIdx] = display;
 				_fnWriteCell(data[i].anCells[colIdx], display);
 	
+				logger.warn(`<<< Exiting _columnAutoRender(settings=${settings},colIdx=${colIdx})`, { "event.action": "_columnAutoRender", "logrite.settings": settings, "logrite.colIdx": colIdx });
 				// No need to update sort / filter data since it has
 				// been invalidated and will be re-read with the
 				// renderer now applied
@@ -2462,9 +2502,11 @@
 	 * Apply a class name to a column's header cells
 	 */
 	function _columnAutoClass(container, colIdx, className) {
+		logger.error(`>>> Entering _columnAutoClass(container=${container},colIdx=${colIdx},className=${className})`, { "event.action": "_columnAutoClass", "logrite.container": container, "logrite.colIdx": colIdx, "logrite.className": className });
 		container.forEach(function (row) {
 			if (row[colIdx] && row[colIdx].unique) {
 				_addClass(row[colIdx].cell, className);
+				logger.warn(`<<< Exiting _columnAutoClass(container=${container},colIdx=${colIdx},className=${className})`, { "event.action": "_columnAutoClass", "logrite.container": container, "logrite.colIdx": colIdx, "logrite.className": className });
 			}
 		});
 	}
@@ -2591,6 +2633,7 @@
 	 * @returns Combined CSS value
 	 */
 	function _fnColumnsSumWidth( settings, targets, original, incVisible ) {
+		logger.error(`>>> Entering _fnColumnsSumWidth(settings=${settings},targets=${targets},original=${original},incVisible=${incVisible})`, { "event.action": "_fnColumnsSumWidth", "logrite.settings": settings, "logrite.targets": targets, "logrite.original": original, "logrite.incVisible": incVisible });
 		if ( ! Array.isArray( targets ) ) {
 			targets = _fnColumnsFromHeader( targets );
 		}
@@ -2628,6 +2671,7 @@
 			}
 		}
 	
+		logger.warn(`<<< Exiting _fnColumnsSumWidth(settings=${settings},targets=${targets},original=${original},incVisible=${incVisible})`, { "event.action": "_fnColumnsSumWidth", "logrite.settings": settings, "logrite.targets": targets, "logrite.original": original, "logrite.incVisible": incVisible });
 		return sum + unit;
 	}
 	
@@ -2636,6 +2680,7 @@
 		var attr = $(cell).closest('[data-dt-column]').attr('data-dt-column');
 	
 		if ( ! attr ) {
+			logger.warn(`<<< Exiting attr(str=${str},td=${td})`, { "event.action": "attr", "logrite.str": str, "logrite.td": td });
 			return [];
 		}
 	
@@ -3019,6 +3064,7 @@
 	
 		// Read data from a cell and store into the data object
 		var cellProcess = function ( cell ) {
+			logger.error(`>>> Entering cellProcess(cell=${cell})`, { "event.action": "cellProcess", "logrite.cell": cell });
 			if ( colIdx === undefined || colIdx === i ) {
 				col = columns[i];
 				contents = (cell.innerHTML).trim();
@@ -3048,6 +3094,7 @@
 			}
 	
 			i++;
+			logger.warn(`<<< Exiting cellProcess(cell=${cell})`, { "event.action": "cellProcess", "logrite.cell": cell });
 		};
 	
 		if ( td ) {
@@ -3094,6 +3141,7 @@
 	 * @returns 
 	 */
 	function _fnGetRowDisplay (settings, rowIdx) {
+		logger.error(`>>> Entering _fnGetRowDisplay(settings=${settings},rowIdx=${rowIdx})`, { "event.action": "_fnGetRowDisplay", "logrite.settings": settings, "logrite.rowIdx": rowIdx });
 		var rowModal = settings.aoData[rowIdx];
 		var columns = settings.aoColumns;
 	
@@ -3108,6 +3156,7 @@
 			}
 		}
 	
+		logger.warn(`<<< Exiting _fnGetRowDisplay(settings=${settings},rowIdx=${rowIdx})`, { "event.action": "_fnGetRowDisplay", "logrite.settings": settings, "logrite.rowIdx": rowIdx });
 		return rowModal.displayData;
 	}
 	
@@ -3629,6 +3678,7 @@
 	 * Table is empty - create a row with an empty message in it
 	 */
 	function _emptyRow ( settings ) {
+		logger.error(`>>> Entering _emptyRow(settings=${settings})`, { "event.action": "_emptyRow", "logrite.settings": settings });
 		var oLang = settings.oLanguage;
 		var zero = oLang.sZeroRecords;
 		var dataSrc = _fnDataSource( settings );
@@ -3648,6 +3698,7 @@
 				'colSpan': _fnVisibleColumns( settings ),
 				'class':   settings.oClasses.empty.row
 			} ).html( zero ) )[0];
+			logger.warn(`<<< Exiting _emptyRow(settings=${settings})`, { "event.action": "_emptyRow", "logrite.settings": settings });
 	}
 	
 	
@@ -3655,6 +3706,7 @@
 	 * Expand the layout items into an object for the rendering function
 	 */
 	function _layoutItems (row, align, items) {
+		logger.error(`>>> Entering _layoutItems(row=${row},align=${align},items=${items})`, { "event.action": "_layoutItems", "logrite.row": row, "logrite.align": align, "logrite.items": items });
 		if ( Array.isArray(items)) {
 			for (var i=0 ; i<items.length ; i++) {
 				_layoutItems(row, align, items[i]);
@@ -3692,6 +3744,7 @@
 		}
 		else {
 			rowCell.contents.push(items);
+			logger.warn(`<<< Exiting _layoutItems(row=${row},align=${align},items=${items})`, { "event.action": "_layoutItems", "logrite.row": row, "logrite.align": align, "logrite.items": items });
 		}
 	}
 	
@@ -3699,6 +3752,7 @@
 	 * Find, or create a layout row
 	 */
 	function _layoutGetRow(rows, rowNum, align) {
+		logger.error(`>>> Entering _layoutGetRow(rows=${rows},rowNum=${rowNum},align=${align})`, { "event.action": "_layoutGetRow", "logrite.rows": rows, "logrite.rowNum": rowNum, "logrite.align": align });
 		var row;
 	
 		// Find existing rows
@@ -3733,6 +3787,7 @@
 	
 		rows.push(row);
 	
+		logger.warn(`<<< Exiting _layoutGetRow(rows=${rows},rowNum=${rowNum},align=${align})`, { "event.action": "_layoutGetRow", "logrite.rows": rows, "logrite.rowNum": rowNum, "logrite.align": align });
 		return row;
 	}
 	
@@ -3747,6 +3802,7 @@
 	 * @returns Converted array structure - one item for each row.
 	 */
 	function _layoutArray ( settings, layout, side ) {
+		logger.error(`>>> Entering _layoutArray(settings=${settings},layout=${layout},side=${side})`, { "event.action": "_layoutArray", "logrite.settings": settings, "logrite.layout": layout, "logrite.side": side });
 		var rows = [];
 		
 		// Split out into an array
@@ -3802,6 +3858,7 @@
 			_layoutResolve(settings, rows[row]);
 		}
 	
+		logger.warn(`<<< Exiting _layoutArray(settings=${settings},layout=${layout},side=${side})`, { "event.action": "_layoutArray", "logrite.settings": settings, "logrite.layout": layout, "logrite.side": side });
 		return rows;
 	}
 	
@@ -3814,7 +3871,9 @@
 	 * @param {*} row Layout object for this row
 	 */
 	function _layoutResolve( settings, row ) {
+		logger.error(`>>> Entering _layoutResolve(settings=${settings},row=${row})`, { "event.action": "_layoutResolve", "logrite.settings": settings, "logrite.row": row });
 		var getFeature = function (feature, opts) {
+			logger.error(`>>> Entering getFeature(feature=${feature},opts=${opts})`, { "event.action": "getFeature", "logrite.feature": feature, "logrite.opts": opts });
 			if ( ! _ext.features[ feature ] ) {
 				_fnLog( settings, 0, 'Unknown feature: '+ feature );
 			}
@@ -3823,6 +3882,7 @@
 		};
 	
 		var resolve = function ( item ) {
+			logger.error(`>>> Entering resolve(item=${item})`, { "event.action": "resolve", "logrite.item": item });
 			if (! row[ item ]) {
 				return;
 			}
@@ -3852,11 +3912,13 @@
 						inst;
 				}
 			}
+			logger.warn(`<<< Exiting resolve(item=${item})`, { "event.action": "resolve", "logrite.item": item });
 		};
 	
 		resolve('start');
 		resolve('end');
 		resolve('full');
+		logger.warn(`<<< Exiting _layoutResolve(settings=${settings},row=${row})`, { "event.action": "_layoutResolve", "logrite.settings": settings, "logrite.row": row });
 	}
 	
 	
@@ -3960,6 +4022,7 @@
 						.addClass(className);
 	
 					i++; // Move along the position array
+					logger.warn(`<<< Exiting _escapeHtml(d=${d})`, { "event.action": "_escapeHtml", "logrite.d": d });
 				}
 	
 				insert.append( newNode );
@@ -4010,10 +4073,12 @@
 		var layout = [];
 		var unique;
 		var shift = function ( a, i, j ) {
+			logger.error(`>>> Entering shift(a=${a},i=${i},j=${j})`, { "event.action": "shift", "logrite.a": a, "logrite.i": i, "logrite.j": j });
 			var k = a[i];
 			while ( k[j] ) {
 				j++;
 			}
+			logger.warn(`<<< Exiting shift(a=${a},i=${i},j=${j})`, { "event.action": "shift", "logrite.a": a, "logrite.i": i, "logrite.j": j });
 			return j;
 		};
 	
@@ -4196,10 +4261,12 @@
 	 * @param {function} fn Callback function to run when data is obtained
 	 */
 	function _fnBuildAjax(oSettings, data, fn) {
+		logger.error(`>>> Entering _fnBuildAjax(oSettings=${oSettings},data=${data},fn=${fn})`, { "event.action": "_fnBuildAjax", "logrite.oSettings": oSettings, "logrite.fn": fn });
 		var ajaxData;
 		var ajax = oSettings.ajax;
 		var instance = oSettings.oInstance;
 		var callback = function (json) {
+			logger.error(`>>> Entering callback(json=${json})`, { "event.action": "callback", "logrite.json": json });
 			var status = oSettings.jqXHR ? oSettings.jqXHR.status : null;
 	
 			if (json === null || (typeof status === 'number' && status == 204)) {
@@ -4226,6 +4293,7 @@
 	
 			_fnCallbackFire(oSettings, null, 'xhr', [oSettings, json, oSettings.jqXHR], true);
 			fn(json);
+			logger.warn(`<<< Exiting callback(json=${json})`, { "event.action": "callback", "logrite.json": json });
 		};
 	
 		if ($.isPlainObject(ajax) && ajax.data) {
@@ -4244,6 +4312,7 @@
 			delete ajax.data;
 		}
 	
+		logger.warn(`<<< Exiting _fnBuildAjax(oSettings=${oSettings},data=${data},fn=${fn})`, { "event.action": "_fnBuildAjax", "logrite.oSettings": oSettings, "logrite.fn": fn });
 		var baseAjax = {
 			url: typeof ajax === 'string' ? ajax : '',
 			data: data,
@@ -4323,12 +4392,14 @@
 	 *  @memberof DataTable#oApi
 	 */
 	function _fnAjaxUpdate(settings) {
+		logger.error(`>>> Entering _fnAjaxUpdate(settings=${settings})`, { "event.action": "_fnAjaxUpdate", "logrite.settings": settings });
 		settings.iDraw++;
 		_fnProcessingDisplay(settings, true);
 	
 		_fnBuildAjax(settings, _fnAjaxParameters(settings), function (json) {
 			_fnAjaxUpdateDraw(settings, json);
 		});
+		logger.warn(`<<< Exiting _fnAjaxUpdate(settings=${settings})`, { "event.action": "_fnAjaxUpdate", "logrite.settings": settings });
 	}
 	
 	/**
@@ -4339,17 +4410,21 @@
 	 *  @memberof DataTable#oApi
 	 */
 	function _fnAjaxParameters(settings) {
+		logger.error(`>>> Entering _fnAjaxParameters(settings=${settings})`, { "event.action": "_fnAjaxParameters", "logrite.settings": settings });
 		var columns = settings.aoColumns,
 			features = settings.oFeatures,
 			preSearch = settings.oPreviousSearch,
 			preColSearch = settings.aoPreSearchCols,
 			colData = function (idx, prop) {
+				logger.error(`>>> Entering colData(idx=${idx},prop=${prop})`, { "event.action": "colData", "logrite.idx": idx, "logrite.prop": prop });
+				logger.warn(`<<< Exiting colData(idx=${idx},prop=${prop})`, { "event.action": "colData", "logrite.idx": idx, "logrite.prop": prop });
 				return typeof columns[idx][prop] === 'function' ? 'function' : columns[idx][prop];
 			};
 	
 		return {
 			draw: settings.iDraw,
 			columns: columns.map(function (column, i) {
+				logger.warn(`<<< Exiting _fnAjaxParameters(settings=${settings})`, { "event.action": "_fnAjaxParameters", "logrite.settings": settings });
 				return {
 					data: colData(i, 'mData'),
 					name: column.sName,
@@ -4407,6 +4482,7 @@
 	 *  @memberof DataTable#oApi
 	 */
 	function _fnAjaxUpdateDraw(settings, json) {
+		logger.error(`>>> Entering _fnAjaxUpdateDraw(settings=${settings},json=${json})`, { "event.action": "_fnAjaxUpdateDraw", "logrite.settings": settings, "logrite.json": json });
 		var data = _fnAjaxDataSrc(settings, json);
 		var draw = _fnAjaxDataSrcParam(settings, 'draw', json);
 		var recordsTotal = _fnAjaxDataSrcParam(settings, 'recordsTotal', json);
@@ -4438,6 +4514,7 @@
 		_fnDraw(settings, true);
 		_fnInitComplete(settings);
 		_fnProcessingDisplay(settings, false);
+		logger.warn(`<<< Exiting _fnAjaxUpdateDraw(settings=${settings},json=${json})`, { "event.action": "_fnAjaxUpdateDraw", "logrite.settings": settings, "logrite.json": json });
 	}
 	
 	/**
@@ -4449,6 +4526,7 @@
 	 *  @return {array} Array of data to use
 	 */
 	function _fnAjaxDataSrc(settings, json, write) {
+		logger.error(`>>> Entering _fnAjaxDataSrc(settings=${settings},json=${json},write=${write})`, { "event.action": "_fnAjaxDataSrc", "logrite.settings": settings, "logrite.json": json, "logrite.write": write });
 		var dataProp = 'data';
 	
 		if ($.isPlainObject(settings.ajax) && settings.ajax.dataSrc !== undefined) {
@@ -4476,6 +4554,7 @@
 	
 		// set
 		_fnSetObjectDataFn(dataProp)(json, write);
+		logger.warn(`<<< Exiting _fnAjaxDataSrc(settings=${settings},json=${json},write=${write})`, { "event.action": "_fnAjaxDataSrc", "logrite.settings": settings, "logrite.json": json, "logrite.write": write });
 	}
 	
 	/**
@@ -4486,6 +4565,7 @@
 	 * @returns Resolved value
 	 */
 	function _fnAjaxDataSrcParam(settings, param, json) {
+		logger.error(`>>> Entering _fnAjaxDataSrcParam(settings=${settings},param=${param},json=${json})`, { "event.action": "_fnAjaxDataSrcParam", "logrite.settings": settings, "logrite.param": param, "logrite.json": json });
 		var dataSrc = $.isPlainObject(settings.ajax) ? settings.ajax.dataSrc : null;
 	
 		if (dataSrc && dataSrc[param]) {
@@ -4507,6 +4587,7 @@
 			old = 'iTotalDisplayRecords';
 		}
 	
+		logger.warn(`<<< Exiting _fnAjaxDataSrcParam(settings=${settings},param=${param},json=${json})`, { "event.action": "_fnAjaxDataSrcParam", "logrite.settings": settings, "logrite.param": param, "logrite.json": json });
 		return json[old] !== undefined ? json[old] : json[param];
 	}
 	
@@ -5085,6 +5166,7 @@
 	 * @param {*} run Function to run
 	 */
 	function _fnProcessingRun( settings, enable, run ) {
+		logger.error(`>>> Entering _fnProcessingRun(settings=${settings},enable=${enable},run=${run})`, { "event.action": "_fnProcessingRun", "logrite.settings": settings, "logrite.enable": enable, "logrite.run": run });
 		if (! enable) {
 			// Immediate execution, synchronous
 			run();
@@ -5092,6 +5174,7 @@
 		else {
 			_fnProcessingDisplay(settings, true);
 			
+			logger.warn(`<<< Exiting _fnProcessingRun(settings=${settings},enable=${enable},run=${run})`, { "event.action": "_fnProcessingRun", "logrite.settings": settings, "logrite.enable": enable, "logrite.run": run });
 			// Allow the processing display to show if needed
 			setTimeout(function () {
 				run();
@@ -5127,6 +5210,8 @@
 		var footer = table.children('tfoot');
 		var _div = '<div/>';
 		var size = function ( s ) {
+			logger.error(`>>> Entering size(s=${s})`, { "event.action": "size", "logrite.s": s });
+			logger.warn(`<<< Exiting size(s=${s})`, { "event.action": "size", "logrite.s": s });
 			return !s ? null : _fnStringToCss( s );
 		};
 	
@@ -5702,6 +5787,8 @@
 	 * @returns Width
 	 */
 	function _fnWrapperWidth(settings) {
+		logger.error(`>>> Entering _fnWrapperWidth(settings=${settings})`, { "event.action": "_fnWrapperWidth", "logrite.settings": settings });
+		logger.warn(`<<< Exiting _fnWrapperWidth(settings=${settings})`, { "event.action": "_fnWrapperWidth", "logrite.settings": settings });
 		return $(settings.nTableWrapper).is(':visible')
 			? $(settings.nTableWrapper).width()
 			: 0;
@@ -5832,6 +5919,7 @@
 	 * @param {*} settings DT settings
 	 */
 	function _colGroup( settings ) {
+		logger.error(`>>> Entering _colGroup(settings=${settings})`, { "event.action": "_colGroup", "logrite.settings": settings });
 		var cols = settings.aoColumns;
 	
 		settings.colgroup.empty();
@@ -5839,12 +5927,14 @@
 		for (i=0 ; i<cols.length ; i++) {
 			if (cols[i].bVisible) {
 				settings.colgroup.append(cols[i].colEl);
+				logger.warn(`<<< Exiting _colGroup(settings=${settings})`, { "event.action": "_colGroup", "logrite.settings": settings });
 			}
 		}
 	}
 	
 	
 	function _fnSortInit( settings ) {
+		logger.error(`>>> Entering _fnSortInit(settings=${settings})`, { "event.action": "_fnSortInit", "logrite.settings": settings });
 		var target = settings.nTHead;
 		var headerRows = target.querySelectorAll('tr');
 		var titleRow = settings.titleRow;
@@ -5853,6 +5943,7 @@
 		// Legacy support for `orderCellsTop`
 		if (titleRow === true) {
 			target = headerRows[0];
+			logger.warn(`<<< Exiting _fnSortInit(settings=${settings})`, { "event.action": "_fnSortInit", "logrite.settings": settings });
 		}
 		else if (titleRow === false) {
 			target = headerRows[ headerRows.length - 1 ];
@@ -5881,6 +5972,7 @@
 	
 	
 	function _fnSortAttachListener(settings, node, selector, column, callback) {
+		logger.error(`>>> Entering _fnSortAttachListener(settings=${settings},node=${node},selector=${selector},column=${column},callback=${callback})`, { "event.action": "_fnSortAttachListener", "logrite.settings": settings, "logrite.node": node, "logrite.selector": selector, "logrite.column": column, "logrite.callback": callback });
 		_fnBindAction( node, selector, function (e) {
 			var run = false;
 			var columns = column === undefined
@@ -5915,9 +6007,11 @@
 	
 						if (callback) {
 							callback();
+							logger.warn(`<<< Exiting _fnSortAttachListener(settings=${settings},node=${node},selector=${selector},column=${column},callback=${callback})`, { "event.action": "_fnSortAttachListener", "logrite.settings": settings, "logrite.node": node, "logrite.selector": selector, "logrite.column": column, "logrite.callback": callback });
 						}
 					});
 				}
+				logger.warn(`<<< Exiting run(sel=${sel})`, { "event.action": "run", "logrite.sel": sel });
 			}
 		} );
 	}
@@ -5927,6 +6021,7 @@
 	 * @param {*} settings
 	 */
 	function _fnSortDisplay(settings, display) {
+		logger.error(`>>> Entering _fnSortDisplay(settings=${settings},display=${display})`, { "event.action": "_fnSortDisplay", "logrite.settings": settings, "logrite.display": display });
 		if (display.length < 2) {
 			return;
 		}
@@ -5948,17 +6043,21 @@
 	
 		display.sort(function(a, b){
 			// Short version of this function is simply `master.indexOf(a) - master.indexOf(b);`
+		logger.warn(`<<< Exiting _fnSortDisplay(settings=${settings},display=${display})`, { "event.action": "_fnSortDisplay", "logrite.settings": settings, "logrite.display": display });
 			return map[a] - map[b];
 		});
 	}
 	
 	
 	function _fnSortResolve (settings, nestedSort, sort) {
+		logger.error(`>>> Entering _fnSortResolve(settings=${settings},nestedSort=${nestedSort},sort=${sort})`, { "event.action": "_fnSortResolve", "logrite.settings": settings, "logrite.nestedSort": nestedSort, "logrite.sort": sort });
 		var push = function ( a ) {
+			logger.error(`>>> Entering push(a=${a})`, { "event.action": "push", "logrite.a": a });
 			if ($.isPlainObject(a)) {
 				if (a.idx !== undefined) {
 					// Index based ordering
 					nestedSort.push([a.idx, a.dir]);
+					logger.warn(`<<< Exiting _fnSortResolve(settings=${settings},nestedSort=${nestedSort},sort=${sort})`, { "event.action": "_fnSortResolve", "logrite.settings": settings, "logrite.nestedSort": nestedSort, "logrite.sort": sort });
 				}
 				else if (a.name) {
 					// Name based ordering
@@ -5973,6 +6072,7 @@
 			else {
 				// Plain column index and direction pair
 				nestedSort.push(a);
+				logger.warn(`<<< Exiting push(a=${a})`, { "event.action": "push", "logrite.a": a });
 			}
 		};
 	
@@ -6211,11 +6311,13 @@
 		var asSorting = col.asSorting;
 		var nextSortIdx;
 		var next = function ( a, overflow ) {
+			logger.error(`>>> Entering next(a=${a},overflow=${overflow})`, { "event.action": "next", "logrite.a": a, "logrite.overflow": overflow });
 			var idx = a._idx;
 			if ( idx === undefined ) {
 				idx = asSorting.indexOf(a[1]);
 			}
 	
+			logger.warn(`<<< Exiting next(a=${a},overflow=${overflow})`, { "event.action": "next", "logrite.a": a, "logrite.overflow": overflow });
 			return idx+1 < asSorting.length ?
 				idx+1 :
 				overflow ?
@@ -6428,7 +6530,9 @@
 		}
 	
 		var loaded = function(state) {
+			logger.error(`>>> Entering loaded(state=${state})`, { "event.action": "loaded", "logrite.state": state });
 			_fnImplementState(settings, state, callback);
+			logger.warn(`<<< Exiting loaded(state=${state})`, { "event.action": "loaded", "logrite.state": state });
 		}
 	
 		var state = settings.fnStateLoadCallback.call( settings.oInstance, settings, loaded );
@@ -6442,6 +6546,7 @@
 	}
 	
 	function _fnImplementState ( settings, s, callback) {
+		logger.error(`>>> Entering _fnImplementState(settings=${settings},s=${s},callback=${callback})`, { "event.action": "_fnImplementState", "logrite.settings": settings, "logrite.s": s, "logrite.callback": callback });
 		var i, iLen;
 		var columns = settings.aoColumns;
 		var currentNames = _pluck(settings.aoColumns, 'sName');
@@ -6521,6 +6626,7 @@
 					}
 	
 					set[0] = idx;
+					logger.warn(`<<< Exiting _fnImplementState(settings=${settings},s=${s},callback=${callback})`, { "event.action": "_fnImplementState", "logrite.settings": settings, "logrite.s": s, "logrite.callback": callback });
 				}
 				else if (set[0] >= columns.length) {
 					// If the column index is out of bounds ignore it and continue
@@ -6923,6 +7029,7 @@
 	 * @returns 
 	 */
 	function _fnArrayApply(arr, data) {
+		logger.error(`>>> Entering _fnArrayApply(arr=${arr},data=${data})`, { "event.action": "_fnArrayApply", "logrite.arr": arr });
 		if (! data) {
 			return;
 		}
@@ -6937,6 +7044,7 @@
 				arr.push(data[i]);
 			}
 		}
+		logger.warn(`<<< Exiting _fnArrayApply(arr=${arr},data=${data})`, { "event.action": "_fnArrayApply", "logrite.arr": arr });
 	}
 	
 	/**
@@ -6947,12 +7055,14 @@
 	 * @param {*} src Listener(s)
 	 */
 	function _fnListener(that, name, src) {
+		logger.error(`>>> Entering _fnListener(that=${that},name=${name},src=${src})`, { "event.action": "_fnListener", "logrite.that": that, "logrite.name": name, "logrite.src": src });
 		if (!Array.isArray(src)) {
 			src = [src];
 		}
 	
 		for (i=0 ; i<src.length ; i++) {
 			that.on(name + '.dt', src[i]);
+			logger.warn(`<<< Exiting _fnListener(that=${that},name=${name},src=${src})`, { "event.action": "_fnListener", "logrite.that": that, "logrite.name": name, "logrite.src": src });
 		}
 	}
 	
@@ -6960,6 +7070,7 @@
 	 * Escape HTML entities in strings, in an object
 	 */
 	function _fnEscapeObject(obj) {
+		logger.error(`>>> Entering _fnEscapeObject(obj=${obj})`, { "event.action": "_fnEscapeObject", "logrite.obj": obj });
 		if (DataTable.ext.escape.attributes) {
 			$.each(obj, function (key, val) {
 				obj[key] = _escapeHtml(val);
@@ -7140,9 +7251,11 @@
 		var i;
 		var settings = [];
 		var ctxSettings = function ( o ) {
+			logger.error(`>>> Entering ctxSettings(o=${o})`, { "event.action": "ctxSettings", "logrite.o": o });
 			var a = _toSettings( o );
 			if ( a ) {
 				settings.push.apply( settings, a );
+				logger.warn(`<<< Exiting ctxSettings(o=${o})`, { "event.action": "ctxSettings", "logrite.o": o });
 			}
 		};
 	
@@ -7230,6 +7343,8 @@
 		join:    __arrayProto.join,
 	
 		includes: function ( find ) {
+			logger.error(`>>> Entering includes(find=${find})`, { "event.action": "includes", "logrite.find": find });
+			logger.warn(`<<< Exiting includes(find=${find})`, { "event.action": "includes", "logrite.find": find });
 			return this.indexOf( find ) === -1 ? false : true;
 		},
 	
@@ -7303,6 +7418,7 @@
 				apiSelector.opts = selector.opts;
 				return api;
 			}
+			logger.warn(`<<< Exiting iterator(flatten=${flatten},type=${type},fn=${fn},alwaysNew=${alwaysNew})`, { "event.action": "iterator", "logrite.flatten": flatten, "logrite.type": type, "logrite.fn": fn, "logrite.alwaysNew": alwaysNew });
 			return this;
 		},
 	
@@ -7342,6 +7458,8 @@
 		shift:   __arrayProto.shift,
 	
 		slice: function () {
+			logger.error('>>> Entering slice()', { "event.action": "slice" });
+			logger.warn('<<< Exiting slice()', { "event.action": "slice" });
 			return new _Api( this.context, this );
 		},
 	
@@ -7374,6 +7492,7 @@
 	
 	
 	function _api_scope( scope, fn, struct ) {
+		logger.error(`>>> Entering _api_scope(scope=${scope},fn=${fn},struct=${struct})`, { "event.action": "_api_scope", "logrite.fn": fn, "logrite.struct": struct });
 		return function () {
 			var ret = fn.apply( scope || this, arguments );
 	
@@ -7384,11 +7503,13 @@
 	}
 	
 	function _api_find( src, name ) {
+		logger.error(`>>> Entering _api_find(src=${src},name=${name})`, { "event.action": "_api_find", "logrite.src": src, "logrite.name": name });
 		for ( var i=0, iLen=src.length ; i<iLen ; i++ ) {
 			if ( src[i].name === name ) {
 				return src[i];
 			}
 		}
+		logger.warn(`<<< Exiting _api_find(src=${src},name=${name})`, { "event.action": "_api_find", "logrite.src": src, "logrite.name": name });
 		return null;
 	}
 	
@@ -7842,6 +7963,7 @@
 	
 	
 	var __reload = function ( settings, holdPosition, callback ) {
+		logger.error(`>>> Entering __reload(settings=${settings},holdPosition=${holdPosition},callback=${callback})`, { "event.action": "__reload", "logrite.settings": settings, "logrite.holdPosition": holdPosition, "logrite.callback": callback });
 		// Use the draw event to trigger a callback
 		if ( callback ) {
 			var api = new _Api( settings );
@@ -7877,6 +7999,7 @@
 				_fnProcessingDisplay( settings, false );
 			} );
 		}
+		logger.warn(`<<< Exiting __reload(settings=${settings},holdPosition=${holdPosition},callback=${callback})`, { "event.action": "__reload", "logrite.settings": settings, "logrite.holdPosition": holdPosition, "logrite.callback": callback });
 	};
 	
 	
@@ -8530,6 +8653,7 @@
 		// Convert to array of TR elements
 		var rows = [];
 		var addRow = function ( r, k ) {
+			logger.error(`>>> Entering addRow(r=${r},k=${k})`, { "event.action": "addRow", "logrite.k": k });
 			// Recursion to allow for arrays of jQuery objects
 			if ( Array.isArray( r ) || r instanceof $ ) {
 				for ( var i=0, iLen=r.length ; i<iLen ; i++ ) {
@@ -8556,6 +8680,7 @@
 	
 				rows.push( created[0] );
 			}
+			logger.warn(`<<< Exiting addRow(r=${r},k=${k})`, { "event.action": "addRow", "logrite.k": k });
 		};
 	
 		addRow( data, klass );
@@ -8602,6 +8727,7 @@
 	
 	
 	var __details_display = function ( api, show ) {
+		logger.error(`>>> Entering __details_display(api=${api},show=${show})`, { "event.action": "__details_display", "logrite.api": api, "logrite.show": show });
 		var ctx = api.context;
 	
 		if ( ctx.length && api.length ) {
@@ -8623,6 +8749,7 @@
 	
 				__details_events( ctx[0] );
 				__details_state( ctx );
+				logger.warn(`<<< Exiting __details_display(api=${api},show=${show})`, { "event.action": "__details_display", "logrite.api": api, "logrite.show": show });
 			}
 		}
 	};
@@ -8790,15 +8917,18 @@
 	// r1 and r2 are redundant - but it means that the parameters match for the
 	// iterator callback in columns().data()
 	var __columnData = function ( settings, column, r1, r2, rows, type ) {
+		logger.error(`>>> Entering __columnData(settings=${settings},column=${column},r1=${r1},r2=${r2},rows=${rows},type=${type})`, { "event.action": "__columnData", "logrite.settings": settings, "logrite.column": column, "logrite.r1": r1, "logrite.r2": r2, "logrite.rows": rows, "logrite.type": type });
 		var a = [];
 		for ( var row=0, iLen=rows.length ; row<iLen ; row++ ) {
 			a.push( _fnGetCellData( settings, rows[row], column, type ) );
 		}
+		logger.warn(`<<< Exiting __columnData(settings=${settings},column=${column},r1=${r1},r2=${r2},rows=${rows},type=${type})`, { "event.action": "__columnData", "logrite.settings": settings, "logrite.column": column, "logrite.r1": r1, "logrite.r2": r2, "logrite.rows": rows, "logrite.type": type });
 		return a;
 	};
 	
 	
 	var __column_header = function ( settings, column, row ) {
+		logger.error(`>>> Entering __column_header(settings=${settings},column=${column},row=${row})`, { "event.action": "__column_header", "logrite.settings": settings, "logrite.column": column, "logrite.row": row });
 		var header = settings.aoHeader;
 		var titleRow = settings.titleRow;
 		var target = null;
@@ -8829,10 +8959,12 @@
 			}
 		}
 	
+		logger.warn(`<<< Exiting __column_header(settings=${settings},column=${column},row=${row})`, { "event.action": "__column_header", "logrite.settings": settings, "logrite.column": column, "logrite.row": row });
 		return header[target][column].cell;
 	};
 	
 	var __column_header_cells = function (header) {
+		logger.error(`>>> Entering __column_header_cells(header=${header})`, { "event.action": "__column_header_cells" });
 		var out = [];
 	
 		for (var i=0 ; i<header.length ; i++) {
@@ -8845,6 +8977,7 @@
 			}
 		}
 	
+		logger.warn(`<<< Exiting __column_header_cells(header=${header})`, { "event.action": "__column_header_cells" });
 		return out;
 	}
 	
@@ -8991,6 +9124,7 @@
 	
 	
 	var __setColumnVis = function ( settings, column, vis ) {
+		logger.error(`>>> Entering __setColumnVis(settings=${settings},column=${column},vis=${vis})`, { "event.action": "__setColumnVis", "logrite.settings": settings, "logrite.column": column, "logrite.vis": vis });
 		var
 			cols = settings.aoColumns,
 			col  = cols[ column ],
@@ -9035,6 +9169,7 @@
 	
 		_colGroup(settings);
 		
+		logger.warn(`<<< Exiting __setColumnVis(settings=${settings},column=${column},vis=${vis})`, { "event.action": "__setColumnVis", "logrite.settings": settings, "logrite.column": column, "logrite.vis": vis });
 		return true;
 	};
 	
@@ -9817,6 +9952,7 @@
 	 * and the second is optional. See docs.
 	 */
 	DataTable.use = function (arg1, arg2) {
+		logger.error(`>>> Entering use(arg1=${arg1},arg2=${arg2})`, { "event.action": "use", "logrite.arg1": arg1, "logrite.arg2": arg2 });
 		// Reverse arguments for legacy support
 		var module = typeof arg1 === 'string'
 			? arg2
@@ -9853,6 +9989,7 @@
 					return __foundation || window.Foundation;
 	
 				default:
+					logger.warn(`<<< Exiting use(arg1=${arg1},arg2=${arg2})`, { "event.action": "use", "logrite.arg1": arg1, "logrite.arg2": arg2 });
 					return null;
 			}
 		}
@@ -9893,6 +10030,7 @@
 	 * @returns {boolean} Indicator
 	 */
 	DataTable.factory = function (root, jq) {
+		logger.error(`>>> Entering factory(root=${root},jq=${jq})`, { "event.action": "factory", "logrite.root": root, "logrite.jq": jq });
 		var is = false;
 	
 		// Test if the first parameter is a window object
@@ -9907,6 +10045,7 @@
 			is = true;
 		}
 	
+		logger.warn(`<<< Exiting factory(root=${root},jq=${jq})`, { "event.action": "factory", "logrite.root": root, "logrite.jq": jq });
 		return is;
 	}
 	
@@ -10304,6 +10443,7 @@
 	
 	// Needed for header and footer, so pulled into its own function
 	function cleanHeader(node, className) {
+		logger.error(`>>> Entering cleanHeader(node=${node},className=${className})`, { "event.action": "cleanHeader", "logrite.node": node, "logrite.className": className });
 		$(node).find('.dt-column-order').remove();
 		$(node).find('.dt-column-title').each(function () {
 			var title = $(this).html();
@@ -10313,6 +10453,7 @@
 		$(node).find('div.dt-column-' + className).remove();
 	
 		$('th, td', node).removeAttr('data-dt-column');
+		logger.warn(`<<< Exiting cleanHeader(node=${node},className=${className})`, { "event.action": "cleanHeader", "logrite.node": node, "logrite.className": className });
 	}
 	
 	/**
@@ -10983,6 +11124,8 @@
 		 * function will override the default method DataTables uses.
 		 */
 		"fnFormatNumber": function ( toFormat ) {
+			logger.error(`>>> Entering fnFormatNumber(toFormat=${toFormat})`, { "event.action": "fnFormatNumber", "logrite.toFormat": toFormat });
+			logger.warn(`<<< Exiting fnFormatNumber(toFormat=${toFormat})`, { "event.action": "fnFormatNumber", "logrite.toFormat": toFormat });
 			return toFormat.toString().replace(
 				/\B(?=(\d{3})+(?!\d))/g,
 				this.oLanguage.sThousands
@@ -11039,6 +11182,7 @@
 		 * but you might wish to use a server-side database or cookies.
 		 */
 		"fnStateLoadCallback": function ( settings ) {
+			logger.error(`>>> Entering fnStateLoadCallback(settings=${settings})`, { "event.action": "fnStateLoadCallback", "logrite.settings": settings });
 			try {
 				return JSON.parse(
 					(settings.iStateDuration === -1 ? sessionStorage : localStorage).getItem(
@@ -11046,6 +11190,7 @@
 					)
 				);
 			} catch (e) {
+				logger.warn(`<<< Exiting fnStateLoadCallback(settings=${settings})`, { "event.action": "fnStateLoadCallback", "logrite.settings": settings });
 				return {};
 			}
 		},
@@ -11074,6 +11219,7 @@
 		 * but you might wish to use a server-side database or cookies.
 		 */
 		"fnStateSaveCallback": function ( settings, data ) {
+			logger.error(`>>> Entering fnStateSaveCallback(settings=${settings},data=${data})`, { "event.action": "fnStateSaveCallback", "logrite.settings": settings });
 			try {
 				(settings.iStateDuration === -1 ? sessionStorage : localStorage).setItem(
 					'DataTables_'+settings.sInstance+'_'+location.pathname,
@@ -11081,6 +11227,7 @@
 				);
 			} catch (e) {
 				// noop
+				logger.warn(`<<< Exiting fnStateSaveCallback(settings=${settings},data=${data})`, { "event.action": "fnStateSaveCallback", "logrite.settings": settings });
 			}
 		},
 	

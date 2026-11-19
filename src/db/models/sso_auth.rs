@@ -108,6 +108,7 @@ impl SsoAuth {
     }
 
     pub async fn find(state: &OIDCState, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find()");
         let oldest = Utc::now().naive_utc() - *SSO_AUTH_EXPIRATION;
         conn.run(move |conn| {
             sso_auth::table
@@ -120,7 +121,9 @@ impl SsoAuth {
     }
 
     pub async fn find_by_code(code: &OIDCCode, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_code()");
         let oldest = Utc::now().naive_utc() - *SSO_AUTH_EXPIRATION;
+		eprintln!("[WARN] <<< Exiting find_by_code()");
         db_run! { conn: {
             sso_auth::table
                 .filter(sso_auth::code_response.eq(code))
@@ -131,6 +134,10 @@ impl SsoAuth {
     }
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete()");
         conn.run(move |conn| {
             diesel::delete(sso_auth::table.filter(sso_auth::state.eq(self.state)))
                 .execute(conn)
@@ -140,6 +147,7 @@ impl SsoAuth {
     }
 
     pub async fn delete_expired(pool: DbPool) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete_expired()");
         debug!("Purging expired sso_auth");
         if let Ok(conn) = pool.get().await {
             let oldest = Utc::now().naive_utc() - *SSO_AUTH_EXPIRATION;
@@ -150,6 +158,7 @@ impl SsoAuth {
             })
             .await
         } else {
+			eprintln!("[WARN] <<< Exiting delete_expired()");
             err!("Failed to get DB connection while purging expired sso_auth")
         }
     }

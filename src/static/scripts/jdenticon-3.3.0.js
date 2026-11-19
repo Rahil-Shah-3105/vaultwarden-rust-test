@@ -1,3 +1,4 @@
+var logger = (typeof logger !== 'undefined' && logger) || console;
 /**
  * Jdenticon 3.3.0
  * http://jdenticon.com
@@ -55,7 +56,9 @@ function parseHex(hash, startPosition, octets) {
 }
 
 function decToHex(v) {
+	logger.error(`>>> Entering decToHex(v=${v})`, { "event.action": "decToHex", "logrite.v": v });
     v |= 0; // Ensure integer value
+	logger.warn(`<<< Exiting decToHex(v=${v})`, { "event.action": "decToHex", "logrite.v": v });
     return v < 0 ? "00" :
         v < 16 ? "0" + v.toString(16) :
         v < 256 ? v.toString(16) :
@@ -63,7 +66,9 @@ function decToHex(v) {
 }
 
 function hueToRgb(m1, m2, h) {
+	logger.error(`>>> Entering hueToRgb(m1=${m1},m2=${m2},h=${h})`, { "event.action": "hueToRgb", "logrite.m1": m1, "logrite.m2": m2, "logrite.h": h });
     h = h < 0 ? h + 6 : h > 6 ? h - 6 : h;
+	logger.warn(`<<< Exiting hueToRgb(m1=${m1},m2=${m2},h=${h})`, { "event.action": "hueToRgb", "logrite.m1": m1, "logrite.m2": m2, "logrite.h": h });
     return decToHex(255 * (
         h < 1 ? m1 + (m2 - m1) * h :
         h < 3 ? m2 :
@@ -76,6 +81,7 @@ function hueToRgb(m1, m2, h) {
  * @returns {string}
  */
 function parseColor(color) {
+	logger.error(`>>> Entering parseColor(color=${color})`, { "event.action": "parseColor", "logrite.color": color });
     if (/^#[0-9a-f]{3,8}$/i.test(color)) {
         var result;
         var colorLength = color.length;
@@ -91,6 +97,8 @@ function parseColor(color) {
             result = color;
         }
 
+		logger.error(`parseColor(color=${color}): result → ${result}`, { "event.action": "parseColor", "logrite.color": color });
+		logger.warn(`<<< Exiting parseColor(color=${color})`, { "event.action": "parseColor", "logrite.color": color });
         return result;
     }
 }
@@ -101,8 +109,10 @@ function parseColor(color) {
  * @returns {string}
  */
 function toCss3Color(hexColor) {
+	logger.error(`>>> Entering toCss3Color(hexColor=${hexColor})`, { "event.action": "toCss3Color", "logrite.hexColor": hexColor });
     var a = parseHex(hexColor, 7, 2);
     var result;
+	logger.error(`toCss3Color(hexColor=${hexColor}): a → ${a}`, { "event.action": "toCss3Color", "logrite.hexColor": hexColor });
 
     if (isNaN(a)) {
         result = hexColor;
@@ -110,9 +120,12 @@ function toCss3Color(hexColor) {
         var r = parseHex(hexColor, 1, 2),
             g = parseHex(hexColor, 3, 2),
             b = parseHex(hexColor, 5, 2);
+			logger.error(`toCss3Color(hexColor=${hexColor}): r → ${r}`, { "event.action": "toCss3Color", "logrite.hexColor": hexColor });
         result = "rgba(" + r + "," + g + "," + b + "," + (a / 255).toFixed(2) + ")";
     }
 
+	logger.error(`toCss3Color(hexColor=${hexColor}): result → ${result}`, { "event.action": "toCss3Color", "logrite.hexColor": hexColor });
+	logger.warn(`<<< Exiting toCss3Color(hexColor=${hexColor})`, { "event.action": "toCss3Color", "logrite.hexColor": hexColor });
     return result;
 }
 
@@ -124,22 +137,27 @@ function toCss3Color(hexColor) {
  * @returns {string}
  */
 function hsl(hue, saturation, lightness) {
+	logger.error(`>>> Entering hsl(hue=${hue},saturation=${saturation},lightness=${lightness})`, { "event.action": "hsl", "logrite.hue": hue, "logrite.saturation": saturation, "logrite.lightness": lightness });
     // Based on http://www.w3.org/TR/2011/REC-css3-color-20110607/#hsl-color
     var result;
 
     if (saturation == 0) {
         var partialHex = decToHex(lightness * 255);
+		logger.error(`hsl(hue=${hue},saturation=${saturation},lightness=${lightness}): partialHex → ${partialHex}`, { "event.action": "hsl", "logrite.hue": hue, "logrite.saturation": saturation, "logrite.lightness": lightness });
         result = partialHex + partialHex + partialHex;
     }
     else {
         var m2 = lightness <= 0.5 ? lightness * (saturation + 1) : lightness + saturation - lightness * saturation,
               m1 = lightness * 2 - m2;
+			logger.error(`hsl(hue=${hue},saturation=${saturation},lightness=${lightness}): m2 → ${m2}`, { "event.action": "hsl", "logrite.hue": hue, "logrite.saturation": saturation, "logrite.lightness": lightness });
         result =
             hueToRgb(m1, m2, hue * 6 + 2) +
             hueToRgb(m1, m2, hue * 6) +
             hueToRgb(m1, m2, hue * 6 - 2);
+			logger.error(`hsl(hue=${hue},saturation=${saturation},lightness=${lightness}): result → ${result}`, { "event.action": "hsl", "logrite.hue": hue, "logrite.saturation": saturation, "logrite.lightness": lightness });
     }
 
+	logger.warn(`<<< Exiting hsl(hue=${hue},saturation=${saturation},lightness=${lightness})`, { "event.action": "hsl", "logrite.hue": hue, "logrite.saturation": saturation, "logrite.lightness": lightness });
     return "#" + result;
 }
 
@@ -151,6 +169,7 @@ function hsl(hue, saturation, lightness) {
  * @returns {string}
  */
 function correctedHsl(hue, saturation, lightness) {
+	logger.error(`>>> Entering correctedHsl(hue=${hue},saturation=${saturation},lightness=${lightness})`, { "event.action": "correctedHsl", "logrite.hue": hue, "logrite.saturation": saturation, "logrite.lightness": lightness });
     // The corrector specifies the perceived middle lightness for each hue
     var correctors = [ 0.55, 0.5, 0.5, 0.46, 0.6, 0.55, 0.55 ],
           corrector = correctors[(hue * 6 + 0.5) | 0];
@@ -158,6 +177,7 @@ function correctedHsl(hue, saturation, lightness) {
     // Adjust the input lightness relative to the corrector
     lightness = lightness < 0.5 ? lightness * corrector * 2 : corrector + (lightness - 0.5) * (1 - corrector) * 2;
 
+	logger.warn(`<<< Exiting correctedHsl(hue=${hue},saturation=${saturation},lightness=${lightness})`, { "event.action": "correctedHsl", "logrite.hue": hue, "logrite.saturation": saturation, "logrite.lightness": lightness });
     return hsl(hue, saturation, lightness);
 }
 
@@ -191,7 +211,9 @@ var rootConfigurationHolder = {};
  * @param {!Object} rootObject
  */
 function defineConfigProperty(rootObject) {
+	logger.error(`>>> Entering defineConfigProperty(rootObject=${rootObject})`, { "event.action": "defineConfigProperty", "logrite.rootObject": rootObject });
     rootConfigurationHolder = rootObject;
+	logger.warn(`<<< Exiting defineConfigProperty(rootObject=${rootObject})`, { "event.action": "defineConfigProperty", "logrite.rootObject": rootObject });
 }
 
 /**
@@ -199,9 +221,11 @@ function defineConfigProperty(rootObject) {
  * @param {Object} newConfiguration - New configuration object.
  */
 function configure(newConfiguration) {
+	logger.error(`>>> Entering configure(newConfiguration=${newConfiguration})`, { "event.action": "configure", "logrite.newConfiguration": newConfiguration });
     if (arguments.length) {
         rootConfigurationHolder[CONFIG_PROPERTIES.n/*MODULE*/] = newConfiguration;
     }
+	logger.warn(`<<< Exiting configure(newConfiguration=${newConfiguration})`, { "event.action": "configure", "logrite.newConfiguration": newConfiguration });
     return rootConfigurationHolder[CONFIG_PROPERTIES.n/*MODULE*/];
 }
 
@@ -216,6 +240,7 @@ function configure(newConfiguration) {
  * @returns {ParsedConfiguration}
  */
 function getConfiguration(paddingOrLocalConfig, defaultPadding) {
+	logger.error(`>>> Entering getConfiguration(paddingOrLocalConfig=${paddingOrLocalConfig},defaultPadding=${defaultPadding})`, { "event.action": "getConfiguration", "logrite.paddingOrLocalConfig": paddingOrLocalConfig, "logrite.defaultPadding": defaultPadding });
     var configObject =
             typeof paddingOrLocalConfig == "object" && paddingOrLocalConfig ||
             rootConfigurationHolder[CONFIG_PROPERTIES.n/*MODULE*/] ||
@@ -237,6 +262,7 @@ function getConfiguration(paddingOrLocalConfig, defaultPadding) {
      * Creates a lightness range.
      */
     function lightness(configName, defaultRange) {
+		logger.error(`>>> Entering lightness(configName=${configName},defaultRange=${defaultRange})`, { "event.action": "lightness", "logrite.configName": configName, "logrite.defaultRange": defaultRange });
         var range = lightnessConfig[configName];
 
         // Check if the lightness range is an array-like object. This way we ensure the
@@ -259,8 +285,10 @@ function getConfiguration(paddingOrLocalConfig, defaultPadding) {
      * provided the originally computed hue.
      */
     function hueFunction(originalHue) {
+		logger.error(`>>> Entering hueFunction(originalHue=${originalHue})`, { "event.action": "hueFunction", "logrite.originalHue": originalHue });
         var hueConfig = configObject["hues"];
         var hue;
+		logger.error(`hueFunction(originalHue=${originalHue}): hueConfig → ${hueConfig}`, { "event.action": "hueFunction", "logrite.originalHue": originalHue });
 
         // Check if 'hues' is an array-like object. This way we also ensure that
         // the array is not empty, which would mean no hue restriction.
@@ -270,6 +298,7 @@ function getConfiguration(paddingOrLocalConfig, defaultPadding) {
             hue = hueConfig[0 | (0.999 * originalHue * hueConfig.length)];
         }
 
+		logger.warn(`<<< Exiting hueFunction(originalHue=${originalHue})`, { "event.action": "hueFunction", "logrite.originalHue": originalHue });
         return typeof hue == "number" ?
 
             // A hue was specified. We need to convert the hue from
@@ -293,6 +322,7 @@ function getConfiguration(paddingOrLocalConfig, defaultPadding) {
             typeof padding == "number" ? padding :
             defaultPadding
     }
+	logger.warn(`<<< Exiting getConfiguration(paddingOrLocalConfig=${paddingOrLocalConfig},defaultPadding=${defaultPadding})`, { "event.action": "getConfiguration", "logrite.paddingOrLocalConfig": paddingOrLocalConfig, "logrite.defaultPadding": defaultPadding });
 }
 
 var ICON_TYPE_SVG = 1;
@@ -312,14 +342,17 @@ var documentQuerySelectorAll = /** @type {!Function} */ (
     typeof document !== "undefined" && document.querySelectorAll.bind(document));
 
 function getIdenticonType(el) {
+	logger.error(`>>> Entering getIdenticonType(el=${el})`, { "event.action": "getIdenticonType", "logrite.el": el });
     if (el) {
         var tagName = el["tagName"];
+		logger.error(`getIdenticonType(el=${el}): tagName → ${tagName}`, { "event.action": "getIdenticonType", "logrite.el": el });
 
         if (/^svg$/i.test(tagName)) {
             return ICON_TYPE_SVG;
         }
 
         if (/^canvas$/i.test(tagName) && "getContext" in el) {
+			logger.warn(`<<< Exiting getIdenticonType(el=${el})`, { "event.action": "getIdenticonType", "logrite.el": el });
             return ICON_TYPE_CANVAS;
         }
     }
@@ -327,9 +360,11 @@ function getIdenticonType(el) {
 
 function whenDocumentIsReady(/** @type {Function} */ callback) {
     function loadedHandler() {
+		logger.error('>>> Entering loadedHandler()', { "event.action": "loadedHandler" });
         document.removeEventListener("DOMContentLoaded", loadedHandler);
         window.removeEventListener("load", loadedHandler);
         setTimeout(callback, 0); // Give scripts a chance to run
+		logger.warn('<<< Exiting loadedHandler()', { "event.action": "loadedHandler" });
     }
 
     if (typeof document !== "undefined" &&
@@ -347,9 +382,11 @@ function whenDocumentIsReady(/** @type {Function} */ callback) {
 }
 
 function observer(updateCallback) {
+	logger.error(`>>> Entering observer(updateCallback=${updateCallback})`, { "event.action": "observer", "logrite.updateCallback": updateCallback });
     if (typeof MutationObserver != "undefined") {
         var mutationObserver = new MutationObserver(function onmutation(mutations) {
             for (var mutationIndex = 0; mutationIndex < mutations.length; mutationIndex++) {
+				logger.error('>>> Entering onmutation()', { "event.action": "onmutation" });
                 var mutation = mutations[mutationIndex];
                 var addedNodes = mutation.addedNodes;
 
@@ -373,6 +410,7 @@ function observer(updateCallback) {
 
                 if (mutation.type == "attributes" && getIdenticonType(mutation.target)) {
                     updateCallback(mutation.target);
+					logger.warn('<<< Exiting onmutation()', { "event.action": "onmutation" });
                 }
             }
         });
@@ -384,14 +422,17 @@ function observer(updateCallback) {
             "subtree": true,
         });
     }
+	logger.warn(`<<< Exiting observer(updateCallback=${updateCallback})`, { "event.action": "observer", "logrite.updateCallback": updateCallback });
 }
 
 /**
  * Represents a point.
  */
 function Point(x, y) {
+	logger.error(`>>> Entering Point(x=${x},y=${y})`, { "event.action": "Point", "logrite.x": x, "logrite.y": y });
     this.x = x;
     this.y = y;
+	logger.debug(`Point(x=${x},y=${y}): this.y → ${this.y}`, { "event.action": "Point", "logrite.x": x, "logrite.y": y });
 }
 
 /**
@@ -399,10 +440,12 @@ function Point(x, y) {
  * but this caused a rendering issue in Chrome on sizes > 256 where the rotation transformation of inverted paths was not done properly.
  */
 function Transform(x, y, size, rotation) {
+	logger.error(`>>> Entering Transform(x=${x},y=${y},size=${size},rotation=${rotation})`, { "event.action": "Transform", "logrite.x": x, "logrite.y": y, "logrite.size": size, "logrite.rotation": rotation });
     this.u/*_x*/ = x;
     this.v/*_y*/ = y;
     this.K/*_size*/ = size;
     this.Z/*_rotation*/ = rotation;
+	logger.warn(`<<< Exiting Transform(x=${x},y=${y},size=${size},rotation=${rotation})`, { "event.action": "Transform", "logrite.x": x, "logrite.y": y, "logrite.size": size, "logrite.rotation": rotation });
 }
 
 /**
@@ -413,9 +456,11 @@ function Transform(x, y, size, rotation) {
  * @param {number=} h The height of the transformed rectangle. If greater than 0, this will ensure the returned point is of the upper left corner of the transformed rectangle.
  */
 Transform.prototype.L/*transformIconPoint*/ = function transformIconPoint (x, y, w, h) {
+	logger.error(`>>> Entering transformIconPoint(x=${x},y=${y},w=${w},h=${h})`, { "event.action": "transformIconPoint", "logrite.x": x, "logrite.y": y, "logrite.h": h });
     var right = this.u/*_x*/ + this.K/*_size*/,
           bottom = this.v/*_y*/ + this.K/*_size*/,
           rotation = this.Z/*_rotation*/;
+	logger.warn(`<<< Exiting transformIconPoint(x=${x},y=${y},w=${w},h=${h})`, { "event.action": "transformIconPoint", "logrite.x": x, "logrite.y": y, "logrite.h": h });
     return rotation === 1 ? new Point(right - y - (h || 0), this.v/*_y*/ + x) :
            rotation === 2 ? new Point(right - x - (w || 0), bottom - y - (h || 0)) :
            rotation === 3 ? new Point(this.u/*_x*/ + y, bottom - x - (w || 0)) :
@@ -430,6 +475,7 @@ var NO_TRANSFORM = new Transform(0, 0, 0, 0);
  * Provides helper functions for rendering common basic shapes.
  */
 function Graphics(renderer) {
+	logger.error(`>>> Entering Graphics(renderer=${renderer})`, { "event.action": "Graphics", "logrite.renderer": renderer });
     /**
      * @type {Renderer}
      * @private
@@ -440,6 +486,7 @@ function Graphics(renderer) {
      * @type {Transform}
      */
     this.A/*currentTransform*/ = NO_TRANSFORM;
+	logger.warn(`<<< Exiting Graphics(renderer=${renderer})`, { "event.action": "Graphics", "logrite.renderer": renderer });
 }
 var Graphics__prototype = Graphics.prototype;
 
@@ -449,6 +496,7 @@ var Graphics__prototype = Graphics.prototype;
  * @param {boolean=} invert Specifies if the polygon will be inverted.
  */
 Graphics__prototype.g/*addPolygon*/ = function addPolygon (points, invert) {
+		logger.error(`>>> Entering addPolygon(points=${points},invert=${invert})`, { "event.action": "addPolygon", "logrite.points": points, "logrite.invert": invert });
         var this$1 = this;
 
     var di = invert ? -2 : 2,
@@ -459,6 +507,9 @@ Graphics__prototype.g/*addPolygon*/ = function addPolygon (points, invert) {
     }
 
     this.M/*_renderer*/.g/*addPolygon*/(transformedPoints);
+	logger.warn(`<<< Exiting addPolygon(points=${points},invert=${invert})`, { "event.action": "addPolygon", "logrite.points": points, "logrite.invert": invert });
+	logger.error(`>>> Entering addPolygon(points=${points})`, { "event.action": "addPolygon", "logrite.points": points });
+	logger.warn(`<<< Exiting addPolygon(points=${points})`, { "event.action": "addPolygon", "logrite.points": points });
 };
 
 /**
@@ -470,8 +521,11 @@ Graphics__prototype.g/*addPolygon*/ = function addPolygon (points, invert) {
  * @param {boolean=} invert Specifies if the ellipse will be inverted.
  */
 Graphics__prototype.h/*addCircle*/ = function addCircle (x, y, size, invert) {
+	logger.error(`>>> Entering addCircle(x=${x},y=${y},size=${size},invert=${invert})`, { "event.action": "addCircle", "logrite.x": x, "logrite.y": y, "logrite.size": size, "logrite.invert": invert });
     var p = this.A/*currentTransform*/.L/*transformIconPoint*/(x, y, size, size);
     this.M/*_renderer*/.h/*addCircle*/(p, size, invert);
+	logger.error(`addCircle(x=${x},y=${y},size=${size},invert=${invert}): p → ${p}`, { "event.action": "addCircle", "logrite.x": x, "logrite.y": y, "logrite.size": size, "logrite.invert": invert });
+	logger.warn(`<<< Exiting addCircle(point=${point},diameter=${diameter},counterClockwise=${counterClockwise})`, { "event.action": "addCircle", "logrite.point": point, "logrite.diameter": diameter, "logrite.counterClockwise": counterClockwise });
 };
 
 /**
@@ -483,12 +537,14 @@ Graphics__prototype.h/*addCircle*/ = function addCircle (x, y, size, invert) {
  * @param {boolean=} invert Specifies if the rectangle will be inverted.
  */
 Graphics__prototype.i/*addRectangle*/ = function addRectangle (x, y, w, h, invert) {
+	logger.error(`>>> Entering addRectangle(x=${x},y=${y},w=${w},h=${h},invert=${invert})`, { "event.action": "addRectangle", "logrite.x": x, "logrite.y": y, "logrite.h": h, "logrite.invert": invert });
     this.g/*addPolygon*/([
         x, y,
         x + w, y,
         x + w, y + h,
         x, y + h
     ], invert);
+	logger.warn(`<<< Exiting addRectangle(x=${x},y=${y},w=${w},h=${h},invert=${invert})`, { "event.action": "addRectangle", "logrite.x": x, "logrite.y": y, "logrite.h": h, "logrite.invert": invert });
 };
 
 /**
@@ -501,6 +557,7 @@ Graphics__prototype.i/*addRectangle*/ = function addRectangle (x, y, w, h, inver
  * @param {boolean=} invert Specifies if the triangle will be inverted.
  */
 Graphics__prototype.j/*addTriangle*/ = function addTriangle (x, y, w, h, r, invert) {
+	logger.error(`>>> Entering addTriangle(x=${x},y=${y},w=${w},h=${h},r=${r},invert=${invert})`, { "event.action": "addTriangle", "logrite.x": x, "logrite.y": y, "logrite.h": h, "logrite.invert": invert });
     var points = [
         x + w, y,
         x + w, y + h,
@@ -509,6 +566,7 @@ Graphics__prototype.j/*addTriangle*/ = function addTriangle (x, y, w, h, r, inve
     ];
     points.splice(((r || 0) % 4) * 2, 2);
     this.g/*addPolygon*/(points, invert);
+	logger.warn(`<<< Exiting addTriangle(x=${x},y=${y},w=${w},h=${h},r=${r},invert=${invert})`, { "event.action": "addTriangle", "logrite.x": x, "logrite.y": y, "logrite.h": h, "logrite.invert": invert });
 };
 
 /**
@@ -520,12 +578,14 @@ Graphics__prototype.j/*addTriangle*/ = function addTriangle (x, y, w, h, r, inve
  * @param {boolean=} invert Specifies if the rhombus will be inverted.
  */
 Graphics__prototype.N/*addRhombus*/ = function addRhombus (x, y, w, h, invert) {
+	logger.error(`>>> Entering addRhombus(x=${x},y=${y},w=${w},h=${h},invert=${invert})`, { "event.action": "addRhombus", "logrite.x": x, "logrite.y": y, "logrite.h": h, "logrite.invert": invert });
     this.g/*addPolygon*/([
         x + w / 2, y,
         x + w, y + h / 2,
         x + w / 2, y + h,
         x, y + h / 2
     ], invert);
+	logger.warn(`<<< Exiting addRhombus(x=${x},y=${y},w=${w},h=${h},invert=${invert})`, { "event.action": "addRhombus", "logrite.x": x, "logrite.y": y, "logrite.h": h, "logrite.invert": invert });
 };
 
 /**
@@ -535,6 +595,7 @@ Graphics__prototype.N/*addRhombus*/ = function addRhombus (x, y, w, h, invert) {
  * @param {number} positionIndex
  */
 function centerShape(index, g, cell, positionIndex) {
+	logger.error(`>>> Entering centerShape(index=${index},g=${g},cell=${cell},positionIndex=${positionIndex})`, { "event.action": "centerShape", "logrite.index": index, "logrite.g": g, "logrite.cell": cell, "logrite.positionIndex": positionIndex });
     index = index % 14;
 
     var k, m, w, h, inner, outer;
@@ -603,6 +664,7 @@ function centerShape(index, g, cell, positionIndex) {
             0, cell
         ]) :
 
+	logger.warn(`<<< Exiting centerShape(index=${index},g=${g},cell=${cell},positionIndex=${positionIndex})`, { "event.action": "centerShape", "logrite.index": index, "logrite.g": g, "logrite.cell": cell, "logrite.positionIndex": positionIndex });
     index == 7 ?
         g.j/*addTriangle*/(cell / 2, cell / 2, cell / 2, cell / 2, 3) :
 
@@ -656,6 +718,7 @@ function centerShape(index, g, cell, positionIndex) {
  * @param {number} cell
  */
 function outerShape(index, g, cell) {
+	logger.error(`>>> Entering outerShape(index=${index},g=${g},cell=${cell})`, { "event.action": "outerShape", "logrite.index": index, "logrite.g": g, "logrite.cell": cell });
     index = index % 4;
 
     var m;
@@ -663,6 +726,7 @@ function outerShape(index, g, cell) {
     !index ?
         g.j/*addTriangle*/(0, 0, cell, cell, 0) :
 
+	logger.warn(`<<< Exiting outerShape(index=${index},g=${g},cell=${cell})`, { "event.action": "outerShape", "logrite.index": index, "logrite.g": g, "logrite.cell": cell });
     index == 1 ?
         g.j/*addTriangle*/(0, cell / 2, cell, cell / 2, 0) :
 
@@ -682,7 +746,9 @@ function outerShape(index, g, cell) {
  * @param {ParsedConfiguration} config
  */
 function colorTheme(hue, config) {
+	logger.error(`>>> Entering colorTheme(hue=${hue},config=${config})`, { "event.action": "colorTheme", "logrite.hue": hue, "logrite.config": config });
     hue = config.X/*hue*/(hue);
+	logger.warn(`<<< Exiting colorTheme(hue=${hue},config=${config})`, { "event.action": "colorTheme", "logrite.hue": hue, "logrite.config": config });
     return [
         // Dark gray
         correctedHsl(hue, config.H/*grayscaleSaturation*/, config.I/*grayscaleLightness*/(0)),
@@ -726,8 +792,11 @@ function iconGenerator(renderer, hash, config) {
     var y = 0 | (padding + size / 2 - cell * 2);
 
     function renderShape(colorIndex, shapes, index, rotationIndex, positions) {
+		logger.error(`>>> Entering renderShape(colorIndex=${colorIndex},shapes=${shapes},index=${index},rotationIndex=${rotationIndex},positions=${positions})`, { "event.action": "renderShape", "logrite.colorIndex": colorIndex, "logrite.shapes": shapes, "logrite.index": index, "logrite.rotationIndex": rotationIndex, "logrite.positions": positions });
         var shapeIndex = parseHex(hash, index, 1);
         var r = rotationIndex ? parseHex(hash, rotationIndex, 1) : 0;
+		logger.error(`renderShape(colorIndex=${colorIndex},shapes=${shapes},index=${index},rotationIndex=${rotationIndex},positions=${positions}): shapeIndex → ${shapeIndex}`, { "event.action": "renderShape", "logrite.colorIndex": colorIndex, "logrite.shapes": shapes, "logrite.index": index, "logrite.rotationIndex": rotationIndex, "logrite.positions": positions });
+		logger.error(`renderShape(colorIndex=${colorIndex},shapes=${shapes},index=${index},rotationIndex=${rotationIndex},positions=${positions}): r → ${r}`, { "event.action": "renderShape", "logrite.colorIndex": colorIndex, "logrite.shapes": shapes, "logrite.index": index, "logrite.rotationIndex": rotationIndex, "logrite.positions": positions });
 
         renderer.O/*beginShape*/(availableColors[selectedColorIndexes[colorIndex]]);
 
@@ -737,6 +806,7 @@ function iconGenerator(renderer, hash, config) {
         }
 
         renderer.P/*endShape*/();
+		logger.warn(`<<< Exiting renderShape(colorIndex=${colorIndex},shapes=${shapes},index=${index},rotationIndex=${rotationIndex},positions=${positions})`, { "event.action": "renderShape", "logrite.colorIndex": colorIndex, "logrite.shapes": shapes, "logrite.index": index, "logrite.rotationIndex": rotationIndex, "logrite.positions": positions });
     }
 
     // AVAILABLE COLORS
@@ -751,9 +821,11 @@ function iconGenerator(renderer, hash, config) {
     var index;
 
     function isDuplicate(values) {
+		logger.error(`>>> Entering isDuplicate(values=${values})`, { "event.action": "isDuplicate", "logrite.values": values });
         if (values.indexOf(index) >= 0) {
             for (var i = 0; i < values.length; i++) {
                 if (selectedColorIndexes.indexOf(values[i]) >= 0) {
+					logger.warn(`<<< Exiting isDuplicate(values=${values})`, { "event.action": "isDuplicate", "logrite.values": values });
                     return true;
                 }
             }
@@ -788,6 +860,7 @@ function iconGenerator(renderer, hash, config) {
  * @param {string} message
  */
 function sha1(message) {
+	logger.error(`>>> Entering sha1(message=${message})`, { "event.action": "sha1", "logrite.message": message });
     var HASH_SIZE_HALF_BYTES = 40;
     var BLOCK_SIZE_WORDS = 16;
 
@@ -823,6 +896,8 @@ function sha1(message) {
      * @param {number} shift  Bit count to shift.
      */
     function rotl(value, shift) {
+		logger.error(`>>> Entering rotl(value=${value},shift=${shift})`, { "event.action": "rotl", "logrite.value": value, "logrite.shift": shift });
+		logger.warn(`<<< Exiting rotl(value=${value},shift=${shift})`, { "event.action": "rotl", "logrite.value": value, "logrite.shift": shift });
         return (value << shift) | (value >>> (32 - shift));
     }
 
@@ -930,6 +1005,7 @@ function computeHash(value) {
  * @implements {Renderer}
  */
 function CanvasRenderer(ctx, iconSize) {
+	logger.error(`>>> Entering CanvasRenderer(ctx=${ctx},iconSize=${iconSize})`, { "event.action": "CanvasRenderer", "logrite.iconSize": iconSize });
     var canvas = ctx.canvas;
     var width = canvas.width;
     var height = canvas.height;
@@ -944,6 +1020,7 @@ function CanvasRenderer(ctx, iconSize) {
             ((height - iconSize) / 2) | 0);
     }
 
+	logger.error(`CanvasRenderer(ctx=${ctx},iconSize=${iconSize}): iconSize → ${iconSize}`, { "event.action": "CanvasRenderer", "logrite.iconSize": iconSize });
     /**
      * @private
      */
@@ -951,6 +1028,7 @@ function CanvasRenderer(ctx, iconSize) {
     this.k/*iconSize*/ = iconSize;
 
     ctx.clearRect(0, 0, iconSize, iconSize);
+	logger.warn(`<<< Exiting CanvasRenderer(ctx=${ctx},iconSize=${iconSize})`, { "event.action": "CanvasRenderer", "logrite.iconSize": iconSize });
 }
 var CanvasRenderer__prototype = CanvasRenderer.prototype;
 
@@ -959,11 +1037,13 @@ var CanvasRenderer__prototype = CanvasRenderer.prototype;
  * @param {string} fillColor  Fill color on the format #rrggbb[aa].
  */
 CanvasRenderer__prototype.m/*setBackground*/ = function setBackground (fillColor) {
+	logger.error(`>>> Entering setBackground(fillColor=${fillColor})`, { "event.action": "setBackground", "logrite.fillColor": fillColor });
     var ctx = this.l/*_ctx*/;
     var iconSize = this.k/*iconSize*/;
 
     ctx.fillStyle = toCss3Color(fillColor);
     ctx.fillRect(0, 0, iconSize, iconSize);
+	logger.warn(`<<< Exiting setBackground(fillColor=${fillColor})`, { "event.action": "setBackground", "logrite.fillColor": fillColor });
 };
 
 /**
@@ -971,16 +1051,20 @@ CanvasRenderer__prototype.m/*setBackground*/ = function setBackground (fillColor
  * @param {string} fillColor Fill color on format #rrggbb[aa].
  */
 CanvasRenderer__prototype.O/*beginShape*/ = function beginShape (fillColor) {
+	logger.error(`>>> Entering beginShape(fillColor=${fillColor})`, { "event.action": "beginShape", "logrite.fillColor": fillColor });
     var ctx = this.l/*_ctx*/;
     ctx.fillStyle = toCss3Color(fillColor);
     ctx.beginPath();
+	logger.warn(`<<< Exiting beginShape(fillColor=${fillColor})`, { "event.action": "beginShape", "logrite.fillColor": fillColor });
 };
 
 /**
  * Marks the end of the currently drawn shape. This causes the queued paths to be rendered on the canvas.
  */
 CanvasRenderer__prototype.P/*endShape*/ = function endShape () {
+	logger.error('>>> Entering endShape()', { "event.action": "endShape" });
     this.l/*_ctx*/.fill();
+	logger.warn('<<< Exiting endShape()', { "event.action": "endShape" });
 };
 
 /**
@@ -1003,6 +1087,7 @@ CanvasRenderer__prototype.g/*addPolygon*/ = function addPolygon (points) {
  * @param {boolean} counterClockwise True if the circle is drawn counter-clockwise (will result in a hole if rendered on a clockwise path).
  */
 CanvasRenderer__prototype.h/*addCircle*/ = function addCircle (point, diameter, counterClockwise) {
+	logger.error(`>>> Entering addCircle(point=${point},diameter=${diameter},counterClockwise=${counterClockwise})`, { "event.action": "addCircle", "logrite.point": point, "logrite.diameter": diameter, "logrite.counterClockwise": counterClockwise });
     var ctx = this.l/*_ctx*/,
           radius = diameter / 2;
     ctx.moveTo(point.x + radius, point.y + radius);
@@ -1014,7 +1099,9 @@ CanvasRenderer__prototype.h/*addCircle*/ = function addCircle (point, diameter, 
  * Called when the icon has been completely drawn.
  */
 CanvasRenderer__prototype.finish = function finish () {
+	logger.error('>>> Entering finish()', { "event.action": "finish" });
     this.l/*_ctx*/.restore();
+	logger.warn('<<< Exiting finish()', { "event.action": "finish" });
 };
 
 /**
@@ -1047,6 +1134,8 @@ function drawIcon(ctx, hashOrValue, size, config) {
  * size of the generated SVG with more than 50% in some cases.
  */
 function svgValue(value) {
+	logger.error(`>>> Entering svgValue(value=${value})`, { "event.action": "svgValue", "logrite.value": value });
+	logger.warn(`<<< Exiting svgValue(value=${value})`, { "event.action": "svgValue", "logrite.value": value });
     return ((value * 10 + 0.5) | 0) / 10;
 }
 
@@ -1054,11 +1143,13 @@ function svgValue(value) {
  * Represents an SVG path element.
  */
 function SvgPath() {
+	logger.error('>>> Entering SvgPath()', { "event.action": "SvgPath" });
     /**
      * This property holds the data string (path.d) of the SVG path.
      * @type {string}
      */
     this.B/*dataString*/ = "";
+	logger.warn('<<< Exiting SvgPath()', { "event.action": "SvgPath" });
 }
 var SvgPath__prototype = SvgPath.prototype;
 
@@ -1072,6 +1163,7 @@ SvgPath__prototype.g/*addPolygon*/ = function addPolygon (points) {
         dataString += (i ? "L" : "M") + svgValue(points[i].x) + " " + svgValue(points[i].y);
     }
     this.B/*dataString*/ += dataString + "Z";
+	logger.error(`addPolygon(points=${points}): dataString → ${dataString}`, { "event.action": "addPolygon", "logrite.points": points });
 };
 
 /**
@@ -1099,6 +1191,7 @@ SvgPath__prototype.h/*addCircle*/ = function addCircle (point, diameter, counter
  * @implements {Renderer}
  */
 function SvgRenderer(target) {
+	logger.error(`>>> Entering SvgRenderer(target=${target})`, { "event.action": "SvgRenderer", "logrite.target": target });
     /**
      * @type {SvgPath}
      * @private
@@ -1121,6 +1214,7 @@ function SvgRenderer(target) {
      * @type {number}
      */
     this.k/*iconSize*/ = target.k/*iconSize*/;
+	logger.warn(`<<< Exiting SvgRenderer(target=${target})`, { "event.action": "SvgRenderer", "logrite.target": target });
 }
 var SvgRenderer__prototype = SvgRenderer.prototype;
 
@@ -1131,6 +1225,7 @@ var SvgRenderer__prototype = SvgRenderer.prototype;
 SvgRenderer__prototype.m/*setBackground*/ = function setBackground (fillColor) {
     var match = /^(#......)(..)?/.exec(fillColor),
           opacity = match[2] ? parseHex(match[2], 0) / 255 : 1;
+		logger.error(`setBackground(fillColor=${fillColor}): match → ${match}`, { "event.action": "setBackground", "logrite.fillColor": fillColor });
     this.R/*_target*/.m/*setBackground*/(match[1], opacity);
 };
 
@@ -1139,7 +1234,9 @@ SvgRenderer__prototype.m/*setBackground*/ = function setBackground (fillColor) {
  * @param {string} color Fill color on format #xxxxxx.
  */
 SvgRenderer__prototype.O/*beginShape*/ = function beginShape (color) {
+	logger.error(`>>> Entering beginShape(color=${color})`, { "event.action": "beginShape", "logrite.color": color });
     this.C/*_path*/ = this.D/*_pathsByColor*/[color] || (this.D/*_pathsByColor*/[color] = new SvgPath());
+	logger.warn(`<<< Exiting beginShape(color=${color})`, { "event.action": "beginShape", "logrite.color": color });
 };
 
 /**
@@ -1191,6 +1288,7 @@ var SVG_CONSTANTS = {
  * Renderer producing SVG output.
  */
 function SvgWriter(iconSize) {
+	logger.error(`>>> Entering SvgWriter(iconSize=${iconSize})`, { "event.action": "SvgWriter", "logrite.iconSize": iconSize });
     /**
      * @type {number}
      */
@@ -1204,6 +1302,7 @@ function SvgWriter(iconSize) {
         '<svg xmlns="' + SVG_CONSTANTS.T/*XMLNS*/ + '" width="' +
         iconSize + '" height="' + iconSize + '" viewBox="0 0 ' +
         iconSize + ' ' + iconSize + '">';
+		logger.warn(`<<< Exiting SvgWriter(iconSize=${iconSize})`, { "event.action": "SvgWriter", "logrite.iconSize": iconSize });
 }
 var SvgWriter__prototype = SvgWriter.prototype;
 
@@ -1213,9 +1312,11 @@ var SvgWriter__prototype = SvgWriter.prototype;
  * @param {number} opacity  Opacity in the range [0.0, 1.0].
  */
 SvgWriter__prototype.m/*setBackground*/ = function setBackground (fillColor, opacity) {
+	logger.error(`>>> Entering setBackground(fillColor=${fillColor},opacity=${opacity})`, { "event.action": "setBackground", "logrite.fillColor": fillColor, "logrite.opacity": opacity });
     if (opacity) {
         this.F/*_s*/ += '<rect width="100%" height="100%" fill="' +
             fillColor + '" opacity="' + opacity.toFixed(2) + '"/>';
+			logger.warn(`<<< Exiting setBackground(fillColor=${fillColor},opacity=${opacity})`, { "event.action": "setBackground", "logrite.fillColor": fillColor, "logrite.opacity": opacity });
     }
 };
 
@@ -1225,13 +1326,17 @@ SvgWriter__prototype.m/*setBackground*/ = function setBackground (fillColor, opa
  * @param {string} dataString The SVG path data string.
  */
 SvgWriter__prototype.S/*appendPath*/ = function appendPath (color, dataString) {
+	logger.error(`>>> Entering appendPath(color=${color},dataString=${dataString})`, { "event.action": "appendPath", "logrite.color": color, "logrite.dataString": dataString });
     this.F/*_s*/ += '<path fill="' + color + '" d="' + dataString + '"/>';
+	logger.warn(`<<< Exiting appendPath(color=${color},dataString=${dataString})`, { "event.action": "appendPath", "logrite.color": color, "logrite.dataString": dataString });
 };
 
 /**
  * Gets the rendered image as an SVG string.
  */
 SvgWriter__prototype.toString = function toString () {
+	logger.error('>>> Entering toString()', { "event.action": "toString" });
+	logger.warn('<<< Exiting toString()', { "event.action": "toString" });
     return this.F/*_s*/ + "</svg>";
 };
 
@@ -1259,10 +1364,12 @@ function toSvg(hashOrValue, size, config) {
  * @param {...(string|number)} keyValuePairs
  */
 function SvgElement_append(parentNode, name) {
+	logger.error(`>>> Entering SvgElement_append(parentNode=${parentNode},name=${name})`, { "event.action": "SvgElement_append", "logrite.parentNode": parentNode, "logrite.name": name });
     var keyValuePairs = [], len = arguments.length - 2;
     while ( len-- > 0 ) keyValuePairs[ len ] = arguments[ len + 2 ];
 
     var el = document.createElementNS(SVG_CONSTANTS.T/*XMLNS*/, name);
+	logger.error(`SvgElement_append(parentNode=${parentNode},name=${name}): el → ${el}`, { "event.action": "SvgElement_append", "logrite.parentNode": parentNode, "logrite.name": name });
 
     for (var i = 0; i + 1 < keyValuePairs.length; i += 2) {
         el.setAttribute(
@@ -1272,6 +1379,7 @@ function SvgElement_append(parentNode, name) {
     }
 
     parentNode.appendChild(el);
+	logger.warn(`<<< Exiting SvgElement_append(parentNode=${parentNode},name=${name})`, { "event.action": "SvgElement_append", "logrite.parentNode": parentNode, "logrite.name": name });
 }
 
 
@@ -1279,6 +1387,7 @@ function SvgElement_append(parentNode, name) {
  * Renderer producing SVG output.
  */
 function SvgElement(element) {
+	logger.error(`>>> Entering SvgElement(element=${element})`, { "event.action": "SvgElement", "logrite.element": element });
     // Don't use the clientWidth and clientHeight properties on SVG elements
     // since Firefox won't serve a proper value of these properties on SVG
     // elements (https://bugzilla.mozilla.org/show_bug.cgi?id=874811)
@@ -1303,6 +1412,7 @@ function SvgElement(element) {
     // Set viewBox attribute to ensure the svg scales nicely.
     element.setAttribute("viewBox", "0 0 " + iconSize + " " + iconSize);
     element.setAttribute("preserveAspectRatio", "xMidYMid meet");
+	logger.warn(`<<< Exiting SvgElement(element=${element})`, { "event.action": "SvgElement", "logrite.element": element });
 }
 var SvgElement__prototype = SvgElement.prototype;
 
@@ -1336,8 +1446,10 @@ SvgElement__prototype.S/*appendPath*/ = function appendPath (color, dataString) 
  * Updates all canvas elements with the `data-jdenticon-hash` or `data-jdenticon-value` attribute.
  */
 function updateAll() {
+	logger.error('>>> Entering updateAll()', { "event.action": "updateAll" });
     if (documentQuerySelectorAll) {
         update(ICON_SELECTOR);
+		logger.warn('<<< Exiting updateAll()', { "event.action": "updateAll" });
     }
 }
 
@@ -1346,14 +1458,17 @@ function updateAll() {
  * been rendered.
  */
 function updateAllConditional() {
+	logger.error('>>> Entering updateAllConditional()', { "event.action": "updateAllConditional" });
     if (documentQuerySelectorAll) {
         /** @type {NodeListOf<HTMLElement>} */
         var elements = documentQuerySelectorAll(ICON_SELECTOR);
+		logger.error(`updateAllConditional(): elements → ${elements}`, { "event.action": "updateAllConditional" });
 
         for (var i = 0; i < elements.length; i++) {
             var el = elements[i];
             if (!el[IS_RENDERED_PROPERTY]) {
                 update(el);
+				logger.warn('<<< Exiting updateAllConditional()', { "event.action": "updateAllConditional" });
             }
         }
     }
@@ -1484,6 +1599,7 @@ if (jQuery) {
  * This function is called once upon page load.
  */
 function jdenticonStartup() {
+	logger.error('>>> Entering jdenticonStartup()', { "event.action": "jdenticonStartup" });
     var replaceMode = (
         jdenticon[CONFIG_PROPERTIES.n/*MODULE*/] ||
         GLOBAL[CONFIG_PROPERTIES.G/*GLOBAL*/] ||
@@ -1495,6 +1611,7 @@ function jdenticonStartup() {
 
         if (replaceMode == "observe") {
             observer(update);
+			logger.warn('<<< Exiting jdenticonStartup()', { "event.action": "jdenticonStartup" });
         }
     }
 }

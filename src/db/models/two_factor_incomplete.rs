@@ -66,6 +66,7 @@ impl TwoFactorIncomplete {
     }
 
     pub async fn mark_complete(user_uuid: &UserId, device_uuid: &DeviceId, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering mark_complete()");
         if CONFIG.incomplete_2fa_time_limit() <= 0 || !CONFIG.mail_enabled() {
             return Ok(());
         }
@@ -74,6 +75,7 @@ impl TwoFactorIncomplete {
     }
 
     pub async fn find_by_user_and_device(user_uuid: &UserId, device_uuid: &DeviceId, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_user_and_device()");
         conn.run(move |conn| {
             twofactor_incomplete::table
                 .filter(twofactor_incomplete::user_uuid.eq(user_uuid))
@@ -85,6 +87,7 @@ impl TwoFactorIncomplete {
     }
 
     pub async fn find_logins_before(dt: &NaiveDateTime, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_logins_before()");
         conn.run(move |conn| {
             twofactor_incomplete::table
                 .filter(twofactor_incomplete::login_time.lt(dt))
@@ -95,10 +98,13 @@ impl TwoFactorIncomplete {
     }
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete()");
         Self::delete_by_user_and_device(&self.user_uuid, &self.device_uuid, conn).await
     }
 
     pub async fn delete_by_user_and_device(user_uuid: &UserId, device_uuid: &DeviceId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[WARN] <<< Exiting delete_by_user_and_device()");
         conn.run(move |conn| {
             diesel::delete(
                 twofactor_incomplete::table
@@ -112,6 +118,8 @@ impl TwoFactorIncomplete {
     }
 
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[WARN] <<< Exiting delete_all_by_user()");
         conn.run(move |conn| {
             diesel::delete(twofactor_incomplete::table.filter(twofactor_incomplete::user_uuid.eq(user_uuid)))
                 .execute(conn)

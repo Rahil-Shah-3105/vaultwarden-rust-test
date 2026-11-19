@@ -35,6 +35,7 @@ use super::{
 };
 
 pub fn routes() -> Vec<rocket::Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![
         profile,
         put_profile,
@@ -118,21 +119,26 @@ pub struct RegisterData {
 
 impl RegisterData {
     fn hash(&self) -> String {
+		eprintln!("[ERROR] >>> Entering hash()");
         self.compat.fold(|rdc| &rdc.master_password_hash, |rdcu| &rdcu.master_password_authentication.hash).to_owned()
     }
 
     fn kdf(&self) -> &KDFData {
+		eprintln!("[ERROR] >>> Entering kdf()");
         self.compat.fold(|rdc| &rdc.kdf, |rdcu| &rdcu.master_password_authentication.kdf)
     }
 
     fn key(&self) -> String {
+		eprintln!("[ERROR] >>> Entering key()");
         self.compat.fold(|rdc| &rdc.key, |rdcu| &rdcu.master_password_unlock.key).to_owned()
     }
 
     // When comparing with salt, email need to be normalized:
     //  - https://github.com/bitwarden/clients/blob/web-v2026.5.0/libs/common/src/key-management/master-password/services/master-password.service.ts#L171
     fn unprocessable(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering unprocessable()");
         let mut unprocessable = false;
+		eprintln!("[WARN] <<< Exiting unprocessable()");
         *self.compat.fold(
             |_| &false,
             |rdcu| {
@@ -227,6 +233,7 @@ pub struct SetPasswordData {
 
 /// Trims whitespace from password hints, and converts blank password hints to `None`.
 fn clean_password_hint(password_hint: Option<&String>) -> Option<String> {
+	eprintln!("[ERROR] >>> Entering clean_password_hint(password_hint=<redacted>)");
     match password_hint {
         None => None,
         Some(h) => match h.trim() {
@@ -237,12 +244,15 @@ fn clean_password_hint(password_hint: Option<&String>) -> Option<String> {
 }
 
 fn enforce_password_hint_setting(password_hint: Option<&String>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering enforce_password_hint_setting(password_hint=<redacted>)");
     if password_hint.is_some() && !CONFIG.password_hints_allowed() {
         err!("Password hints have been disabled by the administrator. Remove the hint and try again.");
     }
+	eprintln!("[WARN] <<< Exiting enforce_password_hint_setting(password_hint=<redacted>)");
     Ok(())
 }
 async fn is_email_2fa_required(member_id: Option<MembershipId>, conn: &DbConn) -> bool {
+	eprintln!("[ERROR] >>> Entering is_email_2fa_required()");
     if !CONFIG._enable_email_2fa() {
         return false;
     }
@@ -256,6 +266,7 @@ async fn is_email_2fa_required(member_id: Option<MembershipId>, conn: &DbConn) -
 }
 
 pub async fn register(data: Json<RegisterData>, email_verification: bool, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering register(data={:?},email_verification=<redacted>)", data);
     let mut data: RegisterData = data.into_inner();
     let email = data.email.to_lowercase();
 
@@ -288,6 +299,7 @@ pub async fn register(data: Json<RegisterData>, email_verification: bool, conn: 
                     data.name = claims.name;
                 }
                 email_verified = claims.verified;
+				eprintln!("[ERROR] register(data={:?},email_verification=<redacted>): email_verified → <redacted>", data);
             }
             // Emergency access registration
             (None, Some(accept_emergency_access_id), Some(accept_emergency_access_invite_token), None, None) => {
@@ -339,6 +351,7 @@ pub async fn register(data: Json<RegisterData>, email_verification: bool, conn: 
     // Check against the password hint setting here so if it fails, the user
     // can retry without losing their invitation below.
     let password_hint = clean_password_hint(data.master_password_hint.as_ref());
+	eprintln!("[ERROR] register(data={:?},email_verification=<redacted>): password_hint → <redacted>", data);
     enforce_password_hint_setting(password_hint.as_ref())?;
 
     let mut user = match User::find_by_mail(&email, &conn).await {
@@ -408,6 +421,7 @@ pub async fn register(data: Json<RegisterData>, email_verification: bool, conn: 
     if CONFIG.mail_enabled() {
         if CONFIG.signups_verify() && !email_verified {
             if let Err(e) = mail::send_welcome_must_verify(&user.email, &user.uuid).await {
+				eprintln!("[ERROR] Exception in register(data={:?},email_verification=<redacted>): (unprintable)", data);
                 error!("Error sending welcome email: {e:#?}");
             }
             user.last_verifying_at = Some(user.created_at);
@@ -429,6 +443,7 @@ pub async fn register(data: Json<RegisterData>, email_verification: bool, conn: 
         }
     }
 
+	eprintln!("[WARN] <<< Exiting register(data={:?},email_verification=<redacted>)", data);
     Ok(Json(json!({
       "object": "register",
       "captchaBypassToken": "",
@@ -437,6 +452,7 @@ pub async fn register(data: Json<RegisterData>, email_verification: bool, conn: 
 
 #[post("/accounts/set-password", data = "<data>")]
 async fn post_set_password(data: Json<SetPasswordData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_set_password(data={:?})", data);
     let data: SetPasswordData = data.into_inner();
     let mut user = headers.user;
 
@@ -447,6 +463,7 @@ async fn post_set_password(data: Json<SetPasswordData>, headers: Headers, conn: 
     // Check against the password hint setting here so if it fails,
     // the user can retry without losing their invitation below.
     let password_hint = clean_password_hint(data.master_password_hint.as_ref());
+	eprintln!("[ERROR] post_set_password(data={:?}): password_hint → <redacted>", data);
     enforce_password_hint_setting(password_hint.as_ref())?;
 
     set_kdf_data(&mut user, &data.kdf)?;
@@ -492,6 +509,7 @@ async fn post_set_password(data: Json<SetPasswordData>, headers: Headers, conn: 
 
     user.save(&conn).await?;
 
+	eprintln!("[WARN] <<< Exiting post_set_password(data={:?})", data);
     Ok(Json(json!({
       "object": "set-password",
       "captchaBypassToken": "",
@@ -500,6 +518,7 @@ async fn post_set_password(data: Json<SetPasswordData>, headers: Headers, conn: 
 
 #[get("/accounts/profile")]
 async fn profile(headers: Headers, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering profile()");
     Json(headers.user.to_json(&conn).await)
 }
 
@@ -512,11 +531,13 @@ struct ProfileData {
 
 #[put("/accounts/profile", data = "<data>")]
 async fn put_profile(data: Json<ProfileData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_profile()");
     post_profile(data, headers, conn).await
 }
 
 #[post("/accounts/profile", data = "<data>")]
 async fn post_profile(data: Json<ProfileData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_profile(data={:?})", data);
     let data: ProfileData = data.into_inner();
 
     // Check if the length of the username exceeds 50 characters (Same is Upstream Bitwarden)
@@ -529,6 +550,7 @@ async fn post_profile(data: Json<ProfileData>, headers: Headers, conn: DbConn) -
     user.name = data.name;
 
     user.save(&conn).await?;
+	eprintln!("[WARN] <<< Exiting post_profile(data={:?})", data);
     Ok(Json(user.to_json(&conn).await))
 }
 
@@ -540,6 +562,7 @@ struct AvatarData {
 
 #[put("/accounts/avatar", data = "<data>")]
 async fn put_avatar(data: Json<AvatarData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_avatar()");
     let data: AvatarData = data.into_inner();
 
     // It looks like it only supports the 6 hex color format.
@@ -555,17 +578,20 @@ async fn put_avatar(data: Json<AvatarData>, headers: Headers, conn: DbConn) -> J
     user.avatar_color = data.avatar_color;
 
     user.save(&conn).await?;
+	eprintln!("[WARN] <<< Exiting put_avatar()");
     Ok(Json(user.to_json(&conn).await))
 }
 
 #[get("/users/<user_id>/public-key")]
 async fn get_public_keys(user_id: UserId, _headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_public_keys()");
     let user = match User::find_by_uuid(&user_id, &conn).await {
         Some(user) if user.public_key.is_some() => user,
         Some(_) => err_code!("User has no public_key", Status::NotFound.code),
         None => err_code!("User doesn't exist", Status::NotFound.code),
     };
 
+	eprintln!("[WARN] <<< Exiting get_public_keys()");
     Ok(Json(json!({
         "userId": user.uuid,
         "publicKey": user.public_key,
@@ -575,6 +601,7 @@ async fn get_public_keys(user_id: UserId, _headers: Headers, conn: DbConn) -> Js
 
 #[post("/accounts/keys", data = "<data>")]
 async fn post_keys(data: Json<KeysData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_keys(data={:?})", data);
     let data: KeysData = data.into_inner();
 
     let mut user = headers.user;
@@ -584,6 +611,7 @@ async fn post_keys(data: Json<KeysData>, headers: Headers, conn: DbConn) -> Json
 
     user.save(&conn).await?;
 
+	eprintln!("[WARN] <<< Exiting post_keys(data={:?})", data);
     Ok(Json(json!({
         "privateKey": user.private_key,
         "publicKey": user.public_key,
@@ -602,6 +630,7 @@ struct ChangePassData {
 
 #[post("/accounts/password", data = "<data>")]
 async fn post_password(data: Json<ChangePassData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_password()");
     let data: ChangePassData = data.into_inner();
     let mut user = headers.user;
 
@@ -636,10 +665,12 @@ async fn post_password(data: Json<ChangePassData>, headers: Headers, conn: DbCon
     // Adding the device uuid will prevent this.
     nt.send_logout(&user, Some(&headers.device), &conn).await;
 
+	eprintln!("[WARN] <<< Exiting post_password()");
     save_result
 }
 
 fn set_kdf_data(user: &mut User, data: &KDFData) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering set_kdf_data(data={:?})", data);
     if data.kdf == UserKdfType::Pbkdf2 as i32 && data.kdf_iterations < 100_000 {
         err!("PBKDF2 KDF iterations must be at least 100000.")
     }
@@ -671,6 +702,7 @@ fn set_kdf_data(user: &mut User, data: &KDFData) -> EmptyResult {
     user.client_kdf_iter = data.kdf_iterations;
     user.client_kdf_type = data.kdf;
 
+	eprintln!("[WARN] <<< Exiting set_kdf_data(data={:?})", data);
     Ok(())
 }
 
@@ -700,6 +732,7 @@ struct ChangeKdfData {
 
 #[post("/accounts/kdf", data = "<data>")]
 async fn post_kdf(data: Json<ChangeKdfData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_kdf()");
     let data: ChangeKdfData = data.into_inner();
 
     if !headers.user.check_valid_password(&data.master_password_hash) {
@@ -730,6 +763,7 @@ async fn post_kdf(data: Json<ChangeKdfData>, headers: Headers, conn: DbConn, nt:
 
     nt.send_logout(&user, Some(&headers.device), &conn).await;
 
+	eprintln!("[WARN] <<< Exiting post_kdf()");
     save_result
 }
 
@@ -811,6 +845,7 @@ fn validate_keydata(
     existing_sends: &[Send],
     user: &User,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering validate_keydata()");
     if user.client_kdf_type != data.account_unlock_data.master_password_unlock_data.kdf_type
         || user.client_kdf_iter != data.account_unlock_data.master_password_unlock_data.kdf_iterations
         || user.client_kdf_memory != data.account_unlock_data.master_password_unlock_data.kdf_memory
@@ -877,11 +912,13 @@ fn validate_keydata(
         err!("All existing sends must be included in the rotation")
     }
 
+	eprintln!("[WARN] <<< Exiting validate_keydata()");
     Ok(())
 }
 
 #[post("/accounts/key-management/rotate-user-account-keys", data = "<data>")]
 async fn post_rotatekey(data: Json<KeyData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_rotatekey()");
     // TODO: See if we can wrap everything within a SQL Transaction. If something fails it should revert everything.
     let data: KeyData = data.into_inner();
 
@@ -999,11 +1036,13 @@ async fn post_rotatekey(data: Json<KeyData>, headers: Headers, conn: DbConn, nt:
     // Adding the device uuid will prevent this.
     nt.send_logout(&user, Some(&headers.device), &conn).await;
 
+	eprintln!("[WARN] <<< Exiting post_rotatekey()");
     save_result
 }
 
 #[post("/accounts/security-stamp", data = "<data>")]
 async fn post_sstamp(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_sstamp()");
     let data: PasswordOrOtpData = data.into_inner();
     let mut user = headers.user;
 
@@ -1016,6 +1055,7 @@ async fn post_sstamp(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbCo
 
     Device::delete_all_by_user(&user.uuid, &conn).await?;
 
+	eprintln!("[WARN] <<< Exiting post_sstamp()");
     save_result
 }
 
@@ -1028,6 +1068,7 @@ struct EmailTokenData {
 
 #[post("/accounts/email-token", data = "<data>")]
 async fn post_email_token(data: Json<EmailTokenData>, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_email_token()");
     if !CONFIG.email_change_allowed() {
         err!("Email change is not allowed.");
     }
@@ -1046,6 +1087,7 @@ async fn post_email_token(data: Json<EmailTokenData>, headers: Headers, conn: Db
                 // inform an invited user about how to delete their temporary account if the
                 // request was done intentionally and they want to update their mail address
                 if let Err(e) = mail::send_change_email_invited(&data.new_email, &user.email).await {
+					eprintln!("[ERROR] Exception in post_email_token(): (unprintable)");
                     error!("Error sending change-email-invited email: {e:#?}");
                 }
             } else {
@@ -1074,6 +1116,7 @@ async fn post_email_token(data: Json<EmailTokenData>, headers: Headers, conn: Db
 
     user.email_new = Some(data.new_email);
     user.email_new_token = Some(token);
+	eprintln!("[WARN] <<< Exiting post_email_token()");
     user.save(&conn).await
 }
 
@@ -1090,6 +1133,7 @@ struct ChangeEmailData {
 
 #[post("/accounts/email", data = "<data>")]
 async fn post_email(data: Json<ChangeEmailData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_email()");
     if !CONFIG.email_change_allowed() {
         err!("Email change is not allowed.");
     }
@@ -1137,11 +1181,13 @@ async fn post_email(data: Json<ChangeEmailData>, headers: Headers, conn: DbConn,
 
     nt.send_logout(&user, None, &conn).await;
 
+	eprintln!("[WARN] <<< Exiting post_email()");
     save_result
 }
 
 #[post("/accounts/verify-email")]
 async fn post_verify_email(headers: Headers) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_verify_email()");
     let user = headers.user;
 
     if !CONFIG.mail_enabled() {
@@ -1149,9 +1195,11 @@ async fn post_verify_email(headers: Headers) -> EmptyResult {
     }
 
     if let Err(e) = mail::send_verify_email(&user.email, &user.uuid).await {
+		eprintln!("[ERROR] Exception in post_verify_email(): (unprintable)");
         error!("Error sending verify_email email: {e:#?}");
     }
 
+	eprintln!("[WARN] <<< Exiting post_verify_email()");
     Ok(())
 }
 
@@ -1164,6 +1212,7 @@ struct VerifyEmailTokenData {
 
 #[post("/accounts/verify-email-token", data = "<data>")]
 async fn post_verify_email_token(data: Json<VerifyEmailTokenData>, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_verify_email_token()");
     let data: VerifyEmailTokenData = data.into_inner();
 
     let Some(mut user) = User::find_by_uuid(&data.user_id, &conn).await else {
@@ -1180,9 +1229,11 @@ async fn post_verify_email_token(data: Json<VerifyEmailTokenData>, conn: DbConn)
     user.last_verifying_at = None;
     user.login_verify_count = 0;
     if let Err(e) = user.save(&conn).await {
+		eprintln!("[ERROR] Exception in post_verify_email_token(): (unprintable)");
         error!("Error saving email verification: {e:#?}");
     }
 
+	eprintln!("[WARN] <<< Exiting post_verify_email_token()");
     Ok(())
 }
 
@@ -1194,6 +1245,7 @@ struct DeleteRecoverData {
 
 #[post("/accounts/delete-recover", data = "<data>")]
 async fn post_delete_recover(data: Json<DeleteRecoverData>, ip: ClientIp, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_delete_recover()");
     crate::ratelimit::check_limit_unauthenticated(&ip.ip)?;
 
     let data: DeleteRecoverData = data.into_inner();
@@ -1210,6 +1262,7 @@ async fn post_delete_recover(data: Json<DeleteRecoverData>, ip: ClientIp, conn: 
         // to delete accounts without at least logging in... And if the user
         // cannot remember their password then they will need to contact
         // the administrator to delete it...
+		eprintln!("[WARN] <<< Exiting post_delete_recover()");
         err!("Please contact the administrator to delete your account");
     }
 }
@@ -1223,6 +1276,7 @@ struct DeleteRecoverTokenData {
 
 #[post("/accounts/delete-recover-token", data = "<data>")]
 async fn post_delete_recover_token(data: Json<DeleteRecoverTokenData>, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_delete_recover_token()");
     let data: DeleteRecoverTokenData = data.into_inner();
 
     let Ok(claims) = decode_delete(&data.token) else {
@@ -1236,28 +1290,34 @@ async fn post_delete_recover_token(data: Json<DeleteRecoverTokenData>, conn: DbC
     if claims.sub != *user.uuid {
         err!("Invalid claim");
     }
+	eprintln!("[WARN] <<< Exiting post_delete_recover_token()");
     user.delete(&conn).await
 }
 
 #[post("/accounts/delete", data = "<data>")]
 async fn post_delete_account(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_delete_account()");
     delete_account(data, headers, conn).await
 }
 
 #[delete("/accounts", data = "<data>")]
 async fn delete_account(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_account()");
     let data: PasswordOrOtpData = data.into_inner();
     let user = headers.user;
 
     data.validate(&user, true, &conn).await?;
 
+	eprintln!("[WARN] <<< Exiting delete_account()");
     user.delete(&conn).await
 }
 
 #[expect(clippy::needless_pass_by_value, reason = "Not beneficial for Headers")]
 #[get("/accounts/revision-date")]
 fn revision_date(headers: Headers) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering revision_date()");
     let revision_date = headers.user.updated_at.and_utc().timestamp_millis();
+	eprintln!("[WARN] <<< Exiting revision_date()");
     Ok(Json(json!(revision_date)))
 }
 
@@ -1269,6 +1329,7 @@ struct PasswordHintData {
 
 #[post("/accounts/password-hint", data = "<data>")]
 async fn password_hint(data: Json<PasswordHintData>, ip: ClientIp, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering password_hint()");
     const NO_HINT: &str = "Sorry, you have no password hint...";
 
     crate::ratelimit::check_limit_unauthenticated(&ip.ip)?;
@@ -1304,6 +1365,7 @@ async fn password_hint(data: Json<PasswordHintData>, ip: ClientIp, conn: DbConn)
             } else if let Some(hint) = hint {
                 err!(format!("Your password hint is: {hint}"));
             } else {
+				eprintln!("[WARN] <<< Exiting password_hint()");
                 err!(NO_HINT);
             }
         }
@@ -1318,10 +1380,12 @@ pub struct PreloginData {
 
 #[post("/accounts/prelogin", data = "<data>")]
 async fn post_prelogin(data: Json<PreloginData>, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering post_prelogin()");
     prelogin(data, conn).await
 }
 
 pub async fn prelogin(data: Json<PreloginData>, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering prelogin()");
     let data: PreloginData = data.into_inner();
 
     let (kdf_type, kdf_iter, kdf_mem, kdf_para) = match User::find_by_mail(&data.email, &conn).await {
@@ -1329,6 +1393,7 @@ pub async fn prelogin(data: Json<PreloginData>, conn: DbConn) -> Json<Value> {
         None => (User::CLIENT_KDF_TYPE_DEFAULT, User::CLIENT_KDF_ITER_DEFAULT, None, None),
     };
 
+	eprintln!("[WARN] <<< Exiting prelogin()");
     Json(json!({
         "kdf": kdf_type,
         "kdfIterations": kdf_iter,
@@ -1353,19 +1418,23 @@ struct SecretVerificationRequest {
 
 // Change the KDF Iterations if necessary
 pub async fn kdf_upgrade(user: &mut User, pwd_hash: &str, conn: &DbConn) -> ApiResult<()> {
+	eprintln!("[ERROR] >>> Entering kdf_upgrade(pwd_hash=<redacted>)");
     if user.password_iterations < CONFIG.password_iterations() {
         user.password_iterations = CONFIG.password_iterations();
         user.set_password(pwd_hash, None, false, None, conn).await?;
 
         if let Err(e) = user.save(conn).await {
+			eprintln!("[ERROR] Exception in kdf_upgrade(pwd_hash=<redacted>): (unprintable)");
             error!("Error updating user: {e:#?}");
         }
     }
+	eprintln!("[WARN] <<< Exiting kdf_upgrade(pwd_hash=<redacted>)");
     Ok(())
 }
 
 #[post("/accounts/verify-password", data = "<data>")]
 async fn verify_password(data: Json<SecretVerificationRequest>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering verify_password()");
     let data: SecretVerificationRequest = data.into_inner();
     let mut user = headers.user;
 
@@ -1375,10 +1444,12 @@ async fn verify_password(data: Json<SecretVerificationRequest>, headers: Headers
 
     kdf_upgrade(&mut user, &data.master_password_hash, &conn).await?;
 
+	eprintln!("[WARN] <<< Exiting verify_password()");
     Ok(Json(master_password_policy(&user, &conn).await))
 }
 
 async fn update_api_key(data: Json<PasswordOrOtpData>, rotate: bool, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering update_api_key(rotate={})", rotate);
     let data: PasswordOrOtpData = data.into_inner();
     let mut user = headers.user;
 
@@ -1389,6 +1460,7 @@ async fn update_api_key(data: Json<PasswordOrOtpData>, rotate: bool, headers: He
         user.save(&conn).await.expect("Error saving API key");
     }
 
+	eprintln!("[WARN] <<< Exiting update_api_key(rotate={})", rotate);
     Ok(Json(json!({
       "apiKey": user.api_key,
       "revisionDate": format_date(&user.updated_at),
@@ -1398,21 +1470,25 @@ async fn update_api_key(data: Json<PasswordOrOtpData>, rotate: bool, headers: He
 
 #[post("/accounts/api-key", data = "<data>")]
 async fn post_api_key(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_api_key()");
     update_api_key(data, false, headers, conn).await
 }
 
 #[post("/accounts/rotate-api-key", data = "<data>")]
 async fn rotate_api_key(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering rotate_api_key()");
     update_api_key(data, true, headers, conn).await
 }
 
 #[get("/devices/knowndevice")]
 async fn get_known_device(device: KnownDevice, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_known_device()");
     let result = if let Some(user) = User::find_by_mail(&device.email, &conn).await {
         Device::find_by_uuid_and_user(&device.uuid, &user.uuid, &conn).await.is_some()
     } else {
         false
     };
+	eprintln!("[WARN] <<< Exiting get_known_device()");
     Ok(Json(json!(result)))
 }
 
@@ -1426,6 +1502,7 @@ impl<'r> FromRequest<'r> for KnownDevice {
     type Error = &'static str;
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+		eprintln!("[ERROR] >>> Entering from_request()");
         let email = if let Some(email_b64) = req.headers().get_one("X-Request-Email") {
             // Bitwarden seems to send padded Base64 strings since 2026.2.1
             // Since these values are not streamed and Headers are always split by newlines
@@ -1460,9 +1537,11 @@ impl<'r> FromRequest<'r> for KnownDevice {
 
 #[get("/devices")]
 async fn get_all_devices(headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_all_devices()");
     let devices = Device::find_with_auth_request_by_user(&headers.user.uuid, &conn).await;
     let devices = devices.iter().map(DeviceWithAuthRequest::to_json).collect::<Vec<Value>>();
 
+	eprintln!("[WARN] <<< Exiting get_all_devices()");
     Ok(Json(json!({
         "data": devices,
         "continuationToken": null,
@@ -1472,9 +1551,11 @@ async fn get_all_devices(headers: Headers, conn: DbConn) -> JsonResult {
 
 #[get("/devices/identifier/<device_id>")]
 async fn get_device(device_id: DeviceId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_device()");
     let Some(device) = Device::find_by_uuid_and_user(&device_id, &headers.user.uuid, &conn).await else {
         err!("No device found");
     };
+	eprintln!("[WARN] <<< Exiting get_device()");
     Ok(Json(device.to_json()))
 }
 
@@ -1486,11 +1567,13 @@ struct PushToken {
 
 #[post("/devices/identifier/<device_id>/token", data = "<data>")]
 async fn post_device_token(device_id: DeviceId, data: Json<PushToken>, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_device_token()");
     put_device_token(device_id, data, headers, conn).await
 }
 
 #[put("/devices/identifier/<device_id>/token", data = "<data>")]
 async fn put_device_token(device_id: DeviceId, data: Json<PushToken>, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering put_device_token()");
     let data = data.into_inner();
     let token = data.push_token;
 
@@ -1513,11 +1596,14 @@ async fn put_device_token(device_id: DeviceId, data: Json<PushToken>, headers: H
 
     register_push_device(&mut device, &conn).await?;
 
+	eprintln!("[ERROR] Exception in put_device_token(): (unprintable)");
+    eprintln!("[WARN] <<< Exiting put_device_token()");
     Ok(())
 }
 
 #[put("/devices/identifier/<device_id>/clear-token")]
 async fn put_clear_device_token(device_id: DeviceId, ip: ClientIp, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering put_clear_device_token()");
     crate::ratelimit::check_limit_unauthenticated(&ip.ip)?;
 
     // This only clears push token
@@ -1542,11 +1628,13 @@ async fn put_clear_device_token(device_id: DeviceId, ip: ClientIp, conn: DbConn)
 // On upstream server, both PUT and POST are declared. Implementing the POST method in case it would be useful somewhere
 #[post("/devices/identifier/<device_id>/clear-token")]
 async fn post_clear_device_token(device_id: DeviceId, ip: ClientIp, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_clear_device_token()");
     put_clear_device_token(device_id, ip, conn).await
 }
 
 #[get("/tasks")]
 fn get_tasks(_client_headers: ClientHeaders) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_tasks()");
     Ok(Json(json!({
         "data": [],
         "object": "list"
@@ -1572,6 +1660,7 @@ async fn post_auth_request(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_auth_request()");
     let data = data.into_inner();
 
     let Some(user) = User::find_by_mail(&data.email, &conn).await else {
@@ -1605,6 +1694,7 @@ async fn post_auth_request(
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting post_auth_request()");
     Ok(Json(json!({
         "id": auth_request.uuid,
         "publicKey": auth_request.public_key,
@@ -1622,6 +1712,7 @@ async fn post_auth_request(
 
 #[get("/auth-requests/<auth_request_id>")]
 async fn get_auth_request(auth_request_id: AuthRequestId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_auth_request()");
     let Some(auth_request) = AuthRequest::find_by_uuid_and_user(&auth_request_id, &headers.user.uuid, &conn).await
     else {
         err!("AuthRequest doesn't exist", "Record not found or user uuid does not match")
@@ -1629,6 +1720,7 @@ async fn get_auth_request(auth_request_id: AuthRequestId, headers: Headers, conn
 
     let response_date_utc = auth_request.response_date.map(|response_date| format_date(&response_date));
 
+	eprintln!("[WARN] <<< Exiting get_auth_request()");
     Ok(Json(json!({
         "id": &auth_request_id,
         "publicKey": auth_request.public_key,
@@ -1662,6 +1754,7 @@ async fn put_auth_request(
     ant: AnonymousNotify<'_>,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_auth_request()");
     let data = data.into_inner();
     let Some(mut auth_request) = AuthRequest::find_by_uuid_and_user(&auth_request_id, &headers.user.uuid, &conn).await
     else {
@@ -1711,6 +1804,7 @@ async fn put_auth_request(
         .await;
     }
 
+	eprintln!("[WARN] <<< Exiting put_auth_request()");
     Ok(Json(json!({
         "id": &auth_request_id,
         "publicKey": auth_request.public_key,
@@ -1733,6 +1827,7 @@ async fn get_auth_request_response(
     client_headers: ClientHeaders,
     conn: DbConn,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_auth_request_response(code={})", code);
     let Some(auth_request) = AuthRequest::find_by_uuid(&auth_request_id, &conn).await else {
         err!("AuthRequest doesn't exist", "User not found")
     };
@@ -1746,6 +1841,7 @@ async fn get_auth_request_response(
 
     let response_date_utc = auth_request.response_date.map(|response_date| format_date(&response_date));
 
+	eprintln!("[WARN] <<< Exiting get_auth_request_response(code={})", code);
     Ok(Json(json!({
         "id": &auth_request_id,
         "publicKey": auth_request.public_key,
@@ -1765,13 +1861,16 @@ async fn get_auth_request_response(
 // cf https://github.com/bitwarden/clients/blob/9b2fbdba1c028bf3394064609630d2ec224baefa/libs/common/src/services/api.service.ts#L245
 #[get("/auth-requests")]
 async fn get_auth_requests(headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_auth_requests()");
     get_auth_requests_pending(headers, conn).await
 }
 
 #[get("/auth-requests/pending")]
 async fn get_auth_requests_pending(headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_auth_requests_pending()");
     let auth_requests = AuthRequest::find_by_user(&headers.user.uuid, &conn).await;
 
+	eprintln!("[WARN] <<< Exiting get_auth_requests_pending()");
     Ok(Json(json!({
         "data": auth_requests
             .iter()
@@ -1799,10 +1898,12 @@ async fn get_auth_requests_pending(headers: Headers, conn: DbConn) -> JsonResult
 }
 
 pub async fn purge_auth_requests(pool: DbPool) {
+	eprintln!("[ERROR] >>> Entering purge_auth_requests()");
     debug!("Purging auth requests");
     if let Ok(conn) = pool.get().await {
         AuthRequest::purge_expired_auth_requests(&conn).await;
     } else {
+		eprintln!("[WARN] <<< Exiting purge_auth_requests()");
         error!("Failed to get DB connection while purging auth requests");
     }
 }

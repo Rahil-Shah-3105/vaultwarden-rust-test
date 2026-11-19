@@ -118,6 +118,7 @@ struct SsoTokenJwtClaims {
 }
 
 pub fn encode_ssotoken_claims() -> String {
+	eprintln!("[ERROR] >>> Entering encode_ssotoken_claims()");
     let time_now = Utc::now();
     let claims = SsoTokenJwtClaims {
         nbf: time_now.timestamp(),
@@ -126,6 +127,7 @@ pub fn encode_ssotoken_claims() -> String {
         sub: "vaultwarden".to_owned(),
     };
 
+	eprintln!("[WARN] <<< Exiting encode_ssotoken_claims()");
     auth::encode_jwt(&claims)
 }
 
@@ -144,11 +146,13 @@ struct BasicTokenClaimsValidation {
 
 impl BasicTokenClaims {
     fn nbf(&self) -> i64 {
+		eprintln!("[ERROR] >>> Entering nbf()");
         self.nbf.or(self.iat).unwrap_or_else(|| Utc::now().timestamp())
     }
 }
 
 fn decode_token_claims(token_name: &str, token: &str) -> ApiResult<BasicTokenClaims> {
+	eprintln!("[ERROR] >>> Entering decode_token_claims(token_name=<redacted>,token=<redacted>)");
     // We need to manually validate this token, since `insecure_decode` does not do this
     match jsonwebtoken::dangerous::insecure_decode::<BasicTokenClaimsValidation>(token) {
         Ok(btcv) => {
@@ -164,6 +168,8 @@ fn decode_token_claims(token_name: &str, token: &str) -> ApiResult<BasicTokenCla
 
             // All is validated and ok, lets decode again using the wanted struct
             let btc = jsonwebtoken::dangerous::insecure_decode::<BasicTokenClaims>(token).unwrap();
+			eprintln!("[ERROR] Exception in decode_token_claims(token_name=<redacted>,token=<redacted>): (unprintable)");
+            eprintln!("[WARN] <<< Exiting decode_token_claims(token_name=<redacted>,token=<redacted>)");
             Ok(btc.claims)
         }
         Err(err) => err_silent!(format!("Failed to decode basic token claims from {token_name}: {err}")),
@@ -171,6 +177,7 @@ fn decode_token_claims(token_name: &str, token: &str) -> ApiResult<BasicTokenCla
 }
 
 pub fn decode_state(base64_state: &str) -> ApiResult<OIDCState> {
+	eprintln!("[ERROR] >>> Entering decode_state(base64_state={})", base64_state);
     let state = if let Ok(vec) = data_encoding::BASE64.decode(base64_state.as_bytes()) {
         if let Ok(valid) = String::from_utf8(vec) {
             OIDCState(valid)
@@ -181,6 +188,7 @@ pub fn decode_state(base64_state: &str) -> ApiResult<OIDCState> {
         err!(format!("Failed to decode {base64_state} using base64"))
     };
 
+	eprintln!("[WARN] <<< Exiting decode_state(base64_state={})", base64_state);
     Ok(state)
 }
 
@@ -193,6 +201,7 @@ pub async fn authorize_url(
     binding_hash: Option<String>,
     conn: DbConn,
 ) -> ApiResult<Url> {
+	eprintln!("[ERROR] >>> Entering authorize_url(state={:?},client_challenge={:?},client_id={},raw_redirect_uri={},binding_hash=<redacted>)", state, client_challenge, client_id, raw_redirect_uri);
     let redirect_uri = match client_id {
         "web" | "browser" => format!("{}/sso-connector.html", CONFIG.domain()),
         "desktop" | "mobile" => "bitwarden://sso-callback".to_owned(),
@@ -211,6 +220,7 @@ pub async fn authorize_url(
 
     let (auth_url, sso_auth) = Client::authorize_url(state, client_challenge, redirect_uri, binding_hash).await?;
     sso_auth.save(&conn).await?;
+	eprintln!("[WARN] <<< Exiting authorize_url(state={:?},client_challenge={:?},client_id={},raw_redirect_uri={},binding_hash=<redacted>)", state, client_challenge, client_id, raw_redirect_uri);
     Ok(auth_url)
 }
 
@@ -236,6 +246,7 @@ pub struct OIDCIdentifier(String);
 
 impl OIDCIdentifier {
     fn new(issuer: &str, subject: &str) -> Self {
+		eprintln!("[ERROR] >>> Entering new(issuer={},subject={})", issuer, subject);
         OIDCIdentifier(format!("{issuer}/{subject}"))
     }
 }
@@ -249,6 +260,7 @@ pub async fn exchange_code(
     client_verifier: OIDCCodeVerifier,
     conn: &DbConn,
 ) -> ApiResult<(SsoAuth, OIDCAuthenticatedUser)> {
+	eprintln!("[ERROR] >>> Entering exchange_code(code={:?},client_verifier={:?})", code, client_verifier);
     use openidconnect::OAuth2TokenResponse;
 
     let Some(mut sso_auth) = SsoAuth::find_by_code(code, conn).await else {
@@ -325,6 +337,7 @@ pub async fn redeem(
     auth_user: OIDCAuthenticatedUser,
     conn: &DbConn,
 ) -> ApiResult<AuthTokens> {
+	eprintln!("[ERROR] >>> Entering redeem(client_id={:?})", client_id);
     sso_auth.delete(conn).await?;
 
     if sso_user.is_none() {
@@ -348,6 +361,7 @@ pub async fn redeem(
             };
 
         let access_claims =
+		eprintln!("[WARN] <<< Exiting redeem(client_id={:?})", client_id);
             auth::LoginJwtClaims::new(device, user, ap_nbf, ap_exp, AuthMethod::Sso.scope_vec(), client_id, now);
 
         create_auth_tokens_impl(device, auth_user.refresh_token, access_claims, auth_user.access_token)
@@ -364,6 +378,7 @@ pub fn create_auth_tokens(
     access_token: String,
     expires_in: Option<Duration>,
 ) -> ApiResult<AuthTokens> {
+	eprintln!("[ERROR] >>> Entering create_auth_tokens(client_id={:?},refresh_token=<redacted>,access_token=<redacted>,expires_in={:?})", client_id, expires_in);
     if CONFIG.sso_auth_only_not_session() {
         Ok(AuthTokens::new(device, user, AuthMethod::Sso, client_id))
     } else {
@@ -376,6 +391,7 @@ pub fn create_auth_tokens(
         };
 
         let access_claims =
+		eprintln!("[WARN] <<< Exiting create_auth_tokens(client_id={:?},refresh_token=<redacted>,access_token=<redacted>,expires_in={:?})", client_id, expires_in);
             auth::LoginJwtClaims::new(device, user, ap_nbf, ap_exp, AuthMethod::Sso.scope_vec(), client_id, now);
 
         create_auth_tokens_impl(device, refresh_token, access_claims, access_token)
@@ -388,6 +404,8 @@ fn create_auth_tokens_impl(
     access_claims: auth::LoginJwtClaims,
     access_token: String,
 ) -> ApiResult<AuthTokens> {
+	eprintln!("[ERROR] >>> Entering create_auth_tokens_impl(refresh_token=<redacted>,access_token=<redacted>)");
+    eprintln!("[WARN] <<< Exiting create_auth_tokens_impl(refresh_token=<redacted>,access_token=<redacted>)");
     let (nbf, exp, token) = if let Some(rt) = refresh_token {
         match decode_token_claims("refresh_token", &rt) {
             Err(_) => {

@@ -34,8 +34,10 @@ pub struct EmergencyAccess {
 // Local methods
 impl EmergencyAccess {
     pub fn new(grantor_uuid: UserId, email: String, status: i32, atype: i32, wait_time_days: i32) -> Self {
+		eprintln!("[ERROR] >>> Entering new(email=<redacted>,status={},atype={},wait_time_days={})", status, atype, wait_time_days);
         let now = Utc::now().naive_utc();
 
+		eprintln!("[WARN] <<< Exiting new(email=<redacted>,status={},atype={},wait_time_days={})", status, atype, wait_time_days);
         Self {
             uuid: EmergencyAccessId(crate::util::get_uuid()),
             grantor_uuid,
@@ -53,14 +55,17 @@ impl EmergencyAccess {
     }
 
     pub fn get_type_as_str(&self) -> &'static str {
+		eprintln!("[ERROR] >>> Entering get_type_as_str()");
         if self.atype == EmergencyAccessType::View as i32 {
             "View"
         } else {
+			eprintln!("[WARN] <<< Exiting get_type_as_str()");
             "Takeover"
         }
     }
 
     pub fn to_json(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json()");
         json!({
             "id": self.uuid,
             "status": self.status,
@@ -71,8 +76,10 @@ impl EmergencyAccess {
     }
 
     pub async fn to_json_grantor_details(&self, conn: &DbConn) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json_grantor_details()");
         let grantor_user = User::find_by_uuid(&self.grantor_uuid, conn).await.expect("Grantor user not found.");
 
+		eprintln!("[WARN] <<< Exiting to_json_grantor_details()");
         json!({
             "id": self.uuid,
             "status": self.status,
@@ -87,6 +94,7 @@ impl EmergencyAccess {
     }
 
     pub async fn to_json_grantee_details(&self, conn: &DbConn) -> Option<Value> {
+		eprintln!("[ERROR] >>> Entering to_json_grantee_details()");
         let grantee_user = if let Some(grantee_uuid) = &self.grantee_uuid {
             User::find_by_uuid(grantee_uuid, conn).await.expect("Grantee user not found.")
         } else {
@@ -122,6 +130,7 @@ pub enum EmergencyAccessType {
 
 impl EmergencyAccessType {
     pub fn from_str(s: &str) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering from_str(s={})", s);
         match s {
             "0" | "View" => Some(EmergencyAccessType::View),
             "1" | "Takeover" => Some(EmergencyAccessType::Takeover),
@@ -142,9 +151,16 @@ pub enum EmergencyAccessStatus {
 
 impl EmergencyAccess {
     pub async fn save(&mut self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save()");
         User::update_uuid_revision(&self.grantor_uuid, conn).await;
         self.updated_at = Utc::now().naive_utc();
 
+		let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] Exception in save(): (unprintable)");
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[WARN] <<< Exiting save()");
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(emergency_access::table)
@@ -181,11 +197,16 @@ impl EmergencyAccess {
         date: &NaiveDateTime,
         conn: &DbConn,
     ) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering update_access_status_and_save(status={})", status);
         // Update the grantee so that it will refresh it's status.
         User::update_uuid_revision(self.grantee_uuid.as_ref().expect("Error getting grantee"), conn).await;
         self.status = status;
         date.clone_into(&mut self.updated_at);
 
+		let __log_start = std::time::Instant::now();
+                    eprintln!("[ERROR] update_access_status_and_save(status,date,conn)={},(unprintable),(unprintable): update query executed in {} ms", status, __log_start.elapsed().as_millis());
+                    eprintln!("[ERROR] update_access_status_and_save(status,date,conn)={},(unprintable),(unprintable): database query executed in {} ms", status, __log_start.elapsed().as_millis());
+                    eprintln!("[WARN] <<< Exiting update_access_status_and_save(status={})", status);
         conn.run(move |conn| {
             crate::util::retry(
                 || {
@@ -201,9 +222,14 @@ impl EmergencyAccess {
     }
 
     pub async fn update_last_notification_date_and_save(&mut self, date: &NaiveDateTime, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering update_last_notification_date_and_save()");
         self.last_notification_at = Some(date.to_owned());
         date.clone_into(&mut self.updated_at);
 
+		let __log_start = std::time::Instant::now();
+                    eprintln!("[ERROR] update_last_notification_date_and_save(date,conn)=(unprintable),(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
+                    eprintln!("[ERROR] update_last_notification_date_and_save(date,conn)=(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+                    eprintln!("[WARN] <<< Exiting update_last_notification_date_and_save()");
         conn.run(move |conn| {
             crate::util::retry(
                 || {
@@ -219,25 +245,34 @@ impl EmergencyAccess {
     }
 
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete_all_by_user()");
         for ea in Self::find_all_by_grantor_uuid(user_uuid, conn).await {
             ea.delete(conn).await?;
         }
         for ea in Self::find_all_by_grantee_uuid(user_uuid, conn).await {
             ea.delete(conn).await?;
         }
+		eprintln!("[WARN] <<< Exiting delete_all_by_user()");
         Ok(())
     }
 
     pub async fn delete_all_by_grantee_email(grantee_email: &str, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete_all_by_grantee_email(grantee_email=<redacted>)");
         for ea in Self::find_all_invited_by_grantee_email(grantee_email, conn).await {
             ea.delete(conn).await?;
         }
+		eprintln!("[WARN] <<< Exiting delete_all_by_grantee_email(grantee_email=<redacted>)");
         Ok(())
     }
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete()");
         User::update_uuid_revision(&self.grantor_uuid, conn).await;
 
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete()");
         conn.run(move |conn| {
             diesel::delete(emergency_access::table.filter(emergency_access::uuid.eq(self.uuid)))
                 .execute(conn)
@@ -252,6 +287,7 @@ impl EmergencyAccess {
         email: &str,
         conn: &DbConn,
     ) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_grantor_uuid_and_grantee_uuid_or_email(email=<redacted>)");
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::grantor_uuid.eq(grantor_uuid))
@@ -263,6 +299,7 @@ impl EmergencyAccess {
     }
 
     pub async fn find_all_recoveries_initiated(conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_all_recoveries_initiated()");
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::status.eq(EmergencyAccessStatus::RecoveryInitiated as i32))
@@ -278,6 +315,7 @@ impl EmergencyAccess {
         grantor_uuid: &UserId,
         conn: &DbConn,
     ) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_uuid_and_grantor_uuid(uuid={:?})", uuid);
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::uuid.eq(uuid))
@@ -293,6 +331,7 @@ impl EmergencyAccess {
         grantee_uuid: &UserId,
         conn: &DbConn,
     ) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_uuid_and_grantee_uuid(uuid={:?})", uuid);
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::uuid.eq(uuid))
@@ -308,6 +347,7 @@ impl EmergencyAccess {
         grantee_email: &str,
         conn: &DbConn,
     ) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_uuid_and_grantee_email(uuid={:?},grantee_email=<redacted>)", uuid);
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::uuid.eq(uuid))
@@ -319,6 +359,7 @@ impl EmergencyAccess {
     }
 
     pub async fn find_all_by_grantee_uuid(grantee_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_all_by_grantee_uuid()");
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::grantee_uuid.eq(grantee_uuid))
@@ -329,6 +370,7 @@ impl EmergencyAccess {
     }
 
     pub async fn find_invited_by_grantee_email(grantee_email: &str, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_invited_by_grantee_email(grantee_email=<redacted>)");
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::email.eq(grantee_email))
@@ -340,6 +382,7 @@ impl EmergencyAccess {
     }
 
     pub async fn find_all_invited_by_grantee_email(grantee_email: &str, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_all_invited_by_grantee_email(grantee_email=<redacted>)");
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::email.eq(grantee_email))
@@ -351,6 +394,7 @@ impl EmergencyAccess {
     }
 
     pub async fn find_all_by_grantor_uuid(grantor_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_all_by_grantor_uuid()");
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::grantor_uuid.eq(grantor_uuid))
@@ -361,6 +405,7 @@ impl EmergencyAccess {
     }
 
     pub async fn find_all_confirmed_by_grantor_uuid(grantor_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_all_confirmed_by_grantor_uuid()");
         conn.run(move |conn| {
             emergency_access::table
                 .filter(emergency_access::grantor_uuid.eq(grantor_uuid))
@@ -372,6 +417,7 @@ impl EmergencyAccess {
     }
 
     pub async fn accept_invite(&mut self, grantee_uuid: &UserId, grantee_email: &str, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering accept_invite(grantee_email=<redacted>)");
         if self.email.is_none() || self.email.as_ref().unwrap() != grantee_email {
             err!("User email does not match invite.");
         }
@@ -383,6 +429,7 @@ impl EmergencyAccess {
         self.status = EmergencyAccessStatus::Accepted as i32;
         self.grantee_uuid = Some(grantee_uuid.clone());
         self.email = None;
+		eprintln!("[WARN] <<< Exiting accept_invite(grantee_email=<redacted>)");
         self.save(conn).await
     }
 }

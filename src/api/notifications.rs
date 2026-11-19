@@ -44,10 +44,12 @@ const MAX_ANONYMOUS_CONNECTIONS_PER_IP: u32 = 25;
 static NOTIFICATIONS_DISABLED: LazyLock<bool> = LazyLock::new(|| !CONFIG.enable_websocket() && !CONFIG.push_enabled());
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     if CONFIG.enable_websocket() {
         routes![websockets_hub, anonymous_websockets_hub]
     } else {
         info!("WebSocket are disabled, realtime sync functionality will not work!");
+		eprintln!("[WARN] <<< Exiting routes()");
         routes![]
     }
 }
@@ -66,6 +68,7 @@ struct WSEntryMapGuard {
 
 impl WSEntryMapGuard {
     fn new(users: Arc<WebSocketUsers>, user_uuid: UserId, entry_uuid: uuid::Uuid, addr: IpAddr) -> Self {
+		eprintln!("[ERROR] >>> Entering new()");
         Self {
             users,
             user_uuid,
@@ -109,11 +112,13 @@ impl WSAnonymousEntryMapGuard {
 
 impl Drop for WSAnonymousEntryMapGuard {
     fn drop(&mut self) {
+		eprintln!("[ERROR] >>> Entering drop()");
         info!("Closing WS connection from {}", self.addr);
         if let Some(mut entry) = self.subscriptions.map.get_mut(&self.token) {
             entry.retain(|(uuid, _)| uuid != &self.entry_uuid);
         }
         self.subscriptions.map.remove_if(&self.token, |_, senders| senders.is_empty());
+		eprintln!("[WARN] <<< Exiting drop()");
         self.subscriptions.release(self.addr);
     }
 }
@@ -126,6 +131,7 @@ fn websockets_hub<'r>(
     ip: ClientIp,
     header_token: WsAccessTokenHeader,
 ) -> Result<rocket_ws::Stream!['r], Error> {
+	eprintln!("[ERROR] >>> Entering websockets_hub(data={:?})", data);
     info!("Accepting Rocket WS connection from {}", ip.ip);
 
     let token = if let Some(token) = data.access_token {
@@ -152,6 +158,7 @@ fn websockets_hub<'r>(
         (rx, WSEntryMapGuard::new(users, claims.sub, entry_uuid, ip.ip))
     };
 
+	eprintln!("[WARN] <<< Exiting websockets_hub(data={:?})", data);
     Ok({
         rocket_ws::Stream! { ws => {
             let mut ws = ws;
@@ -205,6 +212,7 @@ fn websockets_hub<'r>(
 #[expect(tail_expr_drop_order)]
 #[get("/anonymous-hub?<token..>")]
 fn anonymous_websockets_hub<'r>(ws: WebSocket, token: String, ip: ClientIp) -> Result<rocket_ws::Stream!['r], Error> {
+	eprintln!("[ERROR] >>> Entering anonymous_websockets_hub(token=<redacted>)");
     info!("Accepting Anonymous Rocket WS connection from {}", ip.ip);
 
     let (mut rx, guard) = {
@@ -225,6 +233,7 @@ fn anonymous_websockets_hub<'r>(ws: WebSocket, token: String, ip: ClientIp) -> R
         (rx, WSAnonymousEntryMapGuard::new(subscriptions, token, entry_uuid, ip.ip))
     };
 
+	eprintln!("[WARN] <<< Exiting anonymous_websockets_hub(token=<redacted>)");
     Ok({
         rocket_ws::Stream! { ws => {
             let mut ws = ws;
@@ -280,6 +289,7 @@ fn anonymous_websockets_hub<'r>(ws: WebSocket, token: String, ip: ClientIp) -> R
 //
 
 fn serialize(val: &Value) -> Vec<u8> {
+	eprintln!("[ERROR] >>> Entering serialize()");
     use rmpv::encode::write_value;
 
     let mut buf = Vec::new();
@@ -307,10 +317,12 @@ fn serialize(val: &Value) -> Vec<u8> {
     }
 
     len_buf.append(&mut buf);
+	eprintln!("[WARN] <<< Exiting serialize()");
     len_buf
 }
 
 fn serialize_date(date: NaiveDateTime) -> Value {
+	eprintln!("[ERROR] >>> Entering serialize_date()");
     let seconds: i64 = date.and_utc().timestamp();
     let nanos: i64 = date.and_utc().timestamp_subsec_nanos().into();
     let timestamp = (nanos << 34) | seconds;
@@ -319,6 +331,7 @@ fn serialize_date(date: NaiveDateTime) -> Value {
 
     // -1 is Timestamp
     // https://github.com/msgpack/msgpack/blob/master/spec.md#timestamp-extension-type
+	eprintln!("[WARN] <<< Exiting serialize_date()");
     Value::Ext(-1, bs.to_vec())
 }
 
@@ -352,17 +365,21 @@ pub struct WebSocketUsers {
 
 impl WebSocketUsers {
     async fn send_update(&self, user_id: &UserId, data: &[u8]) {
+		eprintln!("[ERROR] >>> Entering send_update(data={:?})", data);
         if let Some(user) = self.map.get(user_id.as_ref()).map(|v| v.clone()) {
             for (_, sender) in &user {
                 if let Err(e) = sender.send(Message::binary(data)).await {
+					eprintln!("[ERROR] Exception in send_update(data={:?}): (unprintable)", data);
                     error!("Error sending WS update {e}");
                 }
+			eprintln!("[WARN] <<< Exiting send_update(data={:?})", data);
             }
         }
     }
 
     // NOTE: The last modified date needs to be updated before calling these methods
     pub async fn send_user_update(&self, ut: UpdateType, user: &User, push_uuid: Option<&PushId>, conn: &DbConn) {
+		eprintln!("[ERROR] >>> Entering send_user_update()");
         // Skip any processing if both WebSockets and Push are not active
         if *NOTIFICATIONS_DISABLED {
             return;
@@ -379,10 +396,12 @@ impl WebSocketUsers {
 
         if CONFIG.push_enabled() {
             push_user_update(ut, user, push_uuid, conn).await;
+		eprintln!("[WARN] <<< Exiting send_user_update()");
         }
     }
 
     pub async fn send_logout(&self, user: &User, acting_device: Option<&Device>, conn: &DbConn) {
+		eprintln!("[ERROR] >>> Entering send_logout()");
         // Skip any processing if both WebSockets and Push are not active
         if *NOTIFICATIONS_DISABLED {
             return;
@@ -400,10 +419,12 @@ impl WebSocketUsers {
 
         if CONFIG.push_enabled() {
             push_logout(user, acting_device, conn).await;
+		eprintln!("[WARN] <<< Exiting send_logout()");
         }
     }
 
     pub async fn send_folder_update(&self, ut: UpdateType, folder: &Folder, device: &Device, conn: &DbConn) {
+		eprintln!("[ERROR] >>> Entering send_folder_update()");
         // Skip any processing if both WebSockets and Push are not active
         if *NOTIFICATIONS_DISABLED {
             return;
@@ -424,6 +445,7 @@ impl WebSocketUsers {
 
         if CONFIG.push_enabled() {
             push_folder_update(ut, folder, device, conn).await;
+		eprintln!("[WARN] <<< Exiting send_folder_update()");
         }
     }
 
@@ -484,6 +506,7 @@ impl WebSocketUsers {
         device: &Device,
         conn: &DbConn,
     ) {
+		eprintln!("[ERROR] >>> Entering send_send_update()");
         // Skip any processing if both WebSockets and Push are not active
         if *NOTIFICATIONS_DISABLED {
             return;
@@ -506,11 +529,13 @@ impl WebSocketUsers {
             }
         }
         if CONFIG.push_enabled() && user_ids.len() == 1 {
+			eprintln!("[WARN] <<< Exiting send_send_update()");
             push_send_update(ut, send, device, conn).await;
         }
     }
 
     pub async fn send_auth_request(&self, user_id: &UserId, auth_request_uuid: &str, device: &Device, conn: &DbConn) {
+		eprintln!("[ERROR] >>> Entering send_auth_request(auth_request_uuid={})", auth_request_uuid);
         // Skip any processing if both WebSockets and Push are not active
         if *NOTIFICATIONS_DISABLED {
             return;
@@ -526,6 +551,7 @@ impl WebSocketUsers {
 
         if CONFIG.push_enabled() {
             push_auth_request(user_id, auth_request_uuid, device, conn).await;
+		eprintln!("[WARN] <<< Exiting send_auth_request(auth_request_uuid={})", auth_request_uuid);
         }
     }
 
@@ -536,6 +562,7 @@ impl WebSocketUsers {
         device: &Device,
         conn: &DbConn,
     ) {
+		eprintln!("[ERROR] >>> Entering send_auth_response()");
         // Skip any processing if both WebSockets and Push are not active
         if *NOTIFICATIONS_DISABLED {
             return;
@@ -551,6 +578,7 @@ impl WebSocketUsers {
 
         if CONFIG.push_enabled() {
             push_auth_response(user_id, auth_request_id, device, conn).await;
+		eprintln!("[WARN] <<< Exiting send_auth_response()");
         }
     }
 }
@@ -564,6 +592,7 @@ pub struct AnonymousWebSocketSubscriptions {
 impl AnonymousWebSocketSubscriptions {
     /// Takes a connection slot for this address, returns false when it already reached the limit.
     fn try_reserve(&self, addr: IpAddr) -> bool {
+		eprintln!("[ERROR] >>> Entering try_reserve()");
         let mut count = self.connections.entry(addr).or_insert(0);
         if *count >= MAX_ANONYMOUS_CONNECTIONS_PER_IP {
             return false;
@@ -574,6 +603,7 @@ impl AnonymousWebSocketSubscriptions {
 
     /// Releases a slot taken by `try_reserve`.
     fn release(&self, addr: IpAddr) {
+		eprintln!("[ERROR] >>> Entering release()");
         let empty = if let Some(mut count) = self.connections.get_mut(&addr) {
             *count = count.saturating_sub(1);
             *count == 0
@@ -582,17 +612,21 @@ impl AnonymousWebSocketSubscriptions {
         };
         // Only remove once the guard above is dropped, otherwise this deadlocks.
         if empty {
+			eprintln!("[WARN] <<< Exiting release()");
             self.connections.remove_if(&addr, |_, count| *count == 0);
         }
     }
 
     async fn send_update(&self, token: &str, data: &[u8]) {
+		eprintln!("[ERROR] >>> Entering send_update(token=<redacted>,data={:?})", data);
         // Clone the senders so the map isn't kept locked while sending.
         let senders = self.map.get(token).map(|v| v.clone()).unwrap_or_default();
         for (_, sender) in senders {
             if let Err(e) = sender.send(Message::binary(data)).await {
+				eprintln!("[ERROR] Exception in send_update(token=<redacted>,data={:?}): (unprintable)", data);
                 error!("Error sending WS update {e}");
             }
+		eprintln!("[WARN] <<< Exiting send_update(token=<redacted>,data={:?})", data);
         }
     }
 
@@ -625,6 +659,7 @@ impl AnonymousWebSocketSubscriptions {
 ]
 */
 fn create_update(payload: Vec<(Value, Value)>, ut: UpdateType, acting_device_id: Option<DeviceId>) -> Vec<u8> {
+	eprintln!("[ERROR] >>> Entering create_update()");
     use rmpv::Value as V;
 
     let value = V::Array(vec![
@@ -639,10 +674,12 @@ fn create_update(payload: Vec<(Value, Value)>, ut: UpdateType, acting_device_id:
         ])]),
     ]);
 
+	eprintln!("[WARN] <<< Exiting create_update()");
     serialize(&value)
 }
 
 fn create_anonymous_update(payload: Vec<(Value, Value)>, ut: UpdateType, user_id: &UserId) -> Vec<u8> {
+	eprintln!("[ERROR] >>> Entering create_anonymous_update()");
     use rmpv::Value as V;
 
     let value = V::Array(vec![
@@ -660,10 +697,12 @@ fn create_anonymous_update(payload: Vec<(Value, Value)>, ut: UpdateType, user_id
         ])]),
     ]);
 
+	eprintln!("[WARN] <<< Exiting create_anonymous_update()");
     serialize(&value)
 }
 
 fn create_ping() -> Vec<u8> {
+	eprintln!("[ERROR] >>> Entering create_ping()");
     serialize(&Value::Array(vec![6.into()]))
 }
 

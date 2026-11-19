@@ -15,6 +15,7 @@ use crate::{
 };
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![request_otp, verify_otp]
 }
 
@@ -32,6 +33,7 @@ pub struct ProtectedActionData {
 
 impl ProtectedActionData {
     pub fn new(token: String) -> Self {
+		eprintln!("[ERROR] >>> Entering new(token=<redacted>)");
         Self {
             token,
             token_sent: Utc::now().naive_utc(),
@@ -40,29 +42,36 @@ impl ProtectedActionData {
     }
 
     pub fn to_json(&self) -> String {
+		eprintln!("[ERROR] >>> Entering to_json()");
         serde_json::to_string(&self).unwrap()
     }
 
     pub fn from_json(string: &str) -> Result<Self, Error> {
+		eprintln!("[ERROR] >>> Entering from_json(string={})", string);
         let res: Result<Self, serde_json::Error> = serde_json::from_str(string);
         if let Ok(x) = res {
             Ok(x)
         } else {
+			eprintln!("[WARN] <<< Exiting from_json(string={})", string);
             err!("Could not decode ProtectedActionData from string")
         }
     }
 
     pub fn add_attempt(&mut self) {
+		eprintln!("[ERROR] >>> Entering add_attempt()");
+		eprintln!("[WARN] <<< Exiting add_attempt()");
         self.attempts = self.attempts.saturating_add(1);
     }
 
     pub fn time_since_sent(&self) -> TimeDelta {
+		eprintln!("[ERROR] >>> Entering time_since_sent()");
         Utc::now().naive_utc() - self.token_sent
     }
 }
 
 #[post("/accounts/request-otp")]
 async fn request_otp(headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering request_otp()");
     if !CONFIG.mail_enabled() {
         err!(
             "Email is disabled for this server. Either enable email or login using your master password instead of login via device."
@@ -93,6 +102,7 @@ async fn request_otp(headers: Headers, conn: DbConn) -> EmptyResult {
 
     mail::send_protected_action_token(&user.email, &pa_data.token).await?;
 
+	eprintln!("[WARN] <<< Exiting request_otp()");
     Ok(())
 }
 
@@ -105,6 +115,7 @@ struct ProtectedActionVerify {
 
 #[post("/accounts/verify-otp", data = "<data>")]
 async fn verify_otp(data: Json<ProtectedActionVerify>, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering verify_otp(data={:?})", data);
     if !CONFIG.mail_enabled() {
         err!(
             "Email is disabled for this server. Either enable email or login using your master password instead of login via device."
@@ -116,6 +127,7 @@ async fn verify_otp(data: Json<ProtectedActionVerify>, headers: Headers, conn: D
 
     // Delete the token after one validation attempt
     // This endpoint only gets called for the vault export, and doesn't need a second attempt
+	eprintln!("[WARN] <<< Exiting verify_otp(data={:?})", data);
     validate_protected_action_otp(&data.otp, &user.uuid, true, &conn).await
 }
 
@@ -125,6 +137,7 @@ pub async fn validate_protected_action_otp(
     delete_if_valid: bool,
     conn: &DbConn,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering validate_protected_action_otp(otp=<redacted>,delete_if_valid={})", delete_if_valid);
     let mut pa = TwoFactor::find_by_user_and_type(user_id, TwoFactorType::ProtectedActions as i32, conn)
         .await
         .map_res("Protected action token not found, try sending the code again or restart the process")?;
@@ -154,5 +167,6 @@ pub async fn validate_protected_action_otp(
         pa.delete(conn).await?;
     }
 
+	eprintln!("[WARN] <<< Exiting validate_protected_action_otp(otp=<redacted>,delete_if_valid={})", delete_if_valid);
     Ok(())
 }

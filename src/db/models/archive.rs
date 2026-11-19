@@ -21,6 +21,7 @@ pub struct Archive {
 impl Archive {
     // Returns the date the specified cipher was archived
     pub async fn get_archived_at(cipher_uuid: &CipherId, user_uuid: &UserId, conn: &DbConn) -> Option<NaiveDateTime> {
+		eprintln!("[ERROR] >>> Entering get_archived_at()");
         conn.run(move |conn| {
             archives::table
                 .filter(archives::cipher_uuid.eq(cipher_uuid))
@@ -39,7 +40,12 @@ impl Archive {
         archived_at: NaiveDateTime,
         conn: &DbConn,
     ) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save()");
         User::update_uuid_revision(user_uuid, conn).await;
+		let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] save(user_uuid,cipher_uuid,archived_at,conn)=(unprintable),(unprintable),(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(user_uuid,cipher_uuid,archived_at,conn)=(unprintable),(unprintable),(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[WARN] <<< Exiting save()");
         db_run! { conn:
             sqlite, mysql {
                 diesel::replace_into(archives::table)
@@ -69,7 +75,12 @@ impl Archive {
 
     // Deletes an archive record for a specific cipher
     pub async fn delete_by_cipher(user_uuid: &UserId, cipher_uuid: &CipherId, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete_by_cipher()");
         User::update_uuid_revision(user_uuid, conn).await;
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete_by_cipher(user_uuid,cipher_uuid,conn)=(unprintable),(unprintable),(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete_by_cipher(user_uuid,cipher_uuid,conn)=(unprintable),(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete_by_cipher()");
         conn.run(move |conn| {
             diesel::delete(
                 archives::table.filter(archives::user_uuid.eq(user_uuid)).filter(archives::cipher_uuid.eq(cipher_uuid)),
@@ -83,6 +94,7 @@ impl Archive {
     /// Return a vec with (cipher_uuid, archived_at)
     /// This is used during a full sync so we only need one query for all archive matches
     pub async fn find_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<(CipherId, NaiveDateTime)> {
+		eprintln!("[ERROR] >>> Entering find_by_user()");
         conn.run(move |conn| {
             archives::table
                 .filter(archives::user_uuid.eq(user_uuid))

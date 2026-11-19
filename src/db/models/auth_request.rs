@@ -74,6 +74,7 @@ impl AuthRequest {
     }
 
     pub fn to_json_for_pending_device(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json_for_pending_device()");
         json!({
             "id": self.uuid,
             "creationDate": format_date(&self.creation_date),
@@ -114,10 +115,12 @@ impl AuthRequest {
     }
 
     pub async fn find_by_uuid(uuid: &AuthRequestId, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_uuid(uuid={:?})", uuid);
         conn.run(move |conn| auth_requests::table.filter(auth_requests::uuid.eq(uuid)).first::<Self>(conn).ok()).await
     }
 
     pub async fn find_by_uuid_and_user(uuid: &AuthRequestId, user_uuid: &UserId, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_uuid_and_user(uuid={:?})", uuid);
         conn.run(move |conn| {
             auth_requests::table
                 .filter(auth_requests::uuid.eq(uuid))
@@ -129,6 +132,7 @@ impl AuthRequest {
     }
 
     pub async fn find_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_user()");
         conn.run(move |conn| {
             auth_requests::table
                 .filter(auth_requests::user_uuid.eq(user_uuid))
@@ -143,6 +147,7 @@ impl AuthRequest {
         device_uuid: &DeviceId,
         conn: &DbConn,
     ) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_user_and_requested_device()");
         conn.run(move |conn| {
             auth_requests::table
                 .filter(auth_requests::user_uuid.eq(user_uuid))
@@ -156,6 +161,7 @@ impl AuthRequest {
     }
 
     pub async fn find_created_before(dt: &NaiveDateTime, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_created_before()");
         conn.run(move |conn| {
             auth_requests::table
                 .filter(auth_requests::creation_date.lt(dt))
@@ -166,6 +172,10 @@ impl AuthRequest {
     }
 
     pub async fn delete(&self, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete()");
         conn.run(move |conn| {
             diesel::delete(auth_requests::table.filter(auth_requests::uuid.eq(&self.uuid)))
                 .execute(conn)
@@ -175,15 +185,18 @@ impl AuthRequest {
     }
 
     pub fn check_access_code(&self, access_code: &str) -> bool {
+		eprintln!("[ERROR] >>> Entering check_access_code(access_code={})", access_code);
         ct_eq(&self.access_code, access_code)
     }
 
     pub async fn purge_expired_auth_requests(conn: &DbConn) {
+		eprintln!("[ERROR] >>> Entering purge_expired_auth_requests()");
         // delete auth requests older than 15 minutes which is functionally equivalent to upstream:
         // https://github.com/bitwarden/server/blob/f8ee2270409f7a13125cd414c450740af605a175/src/Sql/dbo/Auth/Stored%20Procedures/AuthRequest_DeleteIfExpired.sql
         let expiry_time = Utc::now().naive_utc() - chrono::TimeDelta::try_minutes(15).unwrap();
         for auth_request in Self::find_created_before(&expiry_time, conn).await {
             auth_request.delete(conn).await.ok();
+		eprintln!("[WARN] <<< Exiting purge_expired_auth_requests()");
         }
     }
 }

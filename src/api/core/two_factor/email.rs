@@ -18,6 +18,7 @@ use crate::{
 };
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![get_email, send_email_login, send_email, email,]
 }
 
@@ -38,6 +39,7 @@ struct SendEmailLoginData {
 /// Does not require Bearer token
 #[post("/two-factor/send-email-login", data = "<data>")] // JsonResult
 async fn send_email_login(data: Json<SendEmailLoginData>, client_headers: ClientHeaders, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering send_email_login()");
     let data: SendEmailLoginData = data.into_inner();
 
     if !CONFIG._enable_email_2fa() {
@@ -102,11 +104,13 @@ async fn send_email_login(data: Json<SendEmailLoginData>, client_headers: Client
         user
     };
 
+	eprintln!("[WARN] <<< Exiting send_email_login()");
     send_token(&user.uuid, &conn).await
 }
 
 /// Generate the token, save the data for later verification and send email to user
 pub async fn send_token(user_id: &UserId, conn: &DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering send_token()");
     let type_ = TwoFactorType::Email as i32;
     let mut twofactor = TwoFactor::find_by_user_and_type(user_id, type_, conn).await.map_res("Two factor not found")?;
 
@@ -119,12 +123,14 @@ pub async fn send_token(user_id: &UserId, conn: &DbConn) -> EmptyResult {
 
     mail::send_token(&twofactor_data.email, &twofactor_data.last_token.map_res("Token is empty")?).await?;
 
+	eprintln!("[WARN] <<< Exiting send_token()");
     Ok(())
 }
 
 /// When user clicks on Manage email 2FA show the user the related information
 #[post("/two-factor/get-email", data = "<data>")]
 async fn get_email(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_email()");
     let data: PasswordOrOtpData = data.into_inner();
     let user = headers.user;
 
@@ -158,6 +164,7 @@ struct SendEmailData {
 /// Send a verification email to the specified email address to check whether it exists/belongs to user.
 #[post("/two-factor/send-email", data = "<data>")]
 async fn send_email(data: Json<SendEmailData>, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering send_email()");
     let data: SendEmailData = data.into_inner();
     let user = headers.user;
 
@@ -187,6 +194,7 @@ async fn send_email(data: Json<SendEmailData>, headers: Headers, conn: DbConn) -
 
     mail::send_token(&twofactor_data.email, &twofactor_data.last_token.map_res("Token is empty")?).await?;
 
+	eprintln!("[WARN] <<< Exiting send_email()");
     Ok(())
 }
 
@@ -202,6 +210,7 @@ struct EmailData {
 /// Verify email belongs to user and can be used for 2FA email codes.
 #[put("/two-factor/email", data = "<data>")]
 async fn email(data: Json<EmailData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering email()");
     let data: EmailData = data.into_inner();
     let mut user = headers.user;
 
@@ -236,6 +245,7 @@ async fn email(data: Json<EmailData>, headers: Headers, conn: DbConn) -> JsonRes
 
     log_user_event(EventType::UserUpdated2fa as i32, &user.uuid, headers.device.atype, &headers.ip.ip, &conn).await;
 
+	eprintln!("[WARN] <<< Exiting email()");
     Ok(Json(json!({
         "email": email_data.email,
         "enabled": "true",
@@ -251,6 +261,7 @@ pub async fn validate_email_code_str(
     ip: &std::net::IpAddr,
     conn: &DbConn,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering validate_email_code_str(token=<redacted>,data={})", data);
     let mut email_data = EmailTokenData::from_json(data)?;
     let mut twofactor = TwoFactor::find_by_user_and_type(user_id, TwoFactorType::Email as i32, conn)
         .await
@@ -295,6 +306,7 @@ pub async fn validate_email_code_str(
         )
     }
 
+	eprintln!("[WARN] <<< Exiting validate_email_code_str(token=<redacted>,data={})", data);
     Ok(())
 }
 
@@ -314,6 +326,7 @@ pub struct EmailTokenData {
 
 impl EmailTokenData {
     pub fn new(email: String, token: String) -> EmailTokenData {
+		eprintln!("[ERROR] >>> Entering new(email=<redacted>,token=<redacted>)");
         EmailTokenData {
             email,
             last_token: Some(token),
@@ -323,44 +336,56 @@ impl EmailTokenData {
     }
 
     pub fn set_token(&mut self, token: String) {
+		eprintln!("[ERROR] >>> Entering set_token(token=<redacted>)");
         self.last_token = Some(token);
+		eprintln!("[WARN] <<< Exiting set_token(token=<redacted>)");
         self.token_sent = Utc::now().timestamp();
     }
 
     pub fn reset_token(&mut self) {
+		eprintln!("[ERROR] >>> Entering reset_token()");
         self.last_token = None;
+		eprintln!("[WARN] <<< Exiting reset_token()");
         self.attempts = 0;
     }
 
     pub fn add_attempt(&mut self) {
+		eprintln!("[ERROR] >>> Entering add_attempt()");
+		eprintln!("[WARN] <<< Exiting add_attempt()");
         self.attempts = self.attempts.saturating_add(1);
     }
 
     pub fn to_json(&self) -> String {
+		eprintln!("[ERROR] >>> Entering to_json()");
         serde_json::to_string(&self).unwrap()
     }
 
     pub fn from_json(string: &str) -> Result<EmailTokenData, Error> {
+		eprintln!("[ERROR] >>> Entering from_json(string={})", string);
         let res: Result<EmailTokenData, serde_json::Error> = serde_json::from_str(string);
         if let Ok(x) = res {
             Ok(x)
         } else {
+			eprintln!("[WARN] <<< Exiting from_json(string={})", string);
             err!("Could not decode EmailTokenData from string")
         }
     }
 }
 
 pub async fn activate_email_2fa(user: &User, conn: &DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering activate_email_2fa()");
     if user.verified_at.is_none() {
         err!("Auto-enabling of email 2FA failed because the users email address has not been verified!");
     }
     let twofactor_data = EmailTokenData::new(user.email.clone(), String::new());
     let twofactor = TwoFactor::new(user.uuid.clone(), TwoFactorType::Email, twofactor_data.to_json());
+	eprintln!("[WARN] <<< Exiting activate_email_2fa()");
     twofactor.save(conn).await
 }
 
 /// Takes an email address and obscures it by replacing it with asterisks except two characters.
 pub fn obscure_email(email: &str) -> String {
+	eprintln!("[ERROR] >>> Entering obscure_email(email=<redacted>)");
     let split: Vec<&str> = email.rsplitn(2, '@').collect();
 
     let mut name = split[1].to_owned();
@@ -372,17 +397,21 @@ pub fn obscure_email(email: &str) -> String {
         "*".repeat(name_size)
     } else {
         let stars = "*".repeat(name_size - 2);
+		eprintln!("[ERROR] obscure_email(email=<redacted>): stars → {}", stars);
         name.truncate(2);
         format!("{name}{stars}")
     };
 
+	eprintln!("[WARN] <<< Exiting obscure_email(email=<redacted>)");
     format!("{new_name}@{domain}")
 }
 
 pub async fn find_and_activate_email_2fa(user_id: &UserId, conn: &DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering find_and_activate_email_2fa()");
     if let Some(user) = User::find_by_uuid(user_id, conn).await {
         activate_email_2fa(&user, conn).await
     } else {
+		eprintln!("[WARN] <<< Exiting find_and_activate_email_2fa()");
         err!("User not found!");
     }
 }
@@ -393,21 +422,29 @@ mod tests {
 
     #[test]
     fn test_obscure_email_long() {
+		eprintln!("[ERROR] >>> Entering test_obscure_email_long()");
         let email = "bytes@example.ext";
 
+		eprintln!("[ERROR] test_obscure_email_long(): email → <redacted>");
         let result = obscure_email(email);
+		eprintln!("[ERROR] test_obscure_email_long(): result → {}", result);
 
         // Only first two characters should be visible.
+		eprintln!("[WARN] <<< Exiting test_obscure_email_long()");
         assert_eq!(result, "by***@example.ext");
     }
 
     #[test]
     fn test_obscure_email_short() {
+		eprintln!("[ERROR] >>> Entering test_obscure_email_short()");
         let email = "byt@example.ext";
 
+		eprintln!("[ERROR] test_obscure_email_short(): email → <redacted>");
         let result = obscure_email(email);
+		eprintln!("[ERROR] test_obscure_email_short(): result → {}", result);
 
         // If it's smaller than 3 characters it should only show asterisks.
+		eprintln!("[WARN] <<< Exiting test_obscure_email_short()");
         assert_eq!(result, "***@example.ext");
     }
 }

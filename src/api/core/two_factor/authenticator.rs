@@ -15,11 +15,13 @@ use crate::{
 pub use crate::config::CONFIG;
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![generate_authenticator, activate_authenticator, activate_authenticator_put, disable_authenticator]
 }
 
 #[post("/two-factor/get-authenticator", data = "<data>")]
 async fn generate_authenticator(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering generate_authenticator()");
     let data: PasswordOrOtpData = data.into_inner();
     let user = headers.user;
 
@@ -37,6 +39,7 @@ async fn generate_authenticator(data: Json<PasswordOrOtpData>, headers: Headers,
     // It should help prevent TOTP disclosure if someone keeps their vault unlocked.
     // Since it doesn't seem to be used, and also does not cause any issues, lets leave it out of the response.
     // See: https://github.com/bitwarden/server/blob/9ebe16587175b1c0e9208f84397bb75d0d595510/src/Api/Auth/Controllers/TwoFactorController.cs#L94
+	eprintln!("[WARN] <<< Exiting generate_authenticator()");
     Ok(Json(json!({
         "enabled": enabled,
         "key": key,
@@ -55,6 +58,7 @@ struct EnableAuthenticatorData {
 
 #[post("/two-factor/authenticator", data = "<data>")]
 async fn activate_authenticator(data: Json<EnableAuthenticatorData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering activate_authenticator(data={:?})", data);
     let data: EnableAuthenticatorData = data.into_inner();
     let key = data.key;
     let token = data.token.into_string();
@@ -86,6 +90,7 @@ async fn activate_authenticator(data: Json<EnableAuthenticatorData>, headers: He
 
     log_user_event(EventType::UserUpdated2fa as i32, &user.uuid, headers.device.atype, &headers.ip.ip, &conn).await;
 
+	eprintln!("[WARN] <<< Exiting activate_authenticator(data={:?})", data);
     Ok(Json(json!({
         "enabled": true,
         "key": key,
@@ -95,6 +100,7 @@ async fn activate_authenticator(data: Json<EnableAuthenticatorData>, headers: He
 
 #[put("/two-factor/authenticator", data = "<data>")]
 async fn activate_authenticator_put(data: Json<EnableAuthenticatorData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering activate_authenticator_put()");
     activate_authenticator(data, headers, conn).await
 }
 
@@ -105,10 +111,12 @@ pub async fn validate_totp_code_str(
     ip: &ClientIp,
     conn: &DbConn,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering validate_totp_code_str(totp_code=<redacted>,secret=<redacted>)");
     if !totp_code.chars().all(char::is_numeric) {
         err!("TOTP code is not a number");
     }
 
+	eprintln!("[WARN] <<< Exiting validate_totp_code_str(totp_code=<redacted>,secret=<redacted>)");
     validate_totp_code(user_id, totp_code, secret, ip, conn).await
 }
 
@@ -119,6 +127,7 @@ pub async fn validate_totp_code(
     ip: &ClientIp,
     conn: &DbConn,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering validate_totp_code(totp_code=<redacted>,secret=<redacted>)");
     use totp_lite::{Sha1, totp_custom};
 
     let Ok(decoded_secret) = BASE32.decode(secret.as_bytes()) else {
@@ -177,6 +186,7 @@ pub async fn validate_totp_code(
         ErrorEvent {
             event: EventType::UserFailedLogIn2fa
         }
+	eprintln!("[WARN] <<< Exiting validate_totp_code(totp_code=<redacted>,secret=<redacted>)");
     );
 }
 
@@ -190,6 +200,7 @@ struct DisableAuthenticatorData {
 
 #[delete("/two-factor/authenticator", data = "<data>")]
 async fn disable_authenticator(data: Json<DisableAuthenticatorData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering disable_authenticator()");
     let user = headers.user;
     let type_ = data.r#type.into_i32()?;
 
@@ -211,6 +222,7 @@ async fn disable_authenticator(data: Json<DisableAuthenticatorData>, headers: He
         super::enforce_2fa_policy(&user, &user.uuid, headers.device.atype, &headers.ip.ip, &conn).await?;
     }
 
+	eprintln!("[WARN] <<< Exiting disable_authenticator()");
     Ok(Json(json!({
         "enabled": false,
         "keys": type_,

@@ -14,7 +14,9 @@ use crate::{
 };
 
 fn generate_send_access_claims(send_id: &SendId) -> BasicJwtClaims {
+	eprintln!("[ERROR] >>> Entering generate_send_access_claims()");
     let time_now = Utc::now();
+	eprintln!("[WARN] <<< Exiting generate_send_access_claims()");
     BasicJwtClaims {
         nbf: time_now.timestamp(),
         exp: (time_now + TimeDelta::try_minutes(2).unwrap()).timestamp(),
@@ -30,6 +32,7 @@ pub struct SendTokens {
 
 impl SendTokens {
     pub fn as_send_id(access_id: &str) -> Option<SendId> {
+		eprintln!("[ERROR] >>> Entering as_send_id(access_id={})", access_id);
         data_encoding::BASE64URL_NOPAD
             .decode(access_id.as_bytes())
             .ok()
@@ -37,6 +40,7 @@ impl SendTokens {
     }
 
     pub fn to_json(&self) -> serde_json::Value {
+		eprintln!("[ERROR] >>> Entering to_json()");
         json!({
             "access_token": self.access_claims.token(),
             "expires_in": self.access_claims.expires_in(),
@@ -46,22 +50,26 @@ impl SendTokens {
     }
 
     fn expected_error(msg: &str, error_type: &str) -> ApiResult<SendTokens> {
+		eprintln!("[ERROR] >>> Entering expected_error(msg={},error_type={})", msg, error_type);
         let err = json!({
             "kind": "expected_server",
             "error": "invalid_request",
             "send_access_error_type": error_type,
         });
 
+		eprintln!("[WARN] <<< Exiting expected_error(msg={},error_type={})", msg, error_type);
         Err(Error::new_msg(msg).with_kind(ErrorKind::Json(err)).silent())
     }
 
     fn invalid_error(msg: &str, error_type: &str, silent: bool) -> ApiResult<SendTokens> {
+		eprintln!("[ERROR] >>> Entering invalid_error(msg={},error_type={},silent={})", msg, error_type, silent);
         let err = json!({
             "kind": "expected_server",
             "error": "invalid_grant",
             "send_access_error_type": error_type,
         });
 
+		eprintln!("[WARN] <<< Exiting invalid_error(msg={},error_type={},silent={})", msg, error_type, silent);
         Err(Error::new_msg(msg).with_kind(ErrorKind::Json(err)).with_code(404).with_silent(silent))
     }
 
@@ -71,6 +79,7 @@ impl SendTokens {
         ip: &ClientIp,
         conn: &DbConn,
     ) -> ApiResult<SendTokens> {
+		eprintln!("[ERROR] >>> Entering generate_tokens(access_id={},password=<redacted>)", access_id);
         let Some(send_id) = Self::as_send_id(access_id) else {
             return Self::invalid_error(&format!("Can't convert {access_id}"), "send_id_invalid", false);
         };
@@ -122,6 +131,7 @@ impl<'r> FromRequest<'r> for SendHeaders {
     type Error = &'static str;
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+		eprintln!("[ERROR] >>> Entering from_request()");
         let headers = request.headers();
 
         // Get access_token
@@ -140,6 +150,7 @@ impl<'r> FromRequest<'r> for SendHeaders {
             err_handler!("Invalid claim")
         };
 
+		eprintln!("[WARN] <<< Exiting from_request()");
         Outcome::Success(SendHeaders {
             send_id: claims.sub.into(),
         })

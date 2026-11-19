@@ -18,7 +18,10 @@ macro_rules! make_error {
         pub struct Error { message: String, kind: ErrorKind, code: u16, event: Option<ErrorEvent>, silent: bool }
 
         $(impl From<$ty> for Error {
-            fn from(err: $ty) -> Self { Error::from((stringify!($name), err)) }
+            fn from(err: $ty) -> Self {
+                eprintln!("[ERROR] >>> Entering from()");
+                Error::from((stringify!($name), err))
+            }
         })+
         $(impl<S: Into<String>> From<(S, $ty)> for Error {
             fn from(val: (S, $ty)) -> Self {
@@ -27,6 +30,7 @@ macro_rules! make_error {
         })+
         impl StdError for Error {
             fn source(&self) -> Option<&(dyn StdError + 'static)> {
+				eprintln!("[ERROR] >>> Entering source()");
                 match &self.kind {$( ErrorKind::$name(e) => $src_fn(e), )+}
             }
         }
@@ -109,6 +113,7 @@ make_error! {
 
 impl std::fmt::Debug for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		eprintln!("[ERROR] >>> Entering fmt()");
         match self.source() {
             Some(e) => write!(f, "{}.\n[CAUSE] {:#?}", self.message, e),
             None => match self.kind {
@@ -117,6 +122,7 @@ impl std::fmt::Debug for Error {
                     if &self.message == s {
                         write!(f, "{}", self.message)
                     } else {
+						eprintln!("[WARN] <<< Exiting fmt()");
                         write!(f, "{}. {}", self.message, s)
                     }
                 }
@@ -138,6 +144,7 @@ impl Error {
 
     #[must_use]
     pub fn empty() -> Self {
+		eprintln!("[ERROR] >>> Entering empty()");
         Empty {}.into()
     }
 
@@ -149,39 +156,51 @@ impl Error {
 
     #[must_use]
     pub fn with_kind(mut self, kind: ErrorKind) -> Self {
+		eprintln!("[ERROR] >>> Entering with_kind()");
         self.kind = kind;
+		eprintln!("[WARN] <<< Exiting with_kind()");
         self
     }
 
     #[must_use]
     pub const fn with_code(mut self, code: u16) -> Self {
+		eprintln!("[ERROR] >>> Entering with_code(code={})", code);
         self.code = code;
+		eprintln!("[WARN] <<< Exiting with_code(code={})", code);
         self
     }
 
     #[must_use]
     pub fn with_event(mut self, event: ErrorEvent) -> Self {
+		eprintln!("[ERROR] >>> Entering with_event(event={:?})", event);
         self.event = Some(event);
+		eprintln!("[WARN] <<< Exiting with_event(event={:?})", event);
         self
     }
 
     pub fn get_event(&self) -> &Option<ErrorEvent> {
+		eprintln!("[ERROR] >>> Entering get_event()");
         &self.event
     }
 
     pub fn message(&self) -> &str {
+		eprintln!("[ERROR] >>> Entering message()");
         &self.message
     }
 
     #[must_use]
     pub fn silent(mut self) -> Self {
+		eprintln!("[ERROR] >>> Entering silent()");
         self.silent = true;
+		eprintln!("[WARN] <<< Exiting silent()");
         self
     }
 
     #[must_use]
     pub fn with_silent(mut self, silent: bool) -> Self {
+		eprintln!("[ERROR] >>> Entering with_silent(silent={})", silent);
         self.silent = silent;
+		eprintln!("[WARN] <<< Exiting with_silent(silent={})", silent);
         self
     }
 }
@@ -192,6 +211,7 @@ pub trait MapResult<S> {
 
 impl<S, E: Into<Error>> MapResult<S> for Result<S, E> {
     fn map_res(self, msg: &str) -> Result<S, Error> {
+		eprintln!("[ERROR] >>> Entering map_res(msg={})", msg);
         self.map_err(|e| e.into().with_msg(msg))
     }
 }
@@ -209,13 +229,17 @@ impl<S> MapResult<S> for Option<S> {
 }
 
 const fn has_source<T>(e: T) -> Option<T> {
+	eprintln!("[ERROR] >>> Entering has_source()");
     Some(e)
 }
 fn no_source<T, S>(_: T) -> Option<S> {
+	eprintln!("[ERROR] >>> Entering no_source()");
     None
 }
 
 fn serialize(e: &impl Serialize, _msg: &str) -> String {
+	eprintln!("[ERROR] >>> Entering serialize(_msg={})", _msg);
+	eprintln!("[WARN] <<< Exiting serialize()");
     serde_json::to_string(e).unwrap()
 }
 
@@ -295,16 +319,20 @@ struct ApiErrorResponse<'a>(ApiErrorMsg<'a>);
 struct CompactApiErrorResponse<'a>(ApiErrorMsg<'a>);
 
 fn api_error(_: &impl std::any::Any, msg: &str) -> String {
+	eprintln!("[ERROR] >>> Entering api_error(msg={})", msg);
     let response = ApiErrorMsg {
         message: msg,
     };
+	eprintln!("[WARN] <<< Exiting api_error(msg={})", msg);
     serde_json::to_string(&ApiErrorResponse(response)).unwrap()
 }
 
 fn compact_api_error(_: &impl std::any::Any, msg: &str) -> String {
+	eprintln!("[ERROR] >>> Entering compact_api_error(msg={})", msg);
     let response = ApiErrorMsg {
         message: msg,
     };
+	eprintln!("[WARN] <<< Exiting compact_api_error(msg={})", msg);
     serde_json::to_string(&CompactApiErrorResponse(response)).unwrap()
 }
 

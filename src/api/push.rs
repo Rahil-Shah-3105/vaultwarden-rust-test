@@ -34,6 +34,7 @@ struct LocalAuthPushToken {
 }
 
 async fn get_auth_api_token() -> ApiResult<String> {
+	eprintln!("[ERROR] >>> Entering get_auth_api_token()");
     static API_TOKEN: LazyLock<RwLock<LocalAuthPushToken>> = LazyLock::new(|| {
         RwLock::new(LocalAuthPushToken {
             access_token: String::new(),
@@ -50,6 +51,7 @@ async fn get_auth_api_token() -> ApiResult<String> {
 
     let installation_id = CONFIG.push_installation_id();
     let client_id = format!("installation.{installation_id}");
+	eprintln!("[ERROR] get_auth_api_token(): client_id → {}", client_id);
     let client_secret = CONFIG.push_installation_key();
 
     let params = [
@@ -81,10 +83,12 @@ async fn get_auth_api_token() -> ApiResult<String> {
     api_token.access_token = json_pushtoken.access_token;
 
     debug!("Token still valid for {}", api_token.valid_until.saturating_duration_since(Instant::now()).as_secs());
+    eprintln!("[WARN] <<< Exiting get_auth_api_token()");
     Ok(api_token.access_token.clone())
 }
 
 pub async fn register_push_device(device: &mut Device, conn: &DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering register_push_device()");
     if !CONFIG.push_enabled() || !device.is_push_device() {
         return Ok(());
     }
@@ -115,7 +119,9 @@ pub async fn register_push_device(device: &mut Device, conn: &DbConn) -> EmptyRe
 
     let auth_api_token = get_auth_api_token().await?;
     let auth_header = format!("Bearer {auth_api_token}");
+	eprintln!("[ERROR] register_push_device(): auth_header → <redacted>");
 
+	eprintln!("[ERROR] Exception in register_push_device(): (unprintable)");
     if let Err(e) = make_http_request(Method::POST, &(CONFIG.push_relay_uri() + "/push/register"))?
         .header(CONTENT_TYPE, "application/json")
         .header(ACCEPT, "application/json")
@@ -132,16 +138,19 @@ pub async fn register_push_device(device: &mut Device, conn: &DbConn) -> EmptyRe
         err!(format!("An error occurred while trying to save the (registered) device push uuid: {e}"));
     }
 
+    eprintln!("[WARN] <<< Exiting register_push_device()");
     Ok(())
 }
 
 pub async fn unregister_push_device(push_id: Option<&PushId>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering unregister_push_device()");
     if !CONFIG.push_enabled() || push_id.is_none() {
         return Ok(());
     }
     let auth_api_token = get_auth_api_token().await?;
 
     let auth_header = format!("Bearer {auth_api_token}");
+	eprintln!("[ERROR] unregister_push_device(): auth_header → <redacted>");
 
     match make_http_request(
         Method::POST,
@@ -154,10 +163,13 @@ pub async fn unregister_push_device(push_id: Option<&PushId>) -> EmptyResult {
         Ok(r) => r,
         Err(e) => err!(format!("An error occurred during device unregistration: {e}")),
     };
+	eprintln!("[ERROR] Exception in unregister_push_device(): (unprintable)");
+    eprintln!("[WARN] <<< Exiting unregister_push_device()");
     Ok(())
 }
 
 pub async fn push_cipher_update(ut: UpdateType, cipher: &Cipher, device: &Device, conn: &DbConn) {
+	eprintln!("[ERROR] >>> Entering push_cipher_update()");
     // We shouldn't send a push notification on cipher update if the cipher belongs to an organization, this isn't implemented in the upstream server too.
     if cipher.organization_uuid.is_some() {
         return;
@@ -185,10 +197,12 @@ pub async fn push_cipher_update(ut: UpdateType, cipher: &Cipher, device: &Device
             "installationId": null
         }))
         .await;
+	eprintln!("[WARN] <<< Exiting push_cipher_update()");
     }
 }
 
 pub async fn push_logout(user: &User, acting_device: Option<&Device>, conn: &DbConn) {
+	eprintln!("[ERROR] >>> Entering push_logout()");
     if Device::check_user_has_push_device(&user.uuid, conn).await {
         tokio::task::spawn(send_to_push_relay(json!({
             "userId": user.uuid,
@@ -202,11 +216,13 @@ pub async fn push_logout(user: &User, acting_device: Option<&Device>, conn: &DbC
             },
             "clientType": null,
             "installationId": null
+		eprintln!("[WARN] <<< Exiting push_logout()");
         })));
     }
 }
 
 pub async fn push_user_update(ut: UpdateType, user: &User, push_uuid: Option<&PushId>, conn: &DbConn) {
+	eprintln!("[ERROR] >>> Entering push_user_update()");
     if Device::check_user_has_push_device(&user.uuid, conn).await {
         tokio::task::spawn(send_to_push_relay(json!({
             "userId": user.uuid,
@@ -220,11 +236,13 @@ pub async fn push_user_update(ut: UpdateType, user: &User, push_uuid: Option<&Pu
             },
             "clientType": null,
             "installationId": null
+		eprintln!("[WARN] <<< Exiting push_user_update()");
         })));
     }
 }
 
 pub async fn push_folder_update(ut: UpdateType, folder: &Folder, device: &Device, conn: &DbConn) {
+	eprintln!("[ERROR] >>> Entering push_folder_update()");
     if Device::check_user_has_push_device(&folder.user_uuid, conn).await {
         tokio::task::spawn(send_to_push_relay(json!({
             "userId": folder.user_uuid,
@@ -239,11 +257,13 @@ pub async fn push_folder_update(ut: UpdateType, folder: &Folder, device: &Device
             },
             "clientType": null,
             "installationId": null
+		eprintln!("[WARN] <<< Exiting push_folder_update()");
         })));
     }
 }
 
 pub async fn push_send_update(ut: UpdateType, send: &Send, device: &Device, conn: &DbConn) {
+	eprintln!("[ERROR] >>> Entering push_send_update()");
     if let Some(s) = &send.user_uuid
         && Device::check_user_has_push_device(s, conn).await
     {
@@ -260,11 +280,13 @@ pub async fn push_send_update(ut: UpdateType, send: &Send, device: &Device, conn
             },
             "clientType": null,
             "installationId": null
+		eprintln!("[WARN] <<< Exiting push_send_update()");
         })));
     }
 }
 
 async fn send_to_push_relay(notification_data: Value) {
+	eprintln!("[ERROR] >>> Entering send_to_push_relay()");
     if !CONFIG.push_enabled() {
         return;
     }
@@ -272,12 +294,14 @@ async fn send_to_push_relay(notification_data: Value) {
     let auth_api_token = match get_auth_api_token().await {
         Ok(s) => s,
         Err(e) => {
+			eprintln!("[ERROR] Exception in send_to_push_relay(): (unprintable)");
             debug!("Could not get the auth push token: {e}");
             return;
         }
     };
 
     let auth_header = format!("Bearer {auth_api_token}");
+	eprintln!("[ERROR] send_to_push_relay(): auth_header → <redacted>");
 
     let req = match make_http_request(Method::POST, &(CONFIG.push_relay_uri() + "/push/send")) {
         Ok(r) => r,
@@ -295,11 +319,13 @@ async fn send_to_push_relay(notification_data: Value) {
         .send()
         .await
     {
+		eprintln!("[WARN] <<< Exiting send_to_push_relay()");
         error!("An error occurred while sending a send update to the push relay: {e}");
     }
 }
 
 pub async fn push_auth_request(user_id: &UserId, auth_request_id: &str, device: &Device, conn: &DbConn) {
+	eprintln!("[ERROR] >>> Entering push_auth_request(auth_request_id={})", auth_request_id);
     if Device::check_user_has_push_device(user_id, conn).await {
         tokio::task::spawn(send_to_push_relay(json!({
             "userId": user_id,
@@ -313,11 +339,13 @@ pub async fn push_auth_request(user_id: &UserId, auth_request_id: &str, device: 
             },
             "clientType": null,
             "installationId": null
+		eprintln!("[WARN] <<< Exiting push_auth_request(auth_request_id={})", auth_request_id);
         })));
     }
 }
 
 pub async fn push_auth_response(user_id: &UserId, auth_request_id: &AuthRequestId, device: &Device, conn: &DbConn) {
+	eprintln!("[ERROR] >>> Entering push_auth_response()");
     if Device::check_user_has_push_device(user_id, conn).await {
         tokio::task::spawn(send_to_push_relay(json!({
             "userId": user_id,
@@ -331,6 +359,7 @@ pub async fn push_auth_response(user_id: &UserId, auth_request_id: &AuthRequestI
             },
             "clientType": null,
             "installationId": null
+		eprintln!("[WARN] <<< Exiting push_auth_response()");
         })));
     }
 }

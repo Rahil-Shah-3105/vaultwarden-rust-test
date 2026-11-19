@@ -50,6 +50,7 @@ pub enum TwoFactorType {
 /// Local methods
 impl TwoFactor {
     pub fn new(user_uuid: UserId, atype: TwoFactorType, data: String) -> Self {
+		eprintln!("[ERROR] >>> Entering new(data={})", data);
         Self {
             uuid: TwoFactorId(crate::util::get_uuid()),
             user_uuid,
@@ -61,6 +62,7 @@ impl TwoFactor {
     }
 
     pub fn to_json(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json()");
         json!({
             "enabled": self.enabled,
             "key": "", // This key and value vary
@@ -69,6 +71,7 @@ impl TwoFactor {
     }
 
     pub fn to_json_provider(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json_provider()");
         json!({
             "enabled": self.enabled,
             "type": self.atype,
@@ -80,6 +83,13 @@ impl TwoFactor {
 /// Database methods
 impl TwoFactor {
     pub async fn save(&self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save()");
+        let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] Exception in save(): (unprintable)");
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(twofactor::table)
@@ -118,6 +128,10 @@ impl TwoFactor {
     }
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete()");
         conn.run(move |conn| {
             diesel::delete(twofactor::table.filter(twofactor::uuid.eq(self.uuid)))
                 .execute(conn)
@@ -127,6 +141,7 @@ impl TwoFactor {
     }
 
     pub async fn find_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_user()");
         conn.run(move |conn| {
             twofactor::table
                 .filter(twofactor::user_uuid.eq(user_uuid))
@@ -138,6 +153,7 @@ impl TwoFactor {
     }
 
     pub async fn find_by_user_and_type(user_uuid: &UserId, atype: i32, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_user_and_type(atype={})", atype);
         conn.run(move |conn| {
             twofactor::table
                 .filter(twofactor::user_uuid.eq(user_uuid))
@@ -149,6 +165,10 @@ impl TwoFactor {
     }
 
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete_all_by_user(user_uuid,conn)=(unprintable),(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete_all_by_user(user_uuid,conn)=(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete_all_by_user()");
         conn.run(move |conn| {
             diesel::delete(twofactor::table.filter(twofactor::user_uuid.eq(user_uuid)))
                 .execute(conn)
@@ -158,6 +178,7 @@ impl TwoFactor {
     }
 
     pub async fn migrate_u2f_to_webauthn(conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering migrate_u2f_to_webauthn()");
         use crate::api::core::two_factor::webauthn::{U2FRegistration, get_webauthn_registrations};
         use webauthn_rs::prelude::{COSEEC2Key, COSEKey, COSEKeyType, ECDSACurve};
         use webauthn_rs_proto::{COSEAlgorithm, UserVerificationPolicy};
@@ -232,10 +253,12 @@ impl TwoFactor {
                 .await?;
         }
 
+		eprintln!("[WARN] <<< Exiting migrate_u2f_to_webauthn()");
         Ok(())
     }
 
     pub async fn migrate_credential_to_passkey(conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering migrate_credential_to_passkey()");
         let webauthn_factors = conn
             .run(move |conn| {
                 twofactor::table
@@ -259,6 +282,7 @@ impl TwoFactor {
                 .await?;
         }
 
+		eprintln!("[WARN] <<< Exiting migrate_credential_to_passkey()");
         Ok(())
     }
 }
@@ -276,6 +300,7 @@ pub struct WebauthnRegistrationV3 {
 
 impl From<WebauthnRegistrationV3> for WebauthnRegistration {
     fn from(value: WebauthnRegistrationV3) -> Self {
+		eprintln!("[ERROR] >>> Entering from()");
         Self {
             id: value.id,
             name: value.name,

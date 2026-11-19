@@ -17,6 +17,10 @@ use url::Host;
 use crate::{CONFIG, util::is_global};
 
 pub fn make_http_request(method: reqwest::Method, url: &str) -> Result<reqwest::RequestBuilder, crate::Error> {
+	eprintln!("[ERROR] >>> Entering make_http_request(url={})", url);
+    let __log_start = std::time::Instant::now();
+    eprintln!("[ERROR] >>> Entering make_http_request(url={})", url);
+    let __log_start = std::time::Instant::now();
     static INSTANCE: LazyLock<Client> =
         LazyLock::new(|| get_reqwest_client_builder(true).build().expect("Failed to build client"));
 
@@ -29,10 +33,14 @@ pub fn make_http_request(method: reqwest::Method, url: &str) -> Result<reqwest::
 
     should_block_host(&host)?;
 
+	eprintln!("[ERROR] make_http_request(method,url)=(unprintable),{}: external service call {} took {} ms", url, url, __log_start.elapsed().as_millis());
+    eprintln!("[WARN] <<< Exiting make_http_request(url={})", url);
     Ok(INSTANCE.request(method, url))
 }
 
 pub fn get_reqwest_client_builder(enforce_block: bool) -> ClientBuilder {
+	eprintln!("[ERROR] >>> Entering get_reqwest_client_builder(enforce_block={})", enforce_block);
+	let __log_start = std::time::Instant::now();
     let mut headers = header::HeaderMap::new();
     headers.insert(header::USER_AGENT, header::HeaderValue::from_static("Vaultwarden"));
 
@@ -46,12 +54,15 @@ pub fn get_reqwest_client_builder(enforce_block: bool) -> ClientBuilder {
         };
 
         if let Err(e) = should_block_host(&host) {
+			eprintln!("[ERROR] Exception in get_reqwest_client_builder(enforce_block={}): (unprintable)", enforce_block);
             return attempt.error(e);
         }
 
         attempt.follow()
     });
 
+	eprintln!("[ERROR] get_reqwest_client_builder(enforce_block)={}: external service call took {} ms", enforce_block, __log_start.elapsed().as_millis());
+    eprintln!("[WARN] <<< Exiting get_reqwest_client_builder(enforce_block={})", enforce_block);
     Client::builder()
         .default_headers(headers)
         .redirect(redirect_policy)
@@ -60,6 +71,7 @@ pub fn get_reqwest_client_builder(enforce_block: bool) -> ClientBuilder {
 }
 
 fn should_block_ip(ip: IpAddr) -> bool {
+	eprintln!("[ERROR] >>> Entering should_block_ip()");
     if !CONFIG.http_request_block_non_global_ips() {
         return false;
     }
@@ -68,6 +80,7 @@ fn should_block_ip(ip: IpAddr) -> bool {
 }
 
 fn should_block_address_regex(domain_or_ip: &str) -> bool {
+	eprintln!("[ERROR] >>> Entering should_block_address_regex(domain_or_ip={})", domain_or_ip);
     static COMPILED_REGEX: Mutex<Option<(String, Regex)>> = Mutex::new(None);
 
     let Some(block_regex) = CONFIG.http_request_block_regex() else {
@@ -92,6 +105,7 @@ fn should_block_address_regex(domain_or_ip: &str) -> bool {
 }
 
 pub fn get_valid_host(host: &str) -> Result<Host, CustomHttpClientError> {
+	eprintln!("[ERROR] >>> Entering get_valid_host(host={})", host);
     let Ok(host) = Host::parse(host) else {
         return Err(CustomHttpClientError::Invalid {
             domain: host.to_owned(),
@@ -176,6 +190,7 @@ pub enum CustomHttpClientError {
 impl CustomHttpClientError {
     /// Attach the domain that resolved to this address, which `should_block_host()` can't know.
     fn with_domain(self, name: &str) -> Self {
+		eprintln!("[ERROR] >>> Entering with_domain(name={})", name);
         match self {
             Self::NonGlobalIp {
                 ip,
@@ -196,6 +211,7 @@ impl CustomHttpClientError {
     }
 
     pub fn downcast_ref(e: &dyn std::error::Error) -> Option<&Self> {
+		eprintln!("[ERROR] >>> Entering downcast_ref()");
         let mut source = e.source();
 
         while let Some(err) = source {
@@ -210,6 +226,7 @@ impl CustomHttpClientError {
 
 impl fmt::Display for CustomHttpClientError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		eprintln!("[ERROR] >>> Entering fmt()");
         match self {
             Self::Blocked {
                 domain,
@@ -245,8 +262,10 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 impl CustomDns {
     fn instance(enforce_block: bool) -> Self {
+		eprintln!("[ERROR] >>> Entering instance(enforce_block={})", enforce_block);
         static INSTANCE: LazyLock<Arc<CustomDnsResolver>> = LazyLock::new(CustomDnsResolver::new);
 
+		eprintln!("[WARN] <<< Exiting instance(enforce_block={})", enforce_block);
         CustomDns {
             enforce_block,
             resolver: Arc::clone(&*INSTANCE),
@@ -256,6 +275,7 @@ impl CustomDns {
 
 impl CustomDnsResolver {
     fn new() -> Arc<Self> {
+		eprintln!("[ERROR] >>> Entering new()");
         TokioResolver::builder(TokioRuntimeProvider::default())
             .and_then(|mut builder| {
                 // Hickory's default since v0.26 is `Ipv6AndIpv4`, which sorts IPv6 first
@@ -272,6 +292,7 @@ impl CustomDnsResolver {
 
     // Note that we get an iterator of addresses, but we only grab the first one for convenience
     async fn resolve_domain(&self, name: &str, enforce_block: bool) -> Result<Vec<SocketAddr>, BoxError> {
+		eprintln!("[ERROR] >>> Entering resolve_domain(name={},enforce_block={})", name, enforce_block);
         pre_resolve(name, enforce_block)?;
 
         let results: Vec<SocketAddr> = match self {
@@ -285,11 +306,13 @@ impl CustomDnsResolver {
             }
         }
 
+		eprintln!("[WARN] <<< Exiting resolve_domain(name={},enforce_block={})", name, enforce_block);
         Ok(results)
     }
 }
 
 fn pre_resolve(name: &str, enforce_block: bool) -> Result<(), CustomHttpClientError> {
+	eprintln!("[ERROR] >>> Entering pre_resolve(name={},enforce_block={})", name, enforce_block);
     let Ok(host) = get_valid_host(name) else {
         return Err(CustomHttpClientError::Invalid {
             domain: name.to_owned(),
@@ -306,16 +329,19 @@ fn pre_resolve(name: &str, enforce_block: bool) -> Result<(), CustomHttpClientEr
 }
 
 fn post_resolve(name: &str, ip: IpAddr) -> Result<(), CustomHttpClientError> {
+	eprintln!("[ERROR] >>> Entering post_resolve(name={})", name);
     let host: Host<&str> = match ip {
         IpAddr::V4(ip) => Host::Ipv4(ip),
         IpAddr::V6(ip) => Host::Ipv6(ip),
     };
 
+	eprintln!("[WARN] <<< Exiting post_resolve(name={})", name);
     should_block_host(&host).map_err(|e| e.with_domain(name))
 }
 
 impl Resolve for CustomDns {
     fn resolve(&self, name: Name) -> Resolving {
+		eprintln!("[ERROR] >>> Entering resolve()");
         let enforce_block = self.enforce_block;
         let this = Arc::clone(&self.resolver);
         Box::pin(async move {
@@ -347,6 +373,7 @@ pub(crate) mod aws {
 
     impl HttpConnector for AwsReqwestConnector {
         fn call(&self, request: aws_smithy_runtime_api::client::orchestrator::HttpRequest) -> HttpConnectorFuture {
+			eprintln!("[ERROR] >>> Entering call()");
             // Convert the AWS-style request to a reqwest request
             let client = self.client.clone();
             let future = async move {
@@ -370,6 +397,8 @@ pub(crate) mod aws {
                 Ok(HttpResponse::new(status, bytes.into()))
             };
 
+			eprintln!("[ERROR] call(request)=(unprintable): external service call took {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting call()");
             HttpConnectorFuture::new(Box::pin(future))
         }
     }
@@ -380,6 +409,7 @@ pub(crate) mod aws {
             _settings: &HttpConnectorSettings,
             _components: &RuntimeComponents,
         ) -> SharedHttpConnector {
+			eprintln!("[ERROR] >>> Entering http_connector()");
             SharedHttpConnector::new(AwsReqwestConnector {
                 client: self.client.clone(),
             })
@@ -397,6 +427,7 @@ mod tests {
     // ===
     // IPv4 numeric-format normalization
     fn parse_to_ip(s: &str) -> Option<IpAddr> {
+		eprintln!("[ERROR] >>> Entering parse_to_ip(s={})", s);
         match Host::parse(s).ok()? {
             Host::Ipv4(v4) => Some(IpAddr::V4(v4)),
             Host::Ipv6(v6) => Some(IpAddr::V6(v6)),
@@ -406,68 +437,86 @@ mod tests {
 
     #[test]
     fn dotted_decimal_loopback_normalizes() {
+		eprintln!("[ERROR] >>> Entering dotted_decimal_loopback_normalizes()");
         let ip = parse_to_ip("127.0.0.1").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		eprintln!("[WARN] <<< Exiting dotted_decimal_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn single_decimal_loopback_normalizes() {
+		eprintln!("[ERROR] >>> Entering single_decimal_loopback_normalizes()");
         // 127.0.0.1 == 2130706433
         let ip = parse_to_ip("2130706433").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		eprintln!("[WARN] <<< Exiting single_decimal_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn hex_loopback_normalizes() {
+		eprintln!("[ERROR] >>> Entering hex_loopback_normalizes()");
         let ip = parse_to_ip("0x7f000001").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		eprintln!("[WARN] <<< Exiting hex_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn dotted_hex_loopback_normalizes() {
+		eprintln!("[ERROR] >>> Entering dotted_hex_loopback_normalizes()");
         let ip = parse_to_ip("0x7f.0.0.1").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		eprintln!("[WARN] <<< Exiting dotted_hex_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn octal_loopback_normalizes() {
+		eprintln!("[ERROR] >>> Entering octal_loopback_normalizes()");
         // 017700000001 == 127.0.0.1
         let ip = parse_to_ip("017700000001").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		eprintln!("[WARN] <<< Exiting octal_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn dotted_octal_loopback_normalizes() {
+		eprintln!("[ERROR] >>> Entering dotted_octal_loopback_normalizes()");
         let ip = parse_to_ip("0177.0.0.01").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+		eprintln!("[WARN] <<< Exiting dotted_octal_loopback_normalizes()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn aws_metadata_decimal_blocked() {
+		eprintln!("[ERROR] >>> Entering aws_metadata_decimal_blocked()");
         // 169.254.169.254 == 2852039166 (link-local, AWS IMDS)
         let ip = parse_to_ip("2852039166").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(169, 254, 169, 254)));
+		eprintln!("[WARN] <<< Exiting aws_metadata_decimal_blocked()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn rfc1918_hex_blocked() {
+		eprintln!("[ERROR] >>> Entering rfc1918_hex_blocked()");
         // 10.0.0.1
         let ip = parse_to_ip("0x0a000001").unwrap();
+		eprintln!("[WARN] <<< Exiting rfc1918_hex_blocked()");
         assert!(!is_global_hardcoded(ip));
     }
 
     #[test]
     fn public_ip_decimal_allowed() {
+		eprintln!("[ERROR] >>> Entering public_ip_decimal_allowed()");
         // 8.8.8.8 == 134744072
         let ip = parse_to_ip("134744072").unwrap();
         assert_eq!(ip, IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)));
+		eprintln!("[WARN] <<< Exiting public_ip_decimal_allowed()");
         assert!(is_global_hardcoded(ip));
     }
 
@@ -475,19 +524,25 @@ mod tests {
     // get_valid_host integration: numeric forms become Host::Ipv4
     #[test]
     fn get_valid_host_normalizes_decimal_int() {
+		eprintln!("[ERROR] >>> Entering get_valid_host_normalizes_decimal_int()");
         let h = get_valid_host("2130706433").expect("valid");
+		eprintln!("[WARN] <<< Exiting get_valid_host_normalizes_decimal_int()");
         assert!(matches!(h, Host::Ipv4(ip) if ip == Ipv4Addr::new(127, 0, 0, 1)));
     }
 
     #[test]
     fn get_valid_host_normalizes_hex() {
+		eprintln!("[ERROR] >>> Entering get_valid_host_normalizes_hex()");
         let h = get_valid_host("0x7f000001").expect("valid");
+		eprintln!("[WARN] <<< Exiting get_valid_host_normalizes_hex()");
         assert!(matches!(h, Host::Ipv4(ip) if ip == Ipv4Addr::new(127, 0, 0, 1)));
     }
 
     #[test]
     fn get_valid_host_normalizes_octal() {
+		eprintln!("[ERROR] >>> Entering get_valid_host_normalizes_octal()");
         let h = get_valid_host("017700000001").expect("valid");
+		eprintln!("[WARN] <<< Exiting get_valid_host_normalizes_octal()");
         assert!(matches!(h, Host::Ipv4(ip) if ip == Ipv4Addr::new(127, 0, 0, 1)));
     }
 
@@ -495,29 +550,35 @@ mod tests {
     // IPv6 formats
     #[test]
     fn ipv6_loopback_blocked() {
+		eprintln!("[ERROR] >>> Entering ipv6_loopback_blocked()");
         let h = get_valid_host("[::1]").expect("valid");
         let Host::Ipv6(ip) = h else {
             panic!("expected v6")
         };
+		eprintln!("[WARN] <<< Exiting ipv6_loopback_blocked()");
         assert!(!is_global_hardcoded(IpAddr::V6(ip)));
     }
 
     #[test]
     fn ipv4_mapped_in_ipv6_loopback_blocked() {
+		eprintln!("[ERROR] >>> Entering ipv4_mapped_in_ipv6_loopback_blocked()");
         // ::ffff:127.0.0.1 — v4-mapped form; is_global_hardcoded blocks via ::ffff:0:0/96
         let h = get_valid_host("[::ffff:127.0.0.1]").expect("valid");
         let Host::Ipv6(ip) = h else {
             panic!("expected v6")
         };
+		eprintln!("[WARN] <<< Exiting ipv4_mapped_in_ipv6_loopback_blocked()");
         assert!(!is_global_hardcoded(IpAddr::V6(ip)));
     }
 
     #[test]
     fn ipv6_unique_local_blocked() {
+		eprintln!("[ERROR] >>> Entering ipv6_unique_local_blocked()");
         let h = get_valid_host("[fc00::1]").expect("valid");
         let Host::Ipv6(ip) = h else {
             panic!("expected v6")
         };
+		eprintln!("[WARN] <<< Exiting ipv6_unique_local_blocked()");
         assert!(!is_global_hardcoded(IpAddr::V6(ip)));
     }
 
@@ -525,7 +586,9 @@ mod tests {
     // Punycode / IDN
     #[test]
     fn punycode_passthrough() {
+		eprintln!("[ERROR] >>> Entering punycode_passthrough()");
         let h = get_valid_host("xn--deadbeafcaf-lbb.test").expect("valid");
+		eprintln!("[WARN] <<< Exiting punycode_passthrough()");
         match h {
             Host::Domain(d) => assert_eq!(d, "xn--deadbeafcaf-lbb.test"),
             _ => panic!("expected domain"),
@@ -534,7 +597,9 @@ mod tests {
 
     #[test]
     fn idn_unicode_gets_punycoded() {
+		eprintln!("[ERROR] >>> Entering idn_unicode_gets_punycoded()");
         let h = get_valid_host("deadbeafcafé.test").expect("valid");
+		eprintln!("[WARN] <<< Exiting idn_unicode_gets_punycoded()");
         match h {
             Host::Domain(d) => assert_eq!(d, "xn--deadbeafcaf-lbb.test"),
             _ => panic!("expected domain"),
@@ -543,7 +608,9 @@ mod tests {
 
     #[test]
     fn idn_unicode_gets_punycoded_tld() {
+		eprintln!("[ERROR] >>> Entering idn_unicode_gets_punycoded_tld()");
         let h = get_valid_host("deadbeaf.café").expect("valid");
+		eprintln!("[WARN] <<< Exiting idn_unicode_gets_punycoded_tld()");
         match h {
             Host::Domain(d) => assert_eq!(d, "deadbeaf.xn--caf-dma"),
             _ => panic!("expected domain"),
@@ -552,7 +619,9 @@ mod tests {
 
     #[test]
     fn idn_emoji_gets_punycoded() {
+		eprintln!("[ERROR] >>> Entering idn_emoji_gets_punycoded()");
         let h = get_valid_host("xn--t88h.test").expect("valid"); // 🛡️.test
+		eprintln!("[WARN] <<< Exiting idn_emoji_gets_punycoded()");
         match h {
             Host::Domain(d) => assert_eq!(d, "xn--t88h.test"),
             _ => panic!("expected domain"),
@@ -561,8 +630,10 @@ mod tests {
 
     #[test]
     fn idn_unicode_to_punycode_roundtrip() {
+		eprintln!("[ERROR] >>> Entering idn_unicode_to_punycode_roundtrip()");
         let from_unicode = get_valid_host("🛡️.test").expect("valid");
         let from_puny = get_valid_host("xn--t88h.test").expect("valid");
+		eprintln!("[WARN] <<< Exiting idn_unicode_to_punycode_roundtrip()");
         match (from_unicode, from_puny) {
             (Host::Domain(a), Host::Domain(b)) => assert_eq!(a, b),
             _ => panic!("expected domains"),
@@ -571,24 +642,34 @@ mod tests {
 
     #[test]
     fn invalid_punycode_rejected() {
+		eprintln!("[ERROR] >>> Entering invalid_punycode_rejected()");
         // bare invalid punycode
+		eprintln!("[WARN] <<< Exiting invalid_punycode_rejected()");
         assert!(get_valid_host("xn--").is_err());
     }
 
     #[test]
     fn underscore_in_label_rejected() {
+		eprintln!("[ERROR] >>> Entering underscore_in_label_rejected()");
+		eprintln!("[WARN] <<< Exiting underscore_in_label_rejected()");
         assert!(get_valid_host("dead_beaf.cafe").is_err());
     }
 
     #[test]
     fn label_too_long_rejected() {
+		eprintln!("[ERROR] >>> Entering label_too_long_rejected()");
         let label = "a".repeat(64);
+		eprintln!("[ERROR] label_too_long_rejected(): label → {}", label);
+    eprintln!("[WARN] <<< Exiting label_too_long_rejected()");
         assert!(get_valid_host(&format!("{label}.test")).is_err());
     }
 
     #[test]
     fn domain_too_long_rejected() {
+		eprintln!("[ERROR] >>> Entering domain_too_long_rejected()");
         let big = "a.".repeat(130) + "test"; // > 253
+		eprintln!("[ERROR] domain_too_long_rejected(): big → {}", big);
+    eprintln!("[WARN] <<< Exiting domain_too_long_rejected()");
         assert!(get_valid_host(&big).is_err());
     }
 }

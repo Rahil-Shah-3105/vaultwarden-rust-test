@@ -26,6 +26,7 @@ use crate::{
 };
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     // If adding more routes here, consider also adding them to
     // crate::utils::LOGGED_ROUTES to make sure they appear in the log
     let mut routes = routes![attachments, alive, alive_head, static_files];
@@ -46,24 +47,29 @@ pub fn routes() -> Vec<Route> {
         routes.append(&mut routes![static_files_dev]);
     }
 
+	eprintln!("[WARN] <<< Exiting routes()");
     routes
 }
 
 pub fn catchers() -> Vec<Catcher> {
+	eprintln!("[ERROR] >>> Entering catchers()");
     if CONFIG.web_vault_enabled() {
         catchers![not_found]
     } else {
+		eprintln!("[WARN] <<< Exiting catchers()");
         catchers![]
     }
 }
 
 #[catch(404)]
 fn not_found() -> ApiResult<Html<String>> {
+	eprintln!("[ERROR] >>> Entering not_found()");
     // Return the page
     let json = json!({
         "urlpath": CONFIG.domain_path()
     });
     let text = CONFIG.render_template("404", &json)?;
+	eprintln!("[WARN] <<< Exiting not_found()");
     Ok(Html(text))
 }
 
@@ -75,11 +81,14 @@ struct CssCache {
 static CSS_CACHE: RwLock<Option<Arc<CssCache>>> = RwLock::new(None);
 
 pub fn invalidate_css_cache() {
+	eprintln!("[ERROR] >>> Entering invalidate_css_cache()");
+	eprintln!("[WARN] <<< Exiting invalidate_css_cache()");
     *CSS_CACHE.write().unwrap() = None;
 }
 
 #[get("/css/vaultwarden.css")]
 fn vaultwarden_css() -> EtagCached<Css<String>> {
+	eprintln!("[ERROR] >>> Entering vaultwarden_css()");
     // If reload_templates is false, and we already have the CSS Cached, return this
     if !CONFIG.reload_templates()
         && let Some(cached) = CSS_CACHE.read().unwrap().as_ref()
@@ -106,6 +115,7 @@ fn vaultwarden_css() -> EtagCached<Css<String>> {
     let scss = match CONFIG.render_template("scss/vaultwarden.scss", &css_options) {
         Ok(t) => t,
         Err(e) => {
+			eprintln!("[ERROR] Exception in vaultwarden_css(): (unprintable)");
             // Something went wrong loading the template. Use the fallback
             warn!("Loading scss/vaultwarden.scss.hbs or scss/user.vaultwarden.scss.hbs failed. {e}");
             CONFIG
@@ -146,11 +156,13 @@ fn vaultwarden_css() -> EtagCached<Css<String>> {
     }
 
     // Etag Caching will let the browser send us an etag to verify and send new content if needed
+    eprintln!("[WARN] <<< Exiting vaultwarden_css()");
     EtagCached::new(Css(cached.css.clone()), &cached.etag)
 }
 
 #[get("/")]
 async fn web_index() -> Cached<Option<NamedFile>> {
+	eprintln!("[ERROR] >>> Entering web_index()");
     Cached::short(NamedFile::open(Path::new(&CONFIG.web_vault_folder()).join("index.html")).await.ok(), false)
 }
 
@@ -158,24 +170,29 @@ async fn web_index() -> Cached<Option<NamedFile>> {
 // If not, this might cause issues with the web-vault
 #[get("/index.html")]
 fn web_index_direct() -> Redirect {
+	eprintln!("[ERROR] >>> Entering web_index_direct()");
     Redirect::to(format!("{}/", CONFIG.domain_path()))
 }
 
 #[head("/")]
 fn web_index_head() -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering web_index_head()");
     // Add an explicit HEAD route to prevent uptime monitoring services from
     // generating "No matching routes for HEAD /" error messages.
     //
     // Rocket automatically implements a HEAD route when there's a matching GET
     // route, but relying on this behavior also means a spurious error gets
     // logged due to <https://github.com/SergioBenitez/Rocket/issues/1098>.
+	eprintln!("[WARN] <<< Exiting web_index_head()");
     Ok(())
 }
 
 #[get("/app-id.json")]
 fn app_id() -> Cached<(ContentType, Json<Value>)> {
+	eprintln!("[ERROR] >>> Entering app_id()");
     let content_type = ContentType::new("application", "fido.trusted-apps+json");
 
+	eprintln!("[WARN] <<< Exiting app_id()");
     Cached::long(
         (
             content_type,
@@ -206,6 +223,7 @@ fn app_id() -> Cached<(ContentType, Json<Value>)> {
 
 #[get("/.well-known/apple-app-site-association")]
 fn apple_app_site_association() -> Cached<(ContentType, Json<Value>)> {
+	eprintln!("[ERROR] >>> Entering apple_app_site_association()");
     Cached::long(
         (
             ContentType::JSON,
@@ -224,11 +242,13 @@ fn apple_app_site_association() -> Cached<(ContentType, Json<Value>)> {
 
 #[get("/<p..>", rank = 10)] // Only match this if the other routes don't match
 async fn web_files(p: PathBuf) -> Cached<Option<NamedFile>> {
+	eprintln!("[ERROR] >>> Entering web_files(p={:?})", p);
     Cached::long(NamedFile::open(Path::new(&CONFIG.web_vault_folder()).join(p)).await.ok(), true)
 }
 
 #[get("/attachments/<cipher_id>/<file_id>?<token>")]
 async fn attachments(cipher_id: CipherId, file_id: AttachmentId, token: String) -> Option<NamedFile> {
+	eprintln!("[ERROR] >>> Entering attachments(token=<redacted>)");
     let Ok(claims) = decode_file_download(&token) else {
         return None;
     };
@@ -242,13 +262,16 @@ async fn attachments(cipher_id: CipherId, file_id: AttachmentId, token: String) 
 // We use DbConn here to let the alive healthcheck also verify the database connection.
 #[get("/alive")]
 fn alive(_conn: DbConn) -> Json<String> {
+	eprintln!("[ERROR] >>> Entering alive()");
     now()
 }
 
 #[head("/alive")]
 fn alive_head(_conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering alive_head()");
     // Avoid logging spurious "No matching routes for HEAD /alive" errors
     // due to <https://github.com/SergioBenitez/Rocket/issues/1098>.
+	eprintln!("[WARN] <<< Exiting alive_head()");
     Ok(())
 }
 
@@ -259,6 +282,7 @@ fn alive_head(_conn: DbConn) -> EmptyResult {
 #[cfg(debug_assertions)]
 #[get("/vw_static/<filename>", rank = 1)]
 pub async fn static_files_dev(filename: PathBuf) -> Option<NamedFile> {
+	eprintln!("[ERROR] >>> Entering static_files_dev(filename={:?})", filename);
     warn!("LOADING STATIC FILES FROM DISK");
     let file = filename.to_str().unwrap_or_default();
     let ext = filename.extension().unwrap_or_default();
@@ -277,6 +301,7 @@ pub async fn static_files_dev(filename: PathBuf) -> Option<NamedFile> {
 
 #[get("/vw_static/<filename>", rank = 2)]
 pub fn static_files(filename: &str) -> Result<(ContentType, &'static [u8]), Error> {
+	eprintln!("[ERROR] >>> Entering static_files(filename={})", filename);
     match filename {
         "404.png" => Ok((ContentType::PNG, include_bytes!("../static/images/404.png"))),
         "mail-github.png" => Ok((ContentType::PNG, include_bytes!("../static/images/mail-github.png"))),
@@ -302,6 +327,7 @@ pub fn static_files(filename: &str) -> Result<(ContentType, &'static [u8]), Erro
         "datatables.js" => Ok((ContentType::JavaScript, include_bytes!("../static/scripts/datatables.js"))),
         "datatables.css" => Ok((ContentType::CSS, include_bytes!("../static/scripts/datatables.css"))),
         "jquery-4.0.0.slim.js" => {
+			eprintln!("[WARN] <<< Exiting static_files(filename={})", filename);
             Ok((ContentType::JavaScript, include_bytes!("../static/scripts/jquery-4.0.0.slim.js")))
         }
         _ => err!(format!("Static file not found: {filename}")),

@@ -42,6 +42,7 @@ static ANON_PUSH_DEVICE: LazyLock<Device> = LazyLock::new(|| {
 const SIZE_525_MB: i64 = 550_502_400;
 
 pub fn routes() -> Vec<rocket::Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![
         get_sends,
         get_send,
@@ -61,10 +62,12 @@ pub fn routes() -> Vec<rocket::Route> {
 }
 
 pub async fn purge_sends(pool: DbPool) {
+	eprintln!("[ERROR] >>> Entering purge_sends()");
     debug!("Purging sends");
     if let Ok(conn) = pool.get().await {
         Send::purge(&conn).await;
     } else {
+		eprintln!("[WARN] <<< Exiting purge_sends()");
         error!("Failed to get DB connection while purging sends");
     }
 }
@@ -102,12 +105,14 @@ pub struct SendData {
 /// There is also a Vaultwarden-specific `sends_allowed` config setting that
 /// controls this policy globally.
 async fn enforce_disable_send_policy(headers: &Headers, conn: &DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering enforce_disable_send_policy()");
     let user_id = &headers.user.uuid;
     if !CONFIG.sends_allowed()
         || OrgPolicy::is_applicable_to_user(user_id, OrgPolicyType::DisableSend, None, conn).await
     {
         err!("Due to an Enterprise Policy, you are only able to delete an existing Send.")
     }
+	eprintln!("[WARN] <<< Exiting enforce_disable_send_policy()");
     Ok(())
 }
 
@@ -118,6 +123,7 @@ async fn enforce_disable_send_policy(headers: &Headers, conn: &DbConn) -> EmptyR
 ///
 /// Ref: https://bitwarden.com/help/article/policies/#send-options
 async fn enforce_disable_hide_email_policy(data: &SendData, headers: &Headers, conn: &DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering enforce_disable_hide_email_policy()");
     let user_id = &headers.user.uuid;
     let hide_email = data.hide_email.unwrap_or(false);
     if hide_email && OrgPolicy::is_hide_email_disabled(user_id, conn).await {
@@ -126,10 +132,12 @@ async fn enforce_disable_hide_email_policy(data: &SendData, headers: &Headers, c
               from recipients when creating or editing a Send."
         )
     }
+	eprintln!("[WARN] <<< Exiting enforce_disable_hide_email_policy()");
     Ok(())
 }
 
 fn create_send(data: SendData, user_id: UserId) -> ApiResult<Send> {
+	eprintln!("[ERROR] >>> Entering create_send()");
     let data_val = if data.r#type == SendType::Text as i32 {
         data.text
     } else if data.r#type == SendType::File as i32 {
@@ -169,14 +177,17 @@ fn create_send(data: SendData, user_id: UserId) -> ApiResult<Send> {
 
     send.set_password(data.password.as_deref());
 
+	eprintln!("[WARN] <<< Exiting create_send()");
     Ok(send)
 }
 
 #[get("/sends")]
 async fn get_sends(headers: Headers, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering get_sends()");
     let sends = Send::find_by_user(&headers.user.uuid, &conn);
     let sends_json: Vec<Value> = sends.await.iter().map(Send::to_json).collect();
 
+	eprintln!("[WARN] <<< Exiting get_sends()");
     Json(json!({
       "data": sends_json,
       "object": "list",
@@ -186,15 +197,18 @@ async fn get_sends(headers: Headers, conn: DbConn) -> Json<Value> {
 
 #[get("/sends/<send_id>")]
 async fn get_send(send_id: SendId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_send()");
     if let Some(send) = Send::find_by_uuid_and_user(&send_id, &headers.user.uuid, &conn).await {
         Ok(Json(send.to_json()))
     } else {
+		eprintln!("[WARN] <<< Exiting get_send()");
         err!("Send not found", "Invalid send uuid or does not belong to user")
     }
 }
 
 #[post("/sends", data = "<data>")]
 async fn post_send(data: Json<SendData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_send()");
     enforce_disable_send_policy(&headers, &conn).await?;
 
     let data: SendData = data.into_inner();
@@ -215,6 +229,7 @@ async fn post_send(data: Json<SendData>, headers: Headers, conn: DbConn, nt: Not
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting post_send()");
     Ok(Json(send.to_json()))
 }
 
@@ -236,6 +251,7 @@ struct UploadDataV2<'f> {
 // See: https://github.com/bitwarden/server/blob/9ebe16587175b1c0e9208f84397bb75d0d595510/src/Api/Tools/Controllers/SendsController.cs
 #[post("/sends/file", format = "multipart/form-data", data = "<data>")]
 async fn post_send_file(data: Form<UploadData<'_>>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_send_file()");
     enforce_disable_send_policy(&headers, &conn).await?;
 
     let UploadData {
@@ -285,7 +301,9 @@ async fn post_send_file(data: Form<UploadData<'_>>, headers: Headers, conn: DbCo
 
     let mut data_value: Value = serde_json::from_str(&send.data)?;
     if let Some(o) = data_value.as_object_mut() {
+		let __log_start = std::time::Instant::now();
         o.insert(String::from("id"), Value::String(file_id));
+		eprintln!("[ERROR] post_send_file(data,headers,conn,nt)=(unprintable),(unprintable),(unprintable),(unprintable): save query executed in {} ms", __log_start.elapsed().as_millis());
         o.insert(String::from("size"), Value::Number(size.into()));
         o.insert(String::from("sizeName"), Value::String(crate::util::get_display_size(size)));
     }
@@ -302,12 +320,14 @@ async fn post_send_file(data: Form<UploadData<'_>>, headers: Headers, conn: DbCo
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting post_send_file()");
     Ok(Json(send.to_json()))
 }
 
 // Upstream: https://github.com/bitwarden/server/blob/9ebe16587175b1c0e9208f84397bb75d0d595510/src/Api/Tools/Controllers/SendsController.cs#L165
 #[post("/sends/file/v2", data = "<data>")]
 async fn post_send_file_v2(data: Json<SendData>, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_send_file_v2()");
     enforce_disable_send_policy(&headers, &conn).await?;
 
     let data = data.into_inner();
@@ -361,6 +381,7 @@ async fn post_send_file_v2(data: Json<SendData>, headers: Headers, conn: DbConn)
     send.data = serde_json::to_string(&data_value)?;
     send.save(&conn).await?;
 
+	eprintln!("[WARN] <<< Exiting post_send_file_v2()");
     Ok(Json(json!({
         "fileUploadType": 0, // 0 == Direct | 1 == Azure
         "object": "send-fileUpload",
@@ -387,6 +408,7 @@ async fn post_send_file_v2_data(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_send_file_v2_data()");
     enforce_disable_send_policy(&headers, &conn).await?;
 
     let data = data.into_inner();
@@ -433,6 +455,7 @@ async fn post_send_file_v2_data(
     }
 
     let file_path = format!("{send_id}/{file_id}");
+	eprintln!("[ERROR] post_send_file_v2_data(): file_path → {}", file_path);
 
     save_temp_file(&PathType::Sends, &file_path, data.data, false).await?;
 
@@ -445,17 +468,20 @@ async fn post_send_file_v2_data(
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting post_send_file_v2_data()");
     Ok(())
 }
 
 #[post("/sends/access")]
 async fn post_access(headers: SendHeaders, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_access()");
     let Some(send) = Send::find_by_uuid(&headers.send_id, &conn).await else {
         err_code!(SEND_INACCESSIBLE_MSG, 404)
     };
     if !send.is_accessible() {
         err_code!(SEND_INACCESSIBLE_MSG, 404)
     }
+	eprintln!("[WARN] <<< Exiting post_access()");
     process_access(send, conn, nt).await
 }
 
@@ -474,6 +500,7 @@ async fn post_access_legacy(
     ip: ClientIp,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_access_legacy(access_id={})", access_id);
     crate::ratelimit::check_limit_unauthenticated(&ip.ip)?;
 
     let Some(mut send) = Send::find_by_access_id(access_id, &conn).await else {
@@ -507,10 +534,12 @@ async fn post_access_legacy(
         send.save(&conn).await?;
     }
 
+	eprintln!("[WARN] <<< Exiting post_access_legacy(access_id={})", access_id);
     process_access(send, conn, nt).await
 }
 
 async fn process_access(send: Send, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering process_access()");
     nt.send_send_update(
         UpdateType::SyncSendUpdate,
         &send,
@@ -520,6 +549,7 @@ async fn process_access(send: Send, conn: DbConn, nt: Notify<'_>) -> JsonResult 
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting process_access()");
     Ok(Json(send.to_json_access(&conn).await))
 }
 
@@ -531,12 +561,14 @@ async fn post_access_file(
     conn: DbConn,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_access_file()");
     let Some(send) = Send::find_by_uuid(&headers.send_id, &conn).await else {
         err_code!(SEND_INACCESSIBLE_MSG, 404)
     };
     if !send.is_accessible() {
         err_code!(SEND_INACCESSIBLE_MSG, 404)
     }
+	eprintln!("[WARN] <<< Exiting post_access_file()");
     process_access_file(send, file_id, host, conn, nt).await
 }
 
@@ -551,6 +583,7 @@ async fn post_access_file_legacy(
     ip: ClientIp,
     nt: Notify<'_>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering post_access_file_legacy()");
     crate::ratelimit::check_limit_unauthenticated(&ip.ip)?;
 
     let Some(mut send) = Send::find_by_uuid(&send_id, &conn).await else {
@@ -579,10 +612,12 @@ async fn post_access_file_legacy(
         err_code!(SEND_INACCESSIBLE_MSG, 404)
     }
 
+	eprintln!("[WARN] <<< Exiting post_access_file_legacy()");
     process_access_file(send, file_id, host, conn, nt).await
 }
 
 async fn process_access_file(send: Send, file_id: SendFileId, host: Host, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering process_access_file()");
     nt.send_send_update(
         UpdateType::SyncSendUpdate,
         &send,
@@ -592,6 +627,7 @@ async fn process_access_file(send: Send, file_id: SendFileId, host: Host, conn: 
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting process_access_file()");
     Ok(Json(json!({
         "object": "send-fileDownload",
         "id": file_id,
@@ -600,6 +636,7 @@ async fn process_access_file(send: Send, file_id: SendFileId, host: Host, conn: 
 }
 
 async fn download_url(host: &Host, send_id: &SendId, file_id: &SendFileId) -> Result<String, crate::Error> {
+	eprintln!("[ERROR] >>> Entering download_url()");
     let operator = CONFIG.opendal_operator_for_path_type(&PathType::Sends)?;
 
     if crate::storage::is_fs_operator(&operator) {
@@ -608,12 +645,14 @@ async fn download_url(host: &Host, send_id: &SendId, file_id: &SendFileId) -> Re
 
         Ok(format!("{}/api/sends/{send_id}/{file_id}?t={token}", host.host))
     } else {
+		eprintln!("[WARN] <<< Exiting download_url()");
         Ok(operator.presign_read(&format!("{send_id}/{file_id}"), Duration::from_mins(5)).await?.uri().to_string())
     }
 }
 
 #[get("/sends/<send_id>/<file_id>?<t>")]
 async fn download_send(send_id: SendId, file_id: SendFileId, t: &str) -> Option<NamedFile> {
+	eprintln!("[ERROR] >>> Entering download_send(t={})", t);
     if let Ok(claims) = crate::auth::decode_send(t)
         && claims.sub == format!("{send_id}/{file_id}")
     {
@@ -624,6 +663,7 @@ async fn download_send(send_id: SendId, file_id: SendFileId, t: &str) -> Option<
 
 #[put("/sends/<send_id>", data = "<data>")]
 async fn put_send(send_id: SendId, data: Json<SendData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_send()");
     enforce_disable_send_policy(&headers, &conn).await?;
 
     let data: SendData = data.into_inner();
@@ -639,6 +679,7 @@ async fn put_send(send_id: SendId, data: Json<SendData>, headers: Headers, conn:
 
     update_send_from_data(&mut send, data, &headers, &conn, &nt, UpdateType::SyncSendUpdate).await?;
 
+	eprintln!("[WARN] <<< Exiting put_send()");
     Ok(Json(send.to_json()))
 }
 
@@ -650,6 +691,7 @@ pub async fn update_send_from_data(
     nt: &Notify<'_>,
     ut: UpdateType,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering update_send_from_data()");
     if send.user_uuid.as_ref() != Some(&headers.user.uuid) {
         err!("Send is not owned by user")
     }
@@ -697,11 +739,13 @@ pub async fn update_send_from_data(
     if ut != UpdateType::None {
         nt.send_send_update(ut, send, &send.update_users_revision(conn).await, &headers.device, conn).await;
     }
+	eprintln!("[WARN] <<< Exiting update_send_from_data()");
     Ok(())
 }
 
 #[delete("/sends/<send_id>")]
 async fn delete_send(send_id: SendId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_send()");
     let Some(send) = Send::find_by_uuid_and_user(&send_id, &headers.user.uuid, &conn).await else {
         err!("Send not found", "Invalid send uuid, or does not belong to user")
     };
@@ -716,11 +760,13 @@ async fn delete_send(send_id: SendId, headers: Headers, conn: DbConn, nt: Notify
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting delete_send()");
     Ok(())
 }
 
 #[put("/sends/<send_id>/remove-password")]
 async fn put_remove_password(send_id: SendId, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_remove_password()");
     enforce_disable_send_policy(&headers, &conn).await?;
 
     let Some(mut send) = Send::find_by_uuid_and_user(&send_id, &headers.user.uuid, &conn).await else {
@@ -738,5 +784,6 @@ async fn put_remove_password(send_id: SendId, headers: Headers, conn: DbConn, nt
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting put_remove_password()");
     Ok(Json(send.to_json()))
 }

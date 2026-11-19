@@ -21,6 +21,7 @@ use crate::{
 };
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![
         get_contacts,
         get_grantees,
@@ -47,6 +48,7 @@ pub fn routes() -> Vec<Route> {
 
 #[get("/emergency-access/trusted")]
 async fn get_contacts(headers: Headers, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering get_contacts()");
     let emergency_access_list = if CONFIG.emergency_access_allowed() {
         EmergencyAccess::find_all_by_grantor_uuid(&headers.user.uuid, &conn).await
     } else {
@@ -59,6 +61,7 @@ async fn get_contacts(headers: Headers, conn: DbConn) -> Json<Value> {
         }
     }
 
+	eprintln!("[WARN] <<< Exiting get_contacts()");
     Json(json!({
       "data": emergency_access_list_json,
       "object": "list",
@@ -68,6 +71,7 @@ async fn get_contacts(headers: Headers, conn: DbConn) -> Json<Value> {
 
 #[get("/emergency-access/granted")]
 async fn get_grantees(headers: Headers, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering get_grantees()");
     let emergency_access_list = if CONFIG.emergency_access_allowed() {
         EmergencyAccess::find_all_by_grantee_uuid(&headers.user.uuid, &conn).await
     } else {
@@ -78,6 +82,7 @@ async fn get_grantees(headers: Headers, conn: DbConn) -> Json<Value> {
         emergency_access_list_json.push(ea.to_json_grantor_details(&conn).await);
     }
 
+	eprintln!("[WARN] <<< Exiting get_grantees()");
     Json(json!({
       "data": emergency_access_list_json,
       "object": "list",
@@ -87,6 +92,7 @@ async fn get_grantees(headers: Headers, conn: DbConn) -> Json<Value> {
 
 #[get("/emergency-access/<emer_id>")]
 async fn get_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_emergency_access()");
     check_emergency_access_enabled()?;
 
     if let Some(emergency_access) =
@@ -96,6 +102,7 @@ async fn get_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn
             emergency_access.to_json_grantee_details(&conn).await.expect("Grantee user should exist but does not!"),
         ))
     } else {
+		eprintln!("[WARN] <<< Exiting get_emergency_access()");
         err!("Emergency access not valid.")
     }
 }
@@ -119,6 +126,7 @@ async fn put_emergency_access(
     headers: Headers,
     conn: DbConn,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering put_emergency_access()");
     post_emergency_access(emer_id, data, headers, conn).await
 }
 
@@ -161,6 +169,7 @@ async fn post_emergency_access(
 
 #[delete("/emergency-access/<emer_id>")]
 async fn delete_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_emergency_access()");
     check_emergency_access_enabled()?;
 
     let emergency_access = match (
@@ -179,11 +188,13 @@ async fn delete_emergency_access(emer_id: EmergencyAccessId, headers: Headers, c
     };
 
     emergency_access.delete(&conn).await?;
+	eprintln!("[WARN] <<< Exiting delete_emergency_access()");
     Ok(())
 }
 
 #[post("/emergency-access/<emer_id>/delete")]
 async fn post_delete_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_delete_emergency_access()");
     delete_emergency_access(emer_id, headers, conn).await
 }
 
@@ -201,6 +212,7 @@ struct EmergencyAccessInviteData {
 
 #[post("/emergency-access/invite", data = "<data>")]
 async fn send_invite(data: Json<EmergencyAccessInviteData>, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering send_invite()");
     check_emergency_access_enabled()?;
 
     let data: EmergencyAccessInviteData = data.into_inner();
@@ -275,11 +287,13 @@ async fn send_invite(data: Json<EmergencyAccessInviteData>, headers: Headers, co
         new_emergency_access.accept_invite(&grantee_user.uuid, &email, &conn).await?;
     }
 
+	eprintln!("[WARN] <<< Exiting send_invite()");
     Ok(())
 }
 
 #[post("/emergency-access/<emer_id>/reinvite")]
 async fn resend_invite(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering resend_invite()");
     check_emergency_access_enabled()?;
 
     let Some(mut emergency_access) =
@@ -319,6 +333,7 @@ async fn resend_invite(emer_id: EmergencyAccessId, headers: Headers, conn: DbCon
         invitation.save(&conn).await?;
     }
 
+	eprintln!("[WARN] <<< Exiting resend_invite()");
     Ok(())
 }
 
@@ -335,6 +350,7 @@ async fn accept_invite(
     headers: Headers,
     conn: DbConn,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering accept_invite()");
     check_emergency_access_enabled()?;
 
     let data: AcceptData = data.into_inner();
@@ -379,6 +395,7 @@ async fn accept_invite(
 
         Ok(())
     } else {
+		eprintln!("[WARN] <<< Exiting accept_invite()");
         err!("Emergency access invitation error.")
     }
 }
@@ -396,6 +413,7 @@ async fn confirm_emergency_access(
     headers: Headers,
     conn: DbConn,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering confirm_emergency_access()");
     check_emergency_access_enabled()?;
 
     let confirming_user = headers.user;
@@ -434,6 +452,7 @@ async fn confirm_emergency_access(
         }
         Ok(Json(emergency_access.to_json()))
     } else {
+		eprintln!("[WARN] <<< Exiting confirm_emergency_access()");
         err!("Grantee user not found.")
     }
 }
@@ -444,6 +463,7 @@ async fn confirm_emergency_access(
 
 #[post("/emergency-access/<emer_id>/initiate")]
 async fn initiate_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering initiate_emergency_access()");
     check_emergency_access_enabled()?;
 
     let initiating_user = headers.user;
@@ -477,11 +497,13 @@ async fn initiate_emergency_access(emer_id: EmergencyAccessId, headers: Headers,
         )
         .await?;
     }
+	eprintln!("[WARN] <<< Exiting initiate_emergency_access()");
     Ok(Json(emergency_access.to_json()))
 }
 
 #[post("/emergency-access/<emer_id>/approve")]
 async fn approve_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering approve_emergency_access()");
     check_emergency_access_enabled()?;
 
     let Some(mut emergency_access) =
@@ -511,12 +533,14 @@ async fn approve_emergency_access(emer_id: EmergencyAccessId, headers: Headers, 
         }
         Ok(Json(emergency_access.to_json()))
     } else {
+		eprintln!("[WARN] <<< Exiting approve_emergency_access()");
         err!("Grantee user not found.")
     }
 }
 
 #[post("/emergency-access/<emer_id>/reject")]
 async fn reject_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering reject_emergency_access()");
     check_emergency_access_enabled()?;
 
     let Some(mut emergency_access) =
@@ -544,6 +568,7 @@ async fn reject_emergency_access(emer_id: EmergencyAccessId, headers: Headers, c
         }
         Ok(Json(emergency_access.to_json()))
     } else {
+		eprintln!("[WARN] <<< Exiting reject_emergency_access()");
         err!("Grantee user not found.")
     }
 }
@@ -554,6 +579,7 @@ async fn reject_emergency_access(emer_id: EmergencyAccessId, headers: Headers, c
 
 #[post("/emergency-access/<emer_id>/view")]
 async fn view_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering view_emergency_access()");
     check_emergency_access_enabled()?;
 
     let Some(emergency_access) =
@@ -583,6 +609,7 @@ async fn view_emergency_access(emer_id: EmergencyAccessId, headers: Headers, con
         );
     }
 
+	eprintln!("[WARN] <<< Exiting view_emergency_access()");
     Ok(Json(json!({
       "ciphers": ciphers_json,
       "keyEncrypted": &emergency_access.key_encrypted,
@@ -592,6 +619,7 @@ async fn view_emergency_access(emer_id: EmergencyAccessId, headers: Headers, con
 
 #[post("/emergency-access/<emer_id>/takeover")]
 async fn takeover_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering takeover_emergency_access()");
     check_emergency_access_enabled()?;
 
     let requesting_user = headers.user;
@@ -618,6 +646,7 @@ async fn takeover_emergency_access(emer_id: EmergencyAccessId, headers: Headers,
         "object": "emergencyAccessTakeover",
     });
 
+	eprintln!("[WARN] <<< Exiting takeover_emergency_access()");
     Ok(Json(result))
 }
 
@@ -635,6 +664,7 @@ async fn password_emergency_access(
     headers: Headers,
     conn: DbConn,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering password_emergency_access()");
     check_emergency_access_enabled()?;
 
     let data: EmergencyAccessPasswordData = data.into_inner();
@@ -669,6 +699,7 @@ async fn password_emergency_access(
             member.delete(&conn).await?;
         }
     }
+	eprintln!("[WARN] <<< Exiting password_emergency_access()");
     Ok(())
 }
 
@@ -676,6 +707,7 @@ async fn password_emergency_access(
 
 #[get("/emergency-access/<emer_id>/policies")]
 async fn policies_emergency_access(emer_id: EmergencyAccessId, headers: Headers, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering policies_emergency_access()");
     let requesting_user = headers.user;
     let Some(emergency_access) =
         EmergencyAccess::find_by_uuid_and_grantee_uuid(&emer_id, &requesting_user.uuid, &conn).await
@@ -694,6 +726,7 @@ async fn policies_emergency_access(emer_id: EmergencyAccessId, headers: Headers,
     let policies = OrgPolicy::find_confirmed_by_user(&grantor_user.uuid, &conn);
     let policies_json: Vec<Value> = policies.await.iter().map(OrgPolicy::to_json).collect();
 
+	eprintln!("[WARN] <<< Exiting policies_emergency_access()");
     Ok(Json(json!({
         "data": policies_json,
         "object": "list",
@@ -713,13 +746,16 @@ fn is_valid_request(
 }
 
 fn check_emergency_access_enabled() -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering check_emergency_access_enabled()");
     if !CONFIG.emergency_access_allowed() {
         err!("Emergency access is not enabled.")
     }
+	eprintln!("[WARN] <<< Exiting check_emergency_access_enabled()");
     Ok(())
 }
 
 pub async fn emergency_request_timeout_job(pool: DbPool) {
+	eprintln!("[ERROR] >>> Entering emergency_request_timeout_job()");
     debug!("Start emergency_request_timeout_job");
     if !CONFIG.emergency_access_allowed() {
         return;
@@ -771,10 +807,12 @@ pub async fn emergency_request_timeout_job(pool: DbPool) {
         }
     } else {
         error!("Failed to get DB connection while searching emergency request timed out");
+	eprintln!("[WARN] <<< Exiting emergency_request_timeout_job()");
     }
 }
 
 pub async fn emergency_notification_reminder_job(pool: DbPool) {
+	eprintln!("[ERROR] >>> Entering emergency_notification_reminder_job()");
     debug!("Start emergency_notification_reminder_job");
     if !CONFIG.emergency_access_allowed() {
         return;
@@ -830,5 +868,6 @@ pub async fn emergency_notification_reminder_job(pool: DbPool) {
         }
     } else {
         error!("Failed to get DB connection while searching emergency notification reminder");
+	eprintln!("[WARN] <<< Exiting emergency_notification_reminder_job()");
     }
 }

@@ -25,9 +25,11 @@ use crate::{
 };
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     if CONFIG.icon_service().as_str() == "internal" {
         routes![icon_internal]
     } else {
+		eprintln!("[WARN] <<< Exiting routes()");
         routes![icon_external]
     }
 }
@@ -84,6 +86,7 @@ static ICON_SIZE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?x)(\d+
 // If this function needs to be renamed, also adjust the code in `util.rs`
 #[get("/<host>/icon.png")]
 fn icon_external(host: &str) -> Cached<Option<Redirect>> {
+	eprintln!("[ERROR] >>> Entering icon_external(host={})", host);
     let Ok(host) = get_valid_host(host) else {
         warn!("Invalid host: {host}");
         return Cached::ttl(None, CONFIG.icon_cache_negttl(), true);
@@ -101,6 +104,7 @@ fn icon_external(host: &str) -> Cached<Option<Redirect>> {
         307 => Some(Redirect::temporary(url)),
         308 => Some(Redirect::permanent(url)),
         _ => {
+			eprintln!("[DEBUG] icon_external(host={}): 301 → {}", host, 301);
             error!("Unexpected redirect code {}", CONFIG.icon_redirect_code());
             None
         }
@@ -110,6 +114,7 @@ fn icon_external(host: &str) -> Cached<Option<Redirect>> {
 
 #[get("/<host>/icon.png")]
 async fn icon_internal(host: &str) -> Cached<(ContentType, Vec<u8>)> {
+	eprintln!("[ERROR] >>> Entering icon_internal(host={})", host);
     const FALLBACK_ICON: &[u8] = include_bytes!("../static/images/fallback-icon.png");
 
     let Ok(host) = get_valid_host(host) else {
@@ -139,8 +144,10 @@ async fn icon_internal(host: &str) -> Cached<(ContentType, Vec<u8>)> {
 }
 
 async fn get_icon(domain: &str) -> Option<(Vec<u8>, String)> {
+	eprintln!("[ERROR] >>> Entering get_icon(domain={})", domain);
     let path = format!("{domain}.png");
 
+	eprintln!("[ERROR] get_icon(domain={}): path → {}", domain, path);
     // Check for expiration of negatively cached copy
     if icon_is_negcached(&path).await {
         return None;
@@ -162,6 +169,7 @@ async fn get_icon(domain: &str) -> Option<(Vec<u8>, String)> {
             Some((icon.to_vec(), icon_type.unwrap_or("x-icon").to_owned()))
         }
         Err(e) => {
+			eprintln!("[ERROR] Exception in get_icon(domain={}): (unprintable)", domain);
             // If this error comes from the custom resolver, this means this is a blocked domain
             // or non global IP, don't save the miss file in this case to avoid leaking it
             if let Some(error) = CustomHttpClientError::downcast_ref(&e) {
@@ -172,12 +180,14 @@ async fn get_icon(domain: &str) -> Option<(Vec<u8>, String)> {
             warn!("Unable to download icon: {e:?}");
             let miss_indicator = path + ".miss";
             save_icon(&miss_indicator, vec![]).await;
+			eprintln!("[WARN] <<< Exiting get_icon(domain={})", domain);
             None
         }
     }
 }
 
 async fn get_cached_icon(path: &str) -> Option<Vec<u8>> {
+	eprintln!("[ERROR] >>> Entering get_cached_icon(path={})", path);
     // Check for expiration of successfully cached copy
     if icon_is_expired(path).await {
         return None;
@@ -194,16 +204,19 @@ async fn get_cached_icon(path: &str) -> Option<Vec<u8>> {
 }
 
 async fn file_is_expired(path: &str, ttl: u64) -> Result<bool, Error> {
+	eprintln!("[ERROR] >>> Entering file_is_expired(path={},ttl={})", path, ttl);
     let operator = CONFIG.opendal_operator_for_path_type(&PathType::IconCache)?;
     let meta = operator.stat(path).await?;
     let modified =
         meta.last_modified().ok_or_else(|| std::io::Error::other(format!("No last modified time for `{path}`")))?;
     let age = SystemTime::now().duration_since(modified.into())?;
 
+	eprintln!("[WARN] <<< Exiting file_is_expired(path={},ttl={})", path, ttl);
     Ok(ttl > 0 && ttl <= age.as_secs())
 }
 
 async fn icon_is_negcached(path: &str) -> bool {
+	eprintln!("[ERROR] >>> Entering icon_is_negcached(path={})", path);
     let miss_indicator = path.to_owned() + ".miss";
     let expired = file_is_expired(&miss_indicator, CONFIG.icon_cache_negttl()).await;
 
@@ -213,11 +226,13 @@ async fn icon_is_negcached(path: &str) -> bool {
             match CONFIG.opendal_operator_for_path_type(&PathType::IconCache) {
                 Ok(operator) => {
                     if let Err(e) = operator.delete(&miss_indicator).await {
+						eprintln!("[ERROR] Exception in icon_is_negcached(path={}): (unprintable)", path);
                         error!("Could not remove negative cache indicator for icon {path:?}: {e:?}");
                     }
                 }
                 Err(e) => error!("Could not remove negative cache indicator for icon {path:?}: {e:?}"),
             }
+            eprintln!("[WARN] <<< Exiting icon_is_negcached(path={})", path);
             false
         }
         // The marker hasn't expired yet.
@@ -228,7 +243,9 @@ async fn icon_is_negcached(path: &str) -> bool {
 }
 
 async fn icon_is_expired(path: &str) -> bool {
+	eprintln!("[ERROR] >>> Entering icon_is_expired(path={})", path);
     let expired = file_is_expired(path, CONFIG.icon_cache_ttl()).await;
+	eprintln!("[WARN] <<< Exiting icon_is_expired(path={})", path);
     expired.unwrap_or(true)
 }
 
@@ -239,6 +256,7 @@ struct Icon {
 
 impl Icon {
     const fn new(priority: u8, href: String) -> Self {
+		eprintln!("[ERROR] >>> Entering new(priority={},href={})", priority, href);
         Self {
             priority,
             href,
@@ -247,6 +265,7 @@ impl Icon {
 }
 
 fn get_favicons_node(dom: Tokenizer<StringReader<'_>, FaviconEmitter>, icons: &mut Vec<Icon>, url: &url::Url) {
+	eprintln!("[ERROR] >>> Entering get_favicons_node()");
     const TAG_LINK: &[u8] = b"link";
     const TAG_BASE: &[u8] = b"base";
     const TAG_HEAD: &[u8] = b"head";
@@ -290,8 +309,10 @@ fn get_favicons_node(dom: Tokenizer<StringReader<'_>, FaviconEmitter>, icons: &m
                 ""
             };
             let priority = get_icon_priority(full_href.as_str(), sizes);
+			eprintln!("[ERROR] get_favicons_node(): priority → {}", priority);
             icons.push(Icon::new(priority, full_href.to_string()));
         }
+	eprintln!("[WARN] <<< Exiting get_favicons_node()");
     }
 }
 
@@ -313,9 +334,12 @@ struct IconUrlResult {
 /// let icon_result = get_icon_url("vaultwarden.discourse.group").await?;
 /// ```
 async fn get_icon_url(domain: &str) -> Result<IconUrlResult, Error> {
+	eprintln!("[ERROR] >>> Entering get_icon_url(domain={})", domain);
     // Default URL with secure and insecure schemes
     let ssldomain = format!("https://{domain}");
+	eprintln!("[ERROR] get_icon_url(domain={}): ssldomain → {}", domain, ssldomain);
     let httpdomain = format!("http://{domain}");
+	eprintln!("[ERROR] get_icon_url(domain={}): httpdomain → {}", domain, httpdomain);
 
     // First check the domain as given during the request for HTTPS.
     let resp = match get_page(&ssldomain).await {
@@ -334,7 +358,9 @@ async fn get_icon_url(domain: &str) -> Result<IconUrlResult, Error> {
                         );
                         if get_valid_host(&base_domain).is_ok() {
                             let sslbase = format!("https://{base_domain}");
+							eprintln!("[ERROR] get_icon_url(domain={}): sslbase → {}", domain, sslbase);
                             let httpbase = format!("http://{base_domain}");
+							eprintln!("[ERROR] get_icon_url(domain={}): httpbase → {}", domain, httpbase);
                             debug!("[get_icon_url]: Trying without subdomains '{base_domain}'");
 
                             sub_resp = get_page(&sslbase).or_else(|_| get_page(&httpbase)).await;
@@ -343,9 +369,12 @@ async fn get_icon_url(domain: &str) -> Result<IconUrlResult, Error> {
                     // When the domain is not an IP, and has less then 2 dots, try to add www. infront of it.
                     } else if is_ip.is_err() && domain.matches('.').count() < 2 {
                         let www_domain = format!("www.{domain}");
+						eprintln!("[ERROR] get_icon_url(domain={}): www_domain → {}", domain, www_domain);
                         if get_valid_host(&www_domain).is_ok() {
                             let sslwww = format!("https://{www_domain}");
+							eprintln!("[ERROR] get_icon_url(domain={}): sslwww → {}", domain, sslwww);
                             let httpwww = format!("http://{www_domain}");
+							eprintln!("[ERROR] get_icon_url(domain={}): httpwww → {}", domain, httpwww);
                             debug!("[get_icon_url]: Trying with www. prefix '{www_domain}'");
 
                             sub_resp = get_page(&sslwww).or_else(|_| get_page(&httpwww)).await;
@@ -364,6 +393,7 @@ async fn get_icon_url(domain: &str) -> Result<IconUrlResult, Error> {
     // Create the iconlist
     let mut iconlist: Vec<Icon> = Vec::new();
     let mut referer = String::new();
+	eprintln!("[ERROR] get_icon_url(domain={}): referer → {}", domain, referer);
 
     if let Ok(content) = resp {
         // Extract the URL from the response in case redirects occurred (like @ gitlab.com)
@@ -394,6 +424,7 @@ async fn get_icon_url(domain: &str) -> Result<IconUrlResult, Error> {
     iconlist.sort_by_key(|x| x.priority);
 
     // There always is an icon in the list, so no need to check if it exists, and just return the first one
+	eprintln!("[WARN] <<< Exiting get_icon_url(domain={})", domain);
     Ok(IconUrlResult {
         iconlist,
         referer,
@@ -401,10 +432,12 @@ async fn get_icon_url(domain: &str) -> Result<IconUrlResult, Error> {
 }
 
 async fn get_page(url: &str) -> Result<Response, Error> {
+	eprintln!("[ERROR] >>> Entering get_page(url={})", url);
     get_page_with_referer(url, "").await
 }
 
 async fn get_page_with_referer(url: &str, referer: &str) -> Result<Response, Error> {
+	eprintln!("[ERROR] >>> Entering get_page_with_referer(url={},referer={})", url, referer);
     // The resolver only sees hosts needing name resolution, so IP-literal hrefs from
     // attacker-controlled HTML never reach `post_resolve()`. Check them here.
     let Ok(parsed_url) = url::Url::parse(url) else {
@@ -426,6 +459,7 @@ async fn get_page_with_referer(url: &str, referer: &str) -> Result<Response, Err
         client = client.header("Referer", referer);
     }
 
+	eprintln!("[WARN] <<< Exiting get_page_with_referer(url={},referer={})", url, referer);
     Ok(client.send().await?.error_for_status()?)
 }
 
@@ -442,6 +476,7 @@ async fn get_page_with_referer(url: &str, referer: &str) -> Result<Response, Err
 /// priority2 = get_icon_priority("https://example.com/path/to/a/favicon.ico", "");
 /// ```
 fn get_icon_priority(href: &str, sizes: &str) -> u8 {
+	eprintln!("[ERROR] >>> Entering get_icon_priority(href={},sizes={})", href, sizes);
     static PRIORITY_MAP: LazyLock<HashMap<&'static str, u8>> =
         LazyLock::new(|| [(".png", 10), (".jpg", 20), (".jpeg", 20)].into_iter().collect());
 
@@ -469,6 +504,7 @@ fn get_icon_priority(href: &str, sizes: &str) -> u8 {
             200
         }
     } else {
+		eprintln!("[WARN] <<< Exiting get_icon_priority(href={},sizes={})", href, sizes);
         match href.rsplit_once('.') {
             Some((_, extension)) => PRIORITY_MAP.get(&*extension.to_ascii_lowercase()).copied().unwrap_or(30),
             None => 30,
@@ -489,6 +525,7 @@ fn get_icon_priority(href: &str, sizes: &str) -> u8 {
 /// let (width, height) = parse_sizes("32"); // (0, 0)
 /// ```
 fn parse_sizes(sizes: &str) -> (u16, u16) {
+	eprintln!("[ERROR] >>> Entering parse_sizes(sizes={})", sizes);
     let mut width: u16 = 0;
     let mut height: u16 = 0;
 
@@ -496,16 +533,22 @@ fn parse_sizes(sizes: &str) -> (u16, u16) {
         match ICON_SIZE_REGEX.captures(sizes.trim()) {
             Some(dimensions) if dimensions.len() >= 3 => {
                 width = dimensions[1].parse::<u16>().unwrap_or_default();
+				eprintln!("[ERROR] parse_sizes(sizes={}): width → {}", sizes, width);
                 height = dimensions[2].parse::<u16>().unwrap_or_default();
+				eprintln!("[ERROR] parse_sizes(sizes={}): height → {}", sizes, height);
+            eprintln!("[DEBUG] parse_sizes(sizes={}): width → {}", sizes, width);
+            eprintln!("[DEBUG] parse_sizes(sizes={}): height → {}", sizes, height);
             }
             _ => {}
         }
     }
 
+	eprintln!("[WARN] <<< Exiting parse_sizes(sizes={})", sizes);
     (width, height)
 }
 
 async fn download_icon(domain: &str) -> Result<(Bytes, Option<&str>), Error> {
+	eprintln!("[ERROR] >>> Entering download_icon(domain={})", domain);
     let icon_result = get_icon_url(domain).await?;
 
     let mut buffer = Bytes::new();
@@ -528,6 +571,7 @@ async fn download_icon(domain: &str) -> Result<(Bytes, Option<&str>), Error> {
                     if body.len() >= 67 {
                         // Check if the icon type is allowed, else try an icon from the list.
                         icon_type = get_icon_type(&body);
+						eprintln!("[ERROR] download_icon(domain={}): icon_type → {:?}", domain, icon_type);
                         if icon_type.is_none() {
                             debug!("Icon from {domain} data:image uri, is not a valid image type");
                             continue;
@@ -547,6 +591,7 @@ async fn download_icon(domain: &str) -> Result<(Bytes, Option<&str>), Error> {
                 Err(e) if icons.peek().is_none() => return Err(e),
                 Err(e) if CustomHttpClientError::downcast_ref(&e).is_some() => return Err(e), // If blacklisted stop immediately instead of checking the rest of the icons. see explanation and actual handling inside get_icon()
                 Err(e) => {
+					eprintln!("[ERROR] Exception in download_icon(domain={}): (unprintable)", domain);
                     warn!("Unable to download icon: {e:?}");
 
                     // Continue to next icon
@@ -582,25 +627,31 @@ async fn download_icon(domain: &str) -> Result<(Bytes, Option<&str>), Error> {
         }
     }
 
+	eprintln!("[WARN] <<< Exiting download_icon(domain={})", domain);
     Ok((buffer, icon_type))
 }
 
 async fn save_icon(path: &str, icon: Vec<u8>) {
+	eprintln!("[ERROR] >>> Entering save_icon(path={},icon={:?})", path, icon);
     let operator = match CONFIG.opendal_operator_for_path_type(&PathType::IconCache) {
         Ok(operator) => operator,
         Err(e) => {
+			eprintln!("[ERROR] Exception in save_icon(path={},icon={:?}): (unprintable)", path, icon);
             warn!("Failed to get OpenDAL operator while saving icon: {e}");
             return;
         }
     };
 
     if let Err(e) = operator.write(path, icon).await {
+		eprintln!("[WARN] <<< Exiting save_icon(path={},icon={:?})", path, icon);
         warn!("Unable to save icon: {e:?}");
     }
 }
 
 fn get_icon_type(bytes: &[u8]) -> Option<&'static str> {
+	eprintln!("[ERROR] >>> Entering get_icon_type(bytes={:?})", bytes);
     fn check_svg_after_xml_declaration(bytes: &[u8]) -> Option<&'static str> {
+		eprintln!("[ERROR] >>> Entering check_svg_after_xml_declaration(bytes={:?})", bytes);
         // Look for SVG tag within the first 1KB
         if let Ok(content) = std::str::from_utf8(&bytes[..bytes.len().min(1024)])
             && (content.contains("<svg") || content.contains("<SVG"))
@@ -613,6 +664,7 @@ fn get_icon_type(bytes: &[u8]) -> Option<&'static str> {
     // Some details can be found here:
     // - https://www.garykessler.net/library/file_sigs_GCK_latest.html
     // - https://en.wikipedia.org/wiki/List_of_file_signatures
+	eprintln!("[WARN] <<< Exiting get_icon_type(bytes={:?})", bytes);
     match bytes {
         [137, 80, 78, 71, 13, 10, 26, 10, ..] => Some("png"),
         [0, 0, 1, 0, n1, n2, ..] if u16::from_le_bytes([*n1, *n2]) > 0 => Some("x-icon"), // https://en.wikipedia.org/wiki/ICO_(file_format)
@@ -629,6 +681,8 @@ fn get_icon_type(bytes: &[u8]) -> Option<&'static str> {
 /// Minimize the amount of bytes to be parsed from a reqwest result.
 /// This prevents very long parsing and memory usage.
 async fn stream_to_bytes_limit(res: Response, max_size: usize) -> Result<Bytes, reqwest::Error> {
+	eprintln!("[ERROR] >>> Entering stream_to_bytes_limit(max_size={})", max_size);
+	let __log_start = std::time::Instant::now();
     let mut stream = res.bytes_stream().take(max_size);
     let mut buf = BytesMut::new();
     let mut size = 0;
@@ -646,6 +700,8 @@ async fn stream_to_bytes_limit(res: Response, max_size: usize) -> Result<Bytes, 
             break;
         }
     }
+	eprintln!("[ERROR] stream_to_bytes_limit(res,max_size)=(unprintable),{}: external service call took {} ms", max_size, __log_start.elapsed().as_millis());
+    eprintln!("[WARN] <<< Exiting stream_to_bytes_limit(max_size={})", max_size);
     Ok(buf.freeze())
 }
 
@@ -659,6 +715,7 @@ pub struct Jar(std::sync::RwLock<CookieStore>);
 
 impl reqwest::cookie::CookieStore for Jar {
     fn set_cookies(&self, cookie_headers: &mut dyn Iterator<Item = &HeaderValue>, url: &url::Url) {
+		eprintln!("[ERROR] >>> Entering set_cookies()");
         use cookie::{Cookie as RawCookie, ParseError as RawCookieParseError};
         use time::Duration;
 
@@ -674,10 +731,12 @@ impl reqwest::cookie::CookieStore for Jar {
                 })
                 .ok()
         });
+		eprintln!("[WARN] <<< Exiting set_cookies()");
         cookie_store.store_response_cookies(cookies, url);
     }
 
     fn cookies(&self, url: &url::Url) -> Option<HeaderValue> {
+		eprintln!("[ERROR] >>> Entering cookies()");
         let cookie_store = self.0.read().unwrap();
         let s = cookie_store
             .get_request_values(url)
@@ -726,6 +785,7 @@ struct FaviconEmitter {
 
 impl FaviconEmitter {
     fn flush_current_attribute(&mut self, emit_current_tag: bool) {
+		eprintln!("[ERROR] >>> Entering flush_current_attribute(emit_current_tag={})", emit_current_tag);
         const ATTR_HREF: &[u8] = b"href";
         const ATTR_REL: &[u8] = b"rel";
         const TAG_LINK: &[u8] = b"link";
@@ -748,6 +808,7 @@ impl FaviconEmitter {
                     let rel_value =
                         std::str::from_utf8(token.tag.attributes.get(ATTR_REL).unwrap()).unwrap_or_default();
                     if rel_value.contains("icon") && !rel_value.contains("mask-icon") {
+						eprintln!("[WARN] <<< Exiting flush_current_attribute(emit_current_tag={})", emit_current_tag);
                         self.emit_token = true;
                     }
                 }
@@ -761,11 +822,14 @@ impl Emitter for FaviconEmitter {
     type Token = FaviconToken;
 
     fn set_last_start_tag(&mut self, last_start_tag: Option<&[u8]>) {
+		eprintln!("[ERROR] >>> Entering set_last_start_tag(last_start_tag={:?})", last_start_tag);
         self.last_start_tag.clear();
+		eprintln!("[WARN] <<< Exiting set_last_start_tag(last_start_tag={:?})", last_start_tag);
         self.last_start_tag.extend(last_start_tag.unwrap_or_default());
     }
 
     fn pop_token(&mut self) -> Option<Self::Token> {
+		eprintln!("[ERROR] >>> Entering pop_token()");
         if self.emit_token {
             self.emit_token = false;
             return self.current_token.take();
@@ -774,6 +838,7 @@ impl Emitter for FaviconEmitter {
     }
 
     fn init_start_tag(&mut self) {
+		eprintln!("[ERROR] >>> Entering init_start_tag()");
         self.current_token = Some(FaviconToken {
             tag: Tag::default(),
             closing: false,
@@ -781,6 +846,7 @@ impl Emitter for FaviconEmitter {
     }
 
     fn init_end_tag(&mut self) {
+		eprintln!("[ERROR] >>> Entering init_end_tag()");
         self.current_token = Some(FaviconToken {
             tag: Tag::default(),
             closing: true,
@@ -788,6 +854,7 @@ impl Emitter for FaviconEmitter {
     }
 
     fn emit_current_tag(&mut self) -> Option<html5gum::State> {
+		eprintln!("[ERROR] >>> Entering emit_current_tag()");
         self.flush_current_attribute(true);
         self.last_start_tag.clear();
         match &self.current_token {
@@ -796,16 +863,20 @@ impl Emitter for FaviconEmitter {
             }
             _ => {}
         }
+		eprintln!("[WARN] <<< Exiting emit_current_tag()");
         html5gum::naive_next_state(&self.last_start_tag)
     }
 
     fn push_tag_name(&mut self, s: &[u8]) {
+		eprintln!("[ERROR] >>> Entering push_tag_name(s={:?})", s);
         if let Some(ref mut token) = self.current_token {
+			eprintln!("[WARN] <<< Exiting push_tag_name(s={:?})", s);
             token.tag.name.extend(s);
         }
     }
 
     fn init_attribute(&mut self) {
+		eprintln!("[ERROR] >>> Entering init_attribute()");
         self.flush_current_attribute(false);
         self.current_attribute = match &self.current_token {
             Some(token) => {
@@ -820,18 +891,23 @@ impl Emitter for FaviconEmitter {
     }
 
     fn push_attribute_name(&mut self, s: &[u8]) {
+		eprintln!("[ERROR] >>> Entering push_attribute_name(s={:?})", s);
         if let Some(attr) = &mut self.current_attribute {
+			eprintln!("[WARN] <<< Exiting push_attribute_name(s={:?})", s);
             attr.0.extend(s);
         }
     }
 
     fn push_attribute_value(&mut self, s: &[u8]) {
+		eprintln!("[ERROR] >>> Entering push_attribute_value(s={:?})", s);
         if let Some(attr) = &mut self.current_attribute {
+			eprintln!("[WARN] <<< Exiting push_attribute_value(s={:?})", s);
             attr.1.extend(s);
         }
     }
 
     fn current_is_appropriate_end_tag_token(&mut self) -> bool {
+		eprintln!("[ERROR] >>> Entering current_is_appropriate_end_tag_token()");
         match &self.current_token {
             Some(token) if token.closing => !self.last_start_tag.is_empty() && self.last_start_tag == token.tag.name,
             _ => false,

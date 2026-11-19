@@ -37,8 +37,10 @@ pub struct FolderCipher {
 /// Local methods
 impl Folder {
     pub fn new(user_uuid: UserId, name: String) -> Self {
+		eprintln!("[ERROR] >>> Entering new(name={})", name);
         let now = Utc::now().naive_utc();
 
+		eprintln!("[WARN] <<< Exiting new(name={})", name);
         Self {
             uuid: FolderId(crate::util::get_uuid()),
             created_at: now,
@@ -50,8 +52,10 @@ impl Folder {
     }
 
     pub fn to_json(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json()");
         use crate::util::format_date;
 
+		eprintln!("[WARN] <<< Exiting to_json()");
         json!({
             "id": self.uuid,
             "revisionDate": format_date(&self.updated_at),
@@ -73,9 +77,16 @@ impl FolderCipher {
 /// Database methods
 impl Folder {
     pub async fn save(&mut self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save()");
         User::update_uuid_revision(&self.user_uuid, conn).await;
         self.updated_at = Utc::now().naive_utc();
 
+		let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] Exception in save(): (unprintable)");
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[WARN] <<< Exiting save()");
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(folders::table)
@@ -107,9 +118,14 @@ impl Folder {
     }
 
     pub async fn delete(&self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete()");
         User::update_uuid_revision(&self.user_uuid, conn).await;
         FolderCipher::delete_all_by_folder(&self.uuid, conn).await?;
 
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete()");
         conn.run(move |conn| {
             diesel::delete(folders::table.filter(folders::uuid.eq(&self.uuid)))
                 .execute(conn)
@@ -119,13 +135,16 @@ impl Folder {
     }
 
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete_all_by_user()");
         for folder in Self::find_by_user(user_uuid, conn).await {
             folder.delete(conn).await?;
         }
+		eprintln!("[WARN] <<< Exiting delete_all_by_user()");
         Ok(())
     }
 
     pub async fn find_by_uuid_and_user(uuid: &FolderId, user_uuid: &UserId, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_uuid_and_user(uuid={:?})", uuid);
         conn.run(move |conn| {
             folders::table
                 .filter(folders::uuid.eq(uuid))
@@ -137,6 +156,7 @@ impl Folder {
     }
 
     pub async fn find_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_user()");
         conn.run(move |conn| {
             folders::table.filter(folders::user_uuid.eq(user_uuid)).load::<Self>(conn).expect("Error loading folders")
         })
@@ -181,6 +201,10 @@ impl FolderCipher {
     }
 
     pub async fn delete_all_by_cipher(cipher_uuid: &CipherId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete_all_by_cipher(cipher_uuid,conn)=(unprintable),(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete_all_by_cipher(cipher_uuid,conn)=(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete_all_by_cipher()");
         conn.run(move |conn| {
             diesel::delete(folders_ciphers::table.filter(folders_ciphers::cipher_uuid.eq(cipher_uuid)))
                 .execute(conn)
@@ -190,6 +214,10 @@ impl FolderCipher {
     }
 
     pub async fn delete_all_by_folder(folder_uuid: &FolderId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete_all_by_folder(folder_uuid,conn)={:?},(unprintable): delete query executed in {} ms", folder_uuid, __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete_all_by_folder(folder_uuid,conn)={:?},(unprintable): database query executed in {} ms", folder_uuid, __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete_all_by_folder(folder_uuid={:?})", folder_uuid);
         conn.run(move |conn| {
             diesel::delete(folders_ciphers::table.filter(folders_ciphers::folder_uuid.eq(folder_uuid)))
                 .execute(conn)
@@ -203,6 +231,7 @@ impl FolderCipher {
         cipher_uuid: &CipherId,
         conn: &DbConn,
     ) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_folder_and_cipher(folder_uuid={:?})", folder_uuid);
         conn.run(move |conn| {
             folders_ciphers::table
                 .filter(folders_ciphers::folder_uuid.eq(folder_uuid))
@@ -214,6 +243,7 @@ impl FolderCipher {
     }
 
     pub async fn find_by_folder(folder_uuid: &FolderId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_folder(folder_uuid={:?})", folder_uuid);
         conn.run(move |conn| {
             folders_ciphers::table
                 .filter(folders_ciphers::folder_uuid.eq(folder_uuid))

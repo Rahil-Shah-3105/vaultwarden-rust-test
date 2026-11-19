@@ -144,11 +144,13 @@ pub enum EventType {
 /// Local methods
 impl Event {
     pub fn new(event_type: i32, event_date: Option<NaiveDateTime>) -> Self {
+		eprintln!("[ERROR] >>> Entering new(event_type={})", event_type);
         let event_date = match event_date {
             Some(d) => d,
             None => Utc::now().naive_utc(),
         };
 
+		eprintln!("[WARN] <<< Exiting new(event_type={})", event_type);
         Self {
             uuid: EventId(crate::util::get_uuid()),
             event_type,
@@ -170,8 +172,10 @@ impl Event {
     }
 
     pub fn to_json(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json()");
         use crate::util::format_date;
 
+		eprintln!("[WARN] <<< Exiting to_json()");
         json!({
             "type": self.event_type,
             "userId": self.user_uuid,
@@ -201,6 +205,10 @@ impl Event {
     /// #############
     /// Basic Queries
     pub async fn save(&self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save()");
+        let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 diesel::replace_into(event::table)
@@ -221,10 +229,15 @@ impl Event {
     }
 
     pub async fn save_user_event(events: Vec<Event>, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save_user_event()");
         // Special save function which is able to handle multiple events.
         // SQLite doesn't support the DEFAULT argument, and does not support inserting multiple values at the same time.
         // MySQL and PostgreSQL do.
         // We also ignore duplicate if they ever will exists, else it could break the whole flow.
+		let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] save_user_event(events,conn)=(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save_user_event(events,conn)=(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[WARN] <<< Exiting save_user_event()");
         db_run! { conn:
             // Unfortunately SQLite does not support inserting multiple records at the same time
             // We loop through the events here and insert them one at a time.
@@ -256,6 +269,9 @@ impl Event {
     }
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete()");
         conn.run(move |conn| {
             diesel::delete(event::table.filter(event::uuid.eq(self.uuid))).execute(conn).map_res("Error deleting event")
         })
@@ -270,6 +286,7 @@ impl Event {
         end: &NaiveDateTime,
         conn: &DbConn,
     ) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_organization_uuid()");
         conn.run(move |conn| {
             event::table
                 .filter(event::org_uuid.eq(org_uuid))
@@ -283,6 +300,7 @@ impl Event {
     }
 
     pub async fn count_by_org(org_uuid: &OrganizationId, conn: &DbConn) -> i64 {
+		eprintln!("[ERROR] >>> Entering count_by_org()");
         conn.run(move |conn| {
             event::table.filter(event::org_uuid.eq(org_uuid)).count().first::<i64>(conn).ok().unwrap_or(0)
         })
@@ -296,6 +314,7 @@ impl Event {
         end: &NaiveDateTime,
         conn: &DbConn,
     ) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_org_and_member()");
         conn.run(move |conn| {
             event::table
                 .inner_join(
@@ -325,6 +344,7 @@ impl Event {
         end: &NaiveDateTime,
         conn: &DbConn,
     ) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_cipher_uuid()");
         conn.run(move |conn| {
             event::table
                 .filter(event::cipher_uuid.eq(cipher_uuid))
@@ -338,6 +358,7 @@ impl Event {
     }
 
     pub async fn clean_events(conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering clean_events()");
         if let Some(days_to_retain) = CONFIG.events_days_retain() {
             let dt = Utc::now().naive_utc() - TimeDelta::try_days(days_to_retain).unwrap();
             conn.run(move |conn| {
@@ -347,6 +368,7 @@ impl Event {
             })
             .await
         } else {
+			eprintln!("[WARN] <<< Exiting clean_events()");
             Ok(())
         }
     }

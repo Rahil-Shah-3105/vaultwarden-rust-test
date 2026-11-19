@@ -70,6 +70,7 @@ pub struct ResetPasswordDataModel {
 /// Local methods
 impl OrgPolicy {
     pub fn new(org_uuid: OrganizationId, atype: OrgPolicyType, enabled: bool, data: String) -> Self {
+		eprintln!("[ERROR] >>> Entering new(enabled={},data={})", enabled, data);
         Self {
             uuid: OrgPolicyId(crate::util::get_uuid()),
             org_uuid,
@@ -80,10 +81,12 @@ impl OrgPolicy {
     }
 
     pub fn has_type(&self, policy_type: OrgPolicyType) -> bool {
+		eprintln!("[ERROR] >>> Entering has_type()");
         self.atype == policy_type as i32
     }
 
     pub fn to_json(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json()");
         let data_json: Value = serde_json::from_str(&self.data).unwrap_or(Value::Null);
         let mut policy = json!({
             "id": self.uuid,
@@ -103,6 +106,7 @@ impl OrgPolicy {
             policy["canToggleState"] = json!(true);
         }
 
+		eprintln!("[WARN] <<< Exiting to_json()");
         policy
     }
 }
@@ -110,6 +114,13 @@ impl OrgPolicy {
 /// Database methods
 impl OrgPolicy {
     pub async fn save(&self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save()");
+        let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] Exception in save(): (unprintable)");
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(org_policies::table)
@@ -152,6 +163,10 @@ impl OrgPolicy {
     }
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete()");
         conn.run(move |conn| {
             diesel::delete(org_policies::table.filter(org_policies::uuid.eq(self.uuid)))
                 .execute(conn)
@@ -161,6 +176,7 @@ impl OrgPolicy {
     }
 
     pub async fn find_by_org(org_uuid: &OrganizationId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_org()");
         conn.run(move |conn| {
             org_policies::table
                 .filter(org_policies::org_uuid.eq(org_uuid))
@@ -171,6 +187,7 @@ impl OrgPolicy {
     }
 
     pub async fn find_confirmed_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_confirmed_by_user()");
         conn.run(move |conn| {
             org_policies::table
                 .inner_join(
@@ -191,6 +208,7 @@ impl OrgPolicy {
         policy_type: OrgPolicyType,
         conn: &DbConn,
     ) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_org_and_type()");
         conn.run(move |conn| {
             org_policies::table
                 .filter(org_policies::org_uuid.eq(org_uuid))
@@ -202,6 +220,10 @@ impl OrgPolicy {
     }
 
     pub async fn delete_all_by_organization(org_uuid: &OrganizationId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete_all_by_organization(org_uuid,conn)=(unprintable),(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete_all_by_organization(org_uuid,conn)=(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete_all_by_organization()");
         conn.run(move |conn| {
             diesel::delete(org_policies::table.filter(org_policies::org_uuid.eq(org_uuid)))
                 .execute(conn)
@@ -215,6 +237,7 @@ impl OrgPolicy {
         policy_type: OrgPolicyType,
         conn: &DbConn,
     ) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_accepted_and_confirmed_by_user_and_active_policy()");
         conn.run(move |conn| {
             org_policies::table
                 .inner_join(
@@ -238,6 +261,7 @@ impl OrgPolicy {
         policy_type: OrgPolicyType,
         conn: &DbConn,
     ) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_confirmed_by_user_and_active_policy()");
         conn.run(move |conn| {
             org_policies::table
                 .inner_join(
@@ -264,6 +288,7 @@ impl OrgPolicy {
         exclude_org_uuid: Option<&OrganizationId>,
         conn: &DbConn,
     ) -> bool {
+		eprintln!("[ERROR] >>> Entering is_applicable_to_user()");
         for policy in
             OrgPolicy::find_accepted_and_confirmed_by_user_and_active_policy(user_uuid, policy_type, conn).await
         {
@@ -282,6 +307,7 @@ impl OrgPolicy {
     }
 
     pub async fn check_user_allowed(m: &Membership, action: &str, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering check_user_allowed(action={})", action);
         if m.atype < MembershipType::Admin && m.status > (MembershipStatus::Invited as i32) {
             // Enforce TwoFactor/TwoStep login
             if let Some(p) = Self::find_by_org_and_type(&m.org_uuid, OrgPolicyType::TwoFactorAuthentication, conn).await
@@ -314,10 +340,12 @@ impl OrgPolicy {
             }
         }
 
+		eprintln!("[WARN] <<< Exiting check_user_allowed(action={})", action);
         Ok(())
     }
 
     pub async fn org_is_reset_password_auto_enroll(org_uuid: &OrganizationId, conn: &DbConn) -> bool {
+		eprintln!("[ERROR] >>> Entering org_is_reset_password_auto_enroll()");
         match OrgPolicy::find_by_org_and_type(org_uuid, OrgPolicyType::ResetPassword, conn).await {
             Some(policy) => match serde_json::from_str::<ResetPasswordDataModel>(&policy.data) {
                 Ok(opts) => {
@@ -334,6 +362,7 @@ impl OrgPolicy {
     /// Returns true if the user belongs to an org that has enabled the `DisableHideEmail`
     /// option of the `Send Options` policy, and the user is not an owner or admin of that org.
     pub async fn is_hide_email_disabled(user_uuid: &UserId, conn: &DbConn) -> bool {
+		eprintln!("[ERROR] >>> Entering is_hide_email_disabled()");
         for policy in
             OrgPolicy::find_confirmed_by_user_and_active_policy(user_uuid, OrgPolicyType::SendOptions, conn).await
         {
@@ -354,6 +383,7 @@ impl OrgPolicy {
     }
 
     pub async fn is_enabled_for_member(member_uuid: &MembershipId, policy_type: OrgPolicyType, conn: &DbConn) -> bool {
+		eprintln!("[ERROR] >>> Entering is_enabled_for_member()");
         if let Some(member) = Membership::find_by_uuid(member_uuid, conn).await
             && let Some(policy) = OrgPolicy::find_by_org_and_type(&member.org_uuid, policy_type, conn).await
         {

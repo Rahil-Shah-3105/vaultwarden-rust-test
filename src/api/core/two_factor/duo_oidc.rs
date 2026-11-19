@@ -109,6 +109,7 @@ struct DuoClient {
 impl DuoClient {
     // Construct a new DuoClient
     fn new(client_id: String, client_secret: String, api_host: String, redirect_uri: String) -> DuoClient {
+		eprintln!("[ERROR] >>> Entering new(client_id={},client_secret=<redacted>,api_host={},redirect_uri={})", client_id, api_host, redirect_uri);
         DuoClient {
             client_id,
             client_secret,
@@ -119,9 +120,11 @@ impl DuoClient {
 
     // Generate a client assertion for health checks and authorization code exchange.
     fn new_client_assertion(&self, url: &str) -> ClientAssertion {
+		eprintln!("[ERROR] >>> Entering new_client_assertion(url={})", url);
         let now = Utc::now().timestamp();
         let jwt_id = crypto::get_random_string_alphanum(STATE_LENGTH);
 
+		eprintln!("[WARN] <<< Exiting new_client_assertion(url={})", url);
         ClientAssertion {
             iss: self.client_id.clone(),
             sub: self.client_id.clone(),
@@ -134,6 +137,7 @@ impl DuoClient {
 
     // Given a serde-serializable struct, attempt to encode it as a JWT
     fn encode_duo_jwt<T: Serialize>(&self, jwt_payload: T) -> Result<String, Error> {
+		eprintln!("[ERROR] >>> Entering encode_duo_jwt()");
         match jsonwebtoken::encode(
             &Header::new(JWT_SIGNATURE_ALG),
             &jwt_payload,
@@ -148,10 +152,13 @@ impl DuoClient {
     // are up.
     // https://duo.com/docs/oauthapi#health-check
     async fn health_check(&self) -> Result<(), Error> {
+		eprintln!("[ERROR] >>> Entering health_check()");
         let health_check_url: String = format!("https://{}/oauth/v1/health_check", self.api_host);
 
         let jwt_payload = self.new_client_assertion(&health_check_url);
+		eprintln!("[ERROR] health_check(): jwt_payload → {:?}", jwt_payload);
 
+		eprintln!("[ERROR] Exception in health_check(): (unprintable)");
         let token = match self.encode_duo_jwt(jwt_payload) {
             Ok(token) => token,
             Err(e) => return Err(e),
@@ -190,6 +197,7 @@ impl DuoClient {
             err!(format!("Duo health check failed, got OK-like body with stat {health_stat}"));
         }
 
+        eprintln!("[WARN] <<< Exiting health_check()");
         Ok(())
     }
 
@@ -197,6 +205,7 @@ impl DuoClient {
     // Clients are sent here to continue authentication.
     // https://duo.com/docs/oauthapi#authorization-request
     fn make_authz_req_url(&self, duo_username: &str, state: String, nonce: String) -> Result<String, Error> {
+		eprintln!("[ERROR] >>> Entering make_authz_req_url(duo_username={},state={},nonce=<redacted>)", duo_username, state);
         let now = Utc::now().timestamp();
 
         let jwt_payload = AuthorizationRequest {
@@ -213,8 +222,11 @@ impl DuoClient {
         };
 
         let token = self.encode_duo_jwt(jwt_payload)?;
+		eprintln!("[ERROR] make_authz_req_url(duo_username={},state={},nonce=<redacted>): token → <redacted>", duo_username, state);
 
         let authz_endpoint = format!("https://{}/oauth/v1/authorize", self.api_host);
+		eprintln!("[ERROR] Exception in make_authz_req_url(duo_username={},state={},nonce=<redacted>): (unprintable)", duo_username, state);
+        eprintln!("[ERROR] make_authz_req_url(duo_username={},state={},nonce=<redacted>): authz_endpoint → {}", duo_username, state, authz_endpoint);
         let mut auth_url = match Url::parse(authz_endpoint.as_str()) {
             Ok(url) => url,
             Err(e) => err!(format!("Error parsing Duo authorization URL: {e:?}")),
@@ -228,6 +240,8 @@ impl DuoClient {
         }
 
         let final_auth_url = auth_url.to_string();
+		eprintln!("[ERROR] make_authz_req_url(duo_username={},state={},nonce=<redacted>): final_auth_url → {}", duo_username, state, final_auth_url);
+        eprintln!("[WARN] <<< Exiting make_authz_req_url(duo_username={},state={},nonce=<redacted>)", duo_username, state);
         Ok(final_auth_url)
     }
 
@@ -247,7 +261,9 @@ impl DuoClient {
         let token_url = format!("https://{}/oauth/v1/token", self.api_host);
 
         let jwt_payload = self.new_client_assertion(&token_url);
+		eprintln!("[ERROR] exchange_authz_code_for_result(duo_code={},duo_username={},nonce=<redacted>): jwt_payload → {:?}", duo_code, duo_username, jwt_payload);
 
+		eprintln!("[ERROR] Exception in exchange_authz_code_for_result(duo_code={},duo_username={},nonce=<redacted>): (unprintable)", duo_code, duo_username);
         let token = match self.encode_duo_jwt(jwt_payload) {
             Ok(token) => token,
             Err(e) => return Err(e),
@@ -256,6 +272,7 @@ impl DuoClient {
         let mut post_body = HashMap::new();
         post_body.insert("grant_type", String::from("authorization_code"));
         post_body.insert("code", String::from(duo_code));
+		eprintln!("[ERROR] exchange_authz_code_for_result(duo_code,duo_username,nonce)={},{},<redacted>: save query executed in (unprintable) ms", duo_code, duo_username);
 
         // Must be the same URL that was supplied in the authorization request for the supplied duo_code
         post_body.insert("redirect_uri", self.redirect_uri.clone());
@@ -305,6 +322,7 @@ impl DuoClient {
             err!("Error validating Duo authorization, nonce or username mismatch.")
         }
 
+        eprintln!("[WARN] <<< Exiting exchange_authz_code_for_result(duo_code={},duo_username={},nonce=<redacted>)", duo_code, duo_username);
         Ok(())
     }
 }
@@ -319,6 +337,7 @@ struct DuoAuthContext {
 // Given a state string, retrieve the associated Duo auth context and
 // delete the retrieved state from the database.
 async fn extract_context(state: &str, conn: &DbConn) -> Option<DuoAuthContext> {
+	eprintln!("[ERROR] >>> Entering extract_context(state={})", state);
     let ctx: TwoFactorDuoContext = match TwoFactorDuoContext::find_by_state(state, conn).await {
         Some(c) => c,
         None => return None,
@@ -344,21 +363,25 @@ async fn extract_context(state: &str, conn: &DbConn) -> Option<DuoAuthContext> {
 
 // Task to clean up expired Duo authentication contexts that may have accumulated in the database.
 pub async fn purge_duo_contexts(pool: DbPool) {
+	eprintln!("[ERROR] >>> Entering purge_duo_contexts()");
     debug!("Purging Duo authentication contexts");
     if let Ok(conn) = pool.get().await {
         TwoFactorDuoContext::purge_expired_duo_contexts(&conn).await;
     } else {
+		eprintln!("[WARN] <<< Exiting purge_duo_contexts()");
         error!("Failed to get DB connection while purging expired Duo authentications");
     }
 }
 
 // Construct the url that Duo should redirect users to.
 fn make_callback_url(client_name: &str) -> Result<String, Error> {
+	eprintln!("[ERROR] >>> Entering make_callback_url(client_name={})", client_name);
     // Get the location of this application as defined in the config.
     let base = match Url::parse(&format!("{}/", CONFIG.domain())) {
         Ok(url) => url,
         Err(e) => err!(format!("Error parsing configured domain URL (check your domain configuration): {e:?}")),
     };
+	eprintln!("[ERROR] Exception in make_callback_url(client_name={}): (unprintable)", client_name);
 
     // Add the client redirect bridge location
     let mut callback = match base.join(DUO_REDIRECT_LOCATION) {
@@ -372,6 +395,7 @@ fn make_callback_url(client_name: &str) -> Result<String, Error> {
         let mut query_params = callback.query_pairs_mut();
         query_params.append_pair("client", client_name);
     }
+	eprintln!("[WARN] <<< Exiting make_callback_url(client_name={})", client_name);
     Ok(callback.to_string())
 }
 
@@ -383,8 +407,10 @@ pub async fn get_duo_auth_url(
     device_identifier: &DeviceId,
     conn: &DbConn,
 ) -> Result<String, Error> {
+	eprintln!("[ERROR] >>> Entering get_duo_auth_url(email=<redacted>,client_id={})", client_id);
     let (ik, sk, _, host) = get_duo_keys_email(email, conn).await?;
 
+	eprintln!("[ERROR] Exception in get_duo_auth_url(email=<redacted>,client_id={}): (unprintable)", client_id);
     let callback_url = match make_callback_url(client_id) {
         Ok(url) => url,
         Err(e) => return Err(e),
@@ -406,6 +432,7 @@ pub async fn get_duo_auth_url(
     let d: Digest = digest(&SHA512_256, format!("{nonce}{device_identifier}").as_bytes());
     let hash: String = HEXLOWER.encode(d.as_ref());
 
+    eprintln!("[WARN] <<< Exiting get_duo_auth_url(email=<redacted>,client_id={})", client_id);
     match TwoFactorDuoContext::save(state.as_str(), email, nonce.as_str(), CTX_VALIDITY_SECS, conn).await {
         Ok(()) => client.make_authz_req_url(email, state, hash),
         Err(e) => err!(format!("Error saving Duo authentication context: {e:?}")),
@@ -421,6 +448,7 @@ pub async fn validate_duo_login(
     device_identifier: &DeviceId,
     conn: &DbConn,
 ) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering validate_duo_login(email=<redacted>,two_factor_token=<redacted>,client_id={})", client_id);
     // Result supplied to us by clients in the form "<authz code>|<state>"
     let split: Vec<&str> = two_factor_token.split('|').collect();
     if split.len() != 2 {
@@ -464,6 +492,7 @@ pub async fn validate_duo_login(
         )
     }
 
+	eprintln!("[ERROR] Exception in validate_duo_login(email=<redacted>,two_factor_token=<redacted>,client_id={}): (unprintable)", client_id);
     let callback_url = match make_callback_url(client_id) {
         Ok(url) => url,
         Err(e) => return Err(e),

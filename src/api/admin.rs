@@ -39,6 +39,7 @@ use crate::{
 };
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     if !CONFIG.disable_admin_token() && !CONFIG.is_admin_token_set() {
         return routes![admin_disabled];
     }
@@ -75,9 +76,11 @@ pub fn routes() -> Vec<Route> {
 }
 
 pub fn catchers() -> Vec<Catcher> {
+	eprintln!("[ERROR] >>> Entering catchers()");
     if !CONFIG.disable_admin_token() && !CONFIG.is_admin_token_set() {
         catchers![]
     } else {
+		eprintln!("[WARN] <<< Exiting catchers()");
         catchers![admin_login]
     }
 }
@@ -99,6 +102,7 @@ static CAN_BACKUP: LazyLock<bool> = LazyLock::new(|| false);
 
 #[get("/")]
 fn admin_disabled() -> &'static str {
+	eprintln!("[ERROR] >>> Entering admin_disabled()");
     "The admin panel is disabled, please configure the 'ADMIN_TOKEN' variable to enable it"
 }
 
@@ -112,6 +116,7 @@ const ACTING_ADMIN_USER: &str = "vaultwarden-admin-00000-000000000000";
 pub const FAKE_ADMIN_UUID: &str = "00000000-0000-0000-0000-000000000000";
 
 fn admin_path() -> String {
+	eprintln!("[ERROR] >>> Entering admin_path()");
     format!("{}{ADMIN_PATH}", CONFIG.domain_path())
 }
 
@@ -123,6 +128,7 @@ impl<'r> FromRequest<'r> for IpHeader {
     type Error = ();
 
     async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+		eprintln!("[ERROR] >>> Entering from_request()");
         if req.headers().get_one(&CONFIG.ip_header()).is_some() {
             Outcome::Success(IpHeader(Some(CONFIG.ip_header())))
         } else if req.headers().get_one("X-Client-IP").is_some() {
@@ -132,12 +138,14 @@ impl<'r> FromRequest<'r> for IpHeader {
         } else if req.headers().get_one("X-Forwarded-For").is_some() {
             Outcome::Success(IpHeader(Some(String::from("X-Forwarded-For"))))
         } else {
+			eprintln!("[WARN] <<< Exiting from_request()");
             Outcome::Success(IpHeader(None))
         }
     }
 }
 
 fn admin_url() -> String {
+	eprintln!("[ERROR] >>> Entering admin_url()");
     format!("{}{}", CONFIG.domain_origin(), admin_path())
 }
 
@@ -153,16 +161,20 @@ enum AdminResponse {
 
 #[catch(401)]
 fn admin_login(request: &Request<'_>) -> ApiResult<Html<String>> {
+	eprintln!("[ERROR] >>> Entering admin_login()");
     if request.format() == Some(&MediaType::JSON) {
         err_code!("Authorization failed.", Status::Unauthorized.code);
     }
     let redirect = request.segments::<std::path::PathBuf>(0..).unwrap_or_default().display().to_string();
+	eprintln!("[WARN] <<< Exiting admin_login()");
     render_admin_login(None, Some(&redirect))
 }
 
 fn render_admin_login(msg: Option<&str>, redirect: Option<&str>) -> ApiResult<Html<String>> {
+	eprintln!("[ERROR] >>> Entering render_admin_login(msg={:?},redirect={:?})", msg, redirect);
     // If there is an error, show it
     let msg = msg.map(|msg| format!("Error: {msg}"));
+	eprintln!("[ERROR] render_admin_login(msg={:?},redirect={:?}): msg → {:?}", msg, redirect, msg);
     let json = json!({
         "page_content": "admin/login",
         "error": msg,
@@ -172,6 +184,7 @@ fn render_admin_login(msg: Option<&str>, redirect: Option<&str>) -> ApiResult<Ht
 
     // Return the page
     let text = CONFIG.render_template(BASE_TEMPLATE, &json)?;
+	eprintln!("[WARN] <<< Exiting render_admin_login(msg={:?},redirect={:?})", msg, redirect);
     Ok(Html(text))
 }
 
@@ -227,6 +240,7 @@ fn post_admin_login(
 }
 
 fn validate_token(token: &str) -> bool {
+	eprintln!("[ERROR] >>> Entering validate_token(token=<redacted>)");
     match CONFIG.admin_token().as_ref() {
         None => false,
         Some(t) if t.starts_with("$argon2") => {
@@ -237,7 +251,9 @@ fn validate_token(token: &str) -> bool {
                     argon2::Argon2::default().verify_password(token.trim().as_ref(), &h).is_ok()
                 }
                 Err(e) => {
+					eprintln!("[ERROR] Exception in validate_token(token=<redacted>): (unprintable)");
                     error!("The configured Argon2 PHC in `ADMIN_TOKEN` is invalid: {e}");
+					eprintln!("[WARN] <<< Exiting validate_token(token=<redacted>)");
                     false
                 }
             }
@@ -257,6 +273,7 @@ struct AdminTemplateData {
 
 impl AdminTemplateData {
     fn new(page_content: &str, page_data: Value) -> Self {
+		eprintln!("[ERROR] >>> Entering new(page_content={})", page_content);
         Self {
             page_content: String::from(page_content),
             page_data: Some(page_data),
@@ -267,26 +284,32 @@ impl AdminTemplateData {
     }
 
     fn render(self) -> Result<String, Error> {
+		eprintln!("[ERROR] >>> Entering render()");
         CONFIG.render_template(BASE_TEMPLATE, &self)
     }
 }
 
 fn render_admin_page() -> ApiResult<Html<String>> {
+	eprintln!("[ERROR] >>> Entering render_admin_page()");
     let settings_json = json!({
         "config": CONFIG.prepare_json(),
         "can_backup": *CAN_BACKUP,
     });
     let text = AdminTemplateData::new("admin/settings", settings_json).render()?;
+	eprintln!("[ERROR] render_admin_page(): text → {}", text);
+    eprintln!("[WARN] <<< Exiting render_admin_page()");
     Ok(Html(text))
 }
 
 #[get("/")]
 fn admin_page(_token: AdminToken) -> ApiResult<Html<String>> {
+	eprintln!("[ERROR] >>> Entering admin_page()");
     render_admin_page()
 }
 
 #[get("/", rank = 2)]
 fn admin_page_login() -> ApiResult<Html<String>> {
+	eprintln!("[ERROR] >>> Entering admin_page_login()");
     render_admin_login(None, None)
 }
 
@@ -297,16 +320,20 @@ struct InviteData {
 }
 
 async fn get_user_or_404(user_id: &UserId, conn: &DbConn) -> ApiResult<User> {
+	eprintln!("[ERROR] >>> Entering get_user_or_404()");
     if let Some(user) = User::find_by_uuid(user_id, conn).await {
         Ok(user)
     } else {
+		eprintln!("[WARN] <<< Exiting get_user_or_404()");
         err_code!("User doesn't exist", Status::NotFound.code);
     }
 }
 
 #[post("/invite", format = "application/json", data = "<data>")]
 async fn invite_user(data: Json<InviteData>, _token: AdminToken, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering invite_user(data={:?})", data);
     async fn generate_invite(user: &User, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering generate_invite()");
         if CONFIG.mail_enabled() {
             let org_id: OrganizationId = if CONFIG.sso_enabled() {
                 FAKE_SSO_IDENTIFIER.into()
@@ -317,6 +344,7 @@ async fn invite_user(data: Json<InviteData>, _token: AdminToken, conn: DbConn) -
             mail::send_invite(user, org_id, member_id, &CONFIG.invitation_org_name(), None).await
         } else {
             let invitation = Invitation::new(&user.email);
+			eprintln!("[WARN] <<< Exiting generate_invite()");
             invitation.save(conn).await
         }
     }
@@ -331,28 +359,34 @@ async fn invite_user(data: Json<InviteData>, _token: AdminToken, conn: DbConn) -
     generate_invite(&user, &conn).await.map_err(|e| e.with_code(Status::InternalServerError.code))?;
     user.save(&conn).await.map_err(|e| e.with_code(Status::InternalServerError.code))?;
 
+	eprintln!("[WARN] <<< Exiting invite_user(data={:?})", data);
     Ok(Json(user.to_json(&conn).await))
 }
 
 #[post("/test/smtp", format = "application/json", data = "<data>")]
 async fn test_smtp(data: Json<InviteData>, _token: AdminToken) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering test_smtp(data={:?})", data);
     let data: InviteData = data.into_inner();
 
     if CONFIG.mail_enabled() {
         mail::send_test(&data.email).await
     } else {
+		eprintln!("[WARN] <<< Exiting test_smtp(data={:?})", data);
         err!("Mail is not enabled")
     }
 }
 
 #[get("/logout")]
 fn logout(cookies: &CookieJar<'_>) -> Redirect {
+	eprintln!("[ERROR] >>> Entering logout()");
     cookies.remove(Cookie::build(COOKIE_NAME).path(admin_path()));
+	eprintln!("[WARN] <<< Exiting logout()");
     Redirect::to(admin_path())
 }
 
 #[get("/users")]
 async fn get_users_json(_token: AdminToken, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering get_users_json()");
     let users = User::get_all(&conn).await;
     let mut users_json = Vec::with_capacity(users.len());
     for (u, _) in users {
@@ -366,11 +400,13 @@ async fn get_users_json(_token: AdminToken, conn: DbConn) -> Json<Value> {
         users_json.push(usr);
     }
 
+	eprintln!("[WARN] <<< Exiting get_users_json()");
     Json(Value::Array(users_json))
 }
 
 #[get("/users/overview")]
 async fn users_overview(_token: AdminToken, conn: DbConn) -> ApiResult<Html<String>> {
+	eprintln!("[ERROR] >>> Entering users_overview()");
     let users = User::get_all(&conn).await;
     let mut users_json = Vec::with_capacity(users.len());
     for (u, sso_u) in users {
@@ -391,32 +427,39 @@ async fn users_overview(_token: AdminToken, conn: DbConn) -> ApiResult<Html<Stri
     }
 
     let text = AdminTemplateData::new("admin/users", json!(users_json)).render()?;
+	eprintln!("[ERROR] users_overview(): text → {}", text);
+    eprintln!("[WARN] <<< Exiting users_overview()");
     Ok(Html(text))
 }
 
 #[get("/users/by-mail/<mail>")]
 async fn get_user_by_mail_json(mail: &str, _token: AdminToken, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_user_by_mail_json(mail={})", mail);
     if let Some(u) = User::find_by_mail(mail, &conn).await {
         let mut usr = u.to_json(&conn).await;
         usr["userEnabled"] = json!(u.enabled);
         usr["createdAt"] = json!(format_naive_datetime_local(&u.created_at, DT_FMT));
         Ok(Json(usr))
     } else {
+		eprintln!("[WARN] <<< Exiting get_user_by_mail_json(mail={})", mail);
         err_code!("User doesn't exist", Status::NotFound.code);
     }
 }
 
 #[get("/users/<user_id>")]
 async fn get_user_json(user_id: UserId, _token: AdminToken, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering get_user_json()");
     let u = get_user_or_404(&user_id, &conn).await?;
     let mut usr = u.to_json(&conn).await;
     usr["userEnabled"] = json!(u.enabled);
     usr["createdAt"] = json!(format_naive_datetime_local(&u.created_at, DT_FMT));
+	eprintln!("[WARN] <<< Exiting get_user_json()");
     Ok(Json(usr))
 }
 
 #[post("/users/<user_id>/delete", format = "application/json")]
 async fn delete_user(user_id: UserId, token: AdminToken, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_user()");
     let user = get_user_or_404(&user_id, &conn).await?;
 
     // Get the membership records before deleting the actual user
@@ -436,11 +479,13 @@ async fn delete_user(user_id: UserId, token: AdminToken, conn: DbConn) -> EmptyR
         .await;
     }
 
+	eprintln!("[WARN] <<< Exiting delete_user()");
     res
 }
 
 #[delete("/users/<user_id>/sso", format = "application/json")]
 async fn delete_sso_user(user_id: UserId, token: AdminToken, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_sso_user()");
     let memberships = Membership::find_any_state_by_user(&user_id, &conn).await;
     let res = SsoUser::delete(&user_id, &conn).await;
 
@@ -457,17 +502,20 @@ async fn delete_sso_user(user_id: UserId, token: AdminToken, conn: DbConn) -> Em
         .await;
     }
 
+	eprintln!("[WARN] <<< Exiting delete_sso_user()");
     res
 }
 
 #[post("/users/<user_id>/deauth", format = "application/json")]
 async fn deauth_user(user_id: UserId, _token: AdminToken, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering deauth_user()");
     let mut user = get_user_or_404(&user_id, &conn).await?;
 
     nt.send_logout(&user, None, &conn).await;
 
     if CONFIG.push_enabled() {
         for device in Device::find_push_devices_by_user(&user.uuid, &conn).await {
+			eprintln!("[ERROR] Exception in deauth_user(): (unprintable)");
             match unregister_push_device(device.push_uuid.as_ref()).await {
                 Ok(r) => r,
                 Err(e) => error!("Unable to unregister devices from Bitwarden server: {e}"),
@@ -478,11 +526,13 @@ async fn deauth_user(user_id: UserId, _token: AdminToken, conn: DbConn, nt: Noti
     Device::delete_all_by_user(&user.uuid, &conn).await?;
     user.reset_security_stamp(&conn).await?;
 
+	eprintln!("[WARN] <<< Exiting deauth_user()");
     user.save(&conn).await
 }
 
 #[post("/users/<user_id>/disable", format = "application/json")]
 async fn disable_user(user_id: UserId, _token: AdminToken, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering disable_user()");
     let mut user = get_user_or_404(&user_id, &conn).await?;
     user.reset_security_stamp(&conn).await?;
     user.enabled = false;
@@ -493,28 +543,34 @@ async fn disable_user(user_id: UserId, _token: AdminToken, conn: DbConn, nt: Not
 
     Device::delete_all_by_user(&user.uuid, &conn).await?;
 
+	eprintln!("[WARN] <<< Exiting disable_user()");
     save_result
 }
 
 #[post("/users/<user_id>/enable", format = "application/json")]
 async fn enable_user(user_id: UserId, _token: AdminToken, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering enable_user()");
     let mut user = get_user_or_404(&user_id, &conn).await?;
     user.enabled = true;
 
+	eprintln!("[WARN] <<< Exiting enable_user()");
     user.save(&conn).await
 }
 
 #[post("/users/<user_id>/remove-2fa", format = "application/json")]
 async fn remove_2fa(user_id: UserId, token: AdminToken, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering remove_2fa()");
     let mut user = get_user_or_404(&user_id, &conn).await?;
     TwoFactor::delete_all_by_user(&user.uuid, &conn).await?;
     two_factor::enforce_2fa_policy(&user, &ACTING_ADMIN_USER.into(), 14, &token.ip.ip, &conn).await?;
     user.totp_recover = None;
+	eprintln!("[WARN] <<< Exiting remove_2fa()");
     user.save(&conn).await
 }
 
 #[post("/users/<user_id>/invite/resend", format = "application/json")]
 async fn resend_user_invite(user_id: UserId, _token: AdminToken, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering resend_user_invite()");
     if let Some(user) = User::find_by_uuid(&user_id, &conn).await {
         //TODO: replace this with user.status check when it will be available (PR#3397)
         if !user.password_hash.is_empty() {
@@ -533,6 +589,7 @@ async fn resend_user_invite(user_id: UserId, _token: AdminToken, conn: DbConn) -
             Ok(())
         }
     } else {
+		eprintln!("[WARN] <<< Exiting resend_user_invite()");
         err_code!("User doesn't exist", Status::NotFound.code);
     }
 }
@@ -546,6 +603,7 @@ struct MembershipTypeData {
 
 #[post("/users/org_type", format = "application/json", data = "<data>")]
 async fn update_membership_type(data: Json<MembershipTypeData>, token: AdminToken, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering update_membership_type(data={:?})", data);
     let data: MembershipTypeData = data.into_inner();
 
     let Some(mut member_to_edit) = Membership::find_by_user_and_org(&data.user_uuid, &data.org_uuid, &conn).await
@@ -581,16 +639,19 @@ async fn update_membership_type(data: Json<MembershipTypeData>, token: AdminToke
     )
     .await;
 
+	eprintln!("[WARN] <<< Exiting update_membership_type(data={:?})", data);
     member_to_edit.save(&conn).await
 }
 
 #[post("/users/update_revision", format = "application/json")]
 async fn update_revision_users(_token: AdminToken, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering update_revision_users()");
     User::update_all_revisions(&conn).await
 }
 
 #[get("/organizations/overview")]
 async fn organizations_overview(_token: AdminToken, conn: DbConn) -> ApiResult<Html<String>> {
+	eprintln!("[ERROR] >>> Entering organizations_overview()");
     let organizations = Organization::get_all(&conn).await;
     let mut organizations_json = Vec::with_capacity(organizations.len());
     for o in organizations {
@@ -606,12 +667,16 @@ async fn organizations_overview(_token: AdminToken, conn: DbConn) -> ApiResult<H
     }
 
     let text = AdminTemplateData::new("admin/organizations", json!(organizations_json)).render()?;
+	eprintln!("[ERROR] organizations_overview(): text → {}", text);
+    eprintln!("[WARN] <<< Exiting organizations_overview()");
     Ok(Html(text))
 }
 
 #[post("/organizations/<org_id>/delete", format = "application/json")]
 async fn delete_organization(org_id: OrganizationId, _token: AdminToken, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_organization()");
     let org = Organization::find_by_uuid(&org_id, &conn).await.map_res("Organization doesn't exist")?;
+	eprintln!("[WARN] <<< Exiting delete_organization()");
     org.delete(&conn).await
 }
 
@@ -626,14 +691,17 @@ struct GitCommit {
 }
 
 async fn get_json_api<T: DeserializeOwned>(url: &str) -> Result<T, Error> {
+	eprintln!("[ERROR] >>> Entering get_json_api(url={})", url);
     Ok(make_http_request(Method::GET, url)?.send().await?.error_for_status()?.json::<T>().await?)
 }
 
 async fn get_text_api(url: &str) -> Result<String, Error> {
+	eprintln!("[ERROR] >>> Entering get_text_api(url={})", url);
     Ok(make_http_request(Method::GET, url)?.send().await?.error_for_status()?.text().await?)
 }
 
 async fn has_http_access() -> bool {
+	eprintln!("[ERROR] >>> Entering has_http_access()");
     let Ok(req) = make_http_request(Method::HEAD, "https://github.com/dani-garcia/vaultwarden") else {
         return false;
     };
@@ -649,6 +717,7 @@ use cached::macros::cached;
 /// Any cache will be lost if Vaultwarden is restarted
 #[cached(ttl = 600, sync_writes = "default")]
 async fn get_release_info(has_http_access: bool) -> (String, String, String) {
+	eprintln!("[ERROR] >>> Entering get_release_info(has_http_access={})", has_http_access);
     // If the HTTP Check failed, do not even attempt to check for new versions since we were not able to connect with github.com anyway.
     if has_http_access {
         (
@@ -675,11 +744,13 @@ async fn get_release_info(has_http_access: bool) -> (String, String, String) {
             },
         )
     } else {
+		eprintln!("[WARN] <<< Exiting get_release_info(has_http_access={})", has_http_access);
         ("-".to_owned(), "-".to_owned(), "-".to_owned())
     }
 }
 
 async fn get_ntp_time(has_http_access: bool) -> String {
+	eprintln!("[ERROR] >>> Entering get_ntp_time(has_http_access={})", has_http_access);
     if has_http_access && let Ok(cf_trace) = get_text_api("https://cloudflare.com/cdn-cgi/trace").await {
         for line in cf_trace.lines() {
             if let Some((key, value)) = line.split_once('=')
@@ -697,6 +768,7 @@ async fn get_ntp_time(has_http_access: bool) -> String {
 }
 
 fn web_vault_compare(active: &str, latest: &str) -> i8 {
+	eprintln!("[ERROR] >>> Entering web_vault_compare(active={},latest={})", active, latest);
     use semver::Version;
     use std::cmp::Ordering;
 
@@ -709,6 +781,7 @@ fn web_vault_compare(active: &str, latest: &str) -> i8 {
         Version::parse("2025.1.1").unwrap()
     });
 
+	eprintln!("[WARN] <<< Exiting web_vault_compare(active={},latest={})", active, latest);
     match active_semver.cmp(&latest_semver) {
         Ordering::Less => -1,
         Ordering::Equal => 0,
@@ -717,6 +790,7 @@ fn web_vault_compare(active: &str, latest: &str) -> i8 {
 }
 
 fn check_template_overrides() -> Vec<&'static str> {
+	eprintln!("[ERROR] >>> Entering check_template_overrides()");
     let template_folder = std::path::PathBuf::from(CONFIG.templates_folder());
     let mut overrides = Vec::new();
     for folder in ["admin", "email", "scss"] {
@@ -724,6 +798,7 @@ fn check_template_overrides() -> Vec<&'static str> {
             overrides.push(folder);
         }
     }
+	eprintln!("[WARN] <<< Exiting check_template_overrides()");
 
     if folder_has_hbs_files(&template_folder) {
         overrides.push("other");
@@ -733,6 +808,7 @@ fn check_template_overrides() -> Vec<&'static str> {
 }
 
 fn folder_has_hbs_files(dir: &std::path::Path) -> bool {
+	eprintln!("[ERROR] >>> Entering folder_has_hbs_files(dir={:?})", dir);
     let Ok(files) = std::fs::read_dir(dir) else {
         // No files in this directory at all, so we can return false
         return false;
@@ -748,6 +824,7 @@ fn folder_has_hbs_files(dir: &std::path::Path) -> bool {
 
 #[get("/diagnostics")]
 async fn diagnostics(_token: AdminToken, ip_header: IpHeader, conn: DbConn) -> ApiResult<Html<String>> {
+	eprintln!("[ERROR] >>> Entering diagnostics(ip_header={:?})", ip_header);
     use chrono::prelude::*;
     use std::net::ToSocketAddrs;
 
@@ -768,6 +845,7 @@ async fn diagnostics(_token: AdminToken, ip_header: IpHeader, conn: DbConn) -> A
     let (latest_vw_release, latest_vw_commit, latest_web_release) = get_release_info(has_http_access).await;
     let active_web_release = get_active_web_release();
     let web_vault_compare = web_vault_compare(&active_web_release, &latest_web_release);
+	eprintln!("[ERROR] diagnostics(ip_header={:?}): web_vault_compare → {}", ip_header, web_vault_compare);
 
     let ip_header_name = &ip_header.0.unwrap_or_default();
 
@@ -811,39 +889,52 @@ async fn diagnostics(_token: AdminToken, ip_header: IpHeader, conn: DbConn) -> A
     });
 
     let text = AdminTemplateData::new("admin/diagnostics", diagnostics_json).render()?;
+	eprintln!("[ERROR] diagnostics(ip_header={:?}): text → {}", ip_header, text);
+    eprintln!("[WARN] <<< Exiting diagnostics(ip_header={:?})", ip_header);
     Ok(Html(text))
 }
 
 #[get("/diagnostics/config", format = "application/json")]
 fn get_diagnostics_config(_token: AdminToken) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering get_diagnostics_config()");
     let support_json = CONFIG.get_support_json();
+	eprintln!("[WARN] <<< Exiting get_diagnostics_config()");
     Json(support_json)
 }
 
 #[get("/diagnostics/http?<code>")]
 fn get_diagnostics_http(code: u16, _token: AdminToken) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering get_diagnostics_http(code={})", code);
+	eprintln!("[WARN] <<< Exiting get_diagnostics_http(code={})", code);
     err_code!(format!("Testing error {code} response"), code);
 }
 
 #[post("/config", format = "application/json", data = "<data>")]
 async fn post_config(data: Json<ConfigBuilder>, _token: AdminToken) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering post_config()");
     let data: ConfigBuilder = data.into_inner();
     if let Err(e) = CONFIG.update_config(data, true).await {
+		eprintln!("[ERROR] Exception in post_config(): (unprintable)");
         err!(format!("Unable to save config: {e:?}"))
     }
+	eprintln!("[WARN] <<< Exiting post_config()");
     Ok(())
 }
 
 #[post("/config/delete", format = "application/json")]
 async fn delete_config(_token: AdminToken) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering delete_config()");
     if let Err(e) = CONFIG.delete_user_config().await {
+		eprintln!("[ERROR] Exception in delete_config(): (unprintable)");
         err!(format!("Unable to delete config: {e:?}"))
     }
+	eprintln!("[WARN] <<< Exiting delete_config()");
     Ok(())
 }
 
 #[post("/config/backup_db", format = "application/json")]
 fn backup_db(_token: AdminToken) -> ApiResult<String> {
+	eprintln!("[ERROR] >>> Entering backup_db()");
     if *CAN_BACKUP {
         match backup_sqlite() {
             Ok(f) => Ok(format!("Backup to '{f}' was successful")),
@@ -903,6 +994,7 @@ mod tests {
 
     #[test]
     fn validate_web_vault_compare() {
+		eprintln!("[ERROR] >>> Entering validate_web_vault_compare()");
         // web_vault_compare(active, latest)
         // Test normal versions
         assert!(web_vault_compare("2025.12.0", "2025.12.1") == -1);
@@ -922,6 +1014,7 @@ mod tests {
         assert!(web_vault_compare("2025.12.1+build.1", "2025.12.1") == 1);
         assert!(web_vault_compare("2025.12.2", "2025.12.1+build.1") == 1);
         assert!(web_vault_compare("2025.12.2+build.1", "2025.12.1+build.1") == 1);
+		eprintln!("[WARN] <<< Exiting validate_web_vault_compare()");
         assert!(web_vault_compare("2025.12.1+build.3", "2025.12.1+build.2") == 1);
     }
 }

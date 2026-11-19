@@ -42,6 +42,7 @@ use crate::{
 };
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![
         login,
         post_prelogin,
@@ -146,10 +147,12 @@ async fn login(
         }
     }
 
+	eprintln!("[WARN] <<< Exiting login(data={:?})", data);
     login_result
 }
 
 async fn refresh_login(data: ConnectData, conn: &DbConn, ip: &ClientIp) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering refresh_login(data={:?})", data);
     // When a refresh token is invalid or missing we need to respond with an HTTP BadRequest (400)
     // It also needs to return a json which holds at least a key `error` with the value `invalid_grant`
     // See the link below for details
@@ -167,6 +170,7 @@ async fn refresh_login(data: ConnectData, conn: &DbConn, ip: &ClientIp) -> JsonR
     // let members = Membership::find_confirmed_by_user(&user.uuid, conn).await;
     match auth::refresh_tokens(ip, &refresh_token, data.client_id, conn).await {
         Err(err) => {
+			eprintln!("[ERROR] Exception in refresh_login(data={:?}): (unprintable)", data);
             err_json!(
                 json!({"error": "invalid_grant"}),
                 format!("Unable to refresh login credentials: {}", err.message())
@@ -184,6 +188,7 @@ async fn refresh_login(data: ConnectData, conn: &DbConn, ip: &ClientIp) -> JsonR
                 "scope": auth_tokens.scope(),
             });
 
+			eprintln!("[WARN] <<< Exiting refresh_login(data={:?})", data);
             Ok(Json(result))
         }
     }
@@ -366,6 +371,7 @@ async fn password_login(
     ip: &ClientIp,
     client_version: Option<&ClientVersion>,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering password_login(data={:?})", data);
     // Validate scope
     AuthMethod::Password.check_scope(data.scope.as_ref())?;
 
@@ -453,6 +459,7 @@ async fn password_login(
                 user.login_verify_count += 1;
 
                 if let Err(e) = user.save(conn).await {
+					eprintln!("[ERROR] Exception in password_login(data={:?}): (unprintable)", data);
                     error!("Error updating user: {e:#?}");
                 }
 
@@ -478,6 +485,7 @@ async fn password_login(
 
     let auth_tokens = auth::AuthTokens::new(&device, &user, AuthMethod::Password, data.client_id);
 
+	eprintln!("[WARN] <<< Exiting password_login(data={:?})", data);
     authenticated_response(&user, &mut device, auth_tokens, twofactor_token, conn, ip).await
 }
 
@@ -582,10 +590,12 @@ async fn authenticated_response(
 }
 
 async fn api_key_login(data: ConnectData, user_id: &mut Option<UserId>, conn: &DbConn, ip: &ClientIp) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering api_key_login(data={:?})", data);
     // Ratelimit the login
     crate::ratelimit::check_limit_login(&ip.ip)?;
 
     // Validate scope
+	eprintln!("[WARN] <<< Exiting api_key_login(data={:?})", data);
     match data.scope.as_ref() {
         Some(scope) if scope == &AuthMethod::UserApiKey.scope() => user_api_key_login(data, user_id, conn, ip).await,
         Some(scope) if scope == &AuthMethod::OrgApiKey.scope() => organization_api_key_login(data, conn, ip).await,
@@ -599,6 +609,7 @@ async fn user_api_key_login(
     conn: &DbConn,
     ip: &ClientIp,
 ) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering user_api_key_login(data={:?})", data);
     // Get the user via the client_id
     let client_id = data.client_id.as_ref().unwrap();
     let Some(client_user_id) = client_id.strip_prefix("user.") else {
@@ -640,6 +651,7 @@ async fn user_api_key_login(
     if CONFIG.mail_enabled() && device.is_new() {
         let now = Utc::now().naive_utc();
         if let Err(e) = mail::send_new_device_logged_in(&user.email, &ip.ip.to_string(), &now, &device).await {
+			eprintln!("[ERROR] Exception in user_api_key_login(data={:?}): (unprintable)", data);
             error!("Error sending new device email: {e:#?}");
 
             if CONFIG.require_device_email() {
@@ -722,10 +734,12 @@ async fn user_api_key_login(
         },
     });
 
+	eprintln!("[WARN] <<< Exiting user_api_key_login(data={:?})", data);
     Ok(Json(result))
 }
 
 async fn organization_api_key_login(data: ConnectData, conn: &DbConn, ip: &ClientIp) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering organization_api_key_login(data={:?})", data);
     // Get the org via the client_id
     let client_id = data.client_id.as_ref().unwrap();
     let Some(org_id) = client_id.strip_prefix("organization.") else {
@@ -745,6 +759,7 @@ async fn organization_api_key_login(data: ConnectData, conn: &DbConn, ip: &Clien
     let claim = generate_organization_api_key_login_claims(org_api_key.uuid, org_api_key.org_uuid);
     let access_token = auth::encode_jwt(&claim);
 
+	eprintln!("[WARN] <<< Exiting organization_api_key_login(data={:?})", data);
     Ok(Json(json!({
         "access_token": access_token,
         "expires_in": 3600,
@@ -755,6 +770,7 @@ async fn organization_api_key_login(data: ConnectData, conn: &DbConn, ip: &Clien
 
 /// Retrieves an existing device or creates a new device from ConnectData and the User
 async fn get_device(data: &ConnectData, conn: &DbConn, user: &User) -> ApiResult<Device> {
+	eprintln!("[ERROR] >>> Entering get_device(data={:?})", data);
     // On iOS, device_type sends "iOS", on others it sends a number
     // When unknown or unable to parse, return 14, which is 'Unknown Browser'
     let device_type = util::try_parse_string(data.device_type.as_ref()).unwrap_or(14);
@@ -768,6 +784,7 @@ async fn get_device(data: &ConnectData, conn: &DbConn, user: &User) -> ApiResult
         let mut device = Device::new(device_id, user.uuid.clone(), device_name, device_type);
         // save device without updating `device.updated_at`
         device.save(false, conn).await?;
+		eprintln!("[WARN] <<< Exiting get_device(data={:?})", data);
         Ok(device)
     }
 }
@@ -780,6 +797,7 @@ async fn twofactor_auth(
     client_version: Option<&ClientVersion>,
     conn: &DbConn,
 ) -> ApiResult<Option<String>> {
+	eprintln!("[ERROR] >>> Entering twofactor_auth(data={:?})", data);
     let twofactors = TwoFactor::find_by_user(&user.uuid, conn).await;
 
     // No twofactor token if twofactor is disabled
@@ -907,6 +925,7 @@ async fn twofactor_auth(
 }
 
 fn selected_data(tf: Option<TwoFactor>) -> ApiResult<String> {
+	eprintln!("[ERROR] >>> Entering selected_data()");
     tf.map(|t| t.data).map_res("Two factor doesn't exist")
 }
 
@@ -917,6 +936,7 @@ async fn json_err_twofactor(
     client_version: Option<&ClientVersion>,
     conn: &DbConn,
 ) -> ApiResult<Value> {
+	eprintln!("[ERROR] >>> Entering json_err_twofactor(providers={:?},data={:?})", providers, data);
     let mut result = json!({
         "error" : "invalid_grant",
         "error_description" : "Two factor required.",
@@ -1020,21 +1040,25 @@ async fn json_err_twofactor(
         }
     }
 
+	eprintln!("[WARN] <<< Exiting json_err_twofactor(providers={:?},data={:?})", providers, data);
     Ok(result)
 }
 
 #[post("/accounts/prelogin", data = "<data>")]
 async fn post_prelogin(data: Json<PreloginData>, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering post_prelogin()");
     prelogin(data, conn).await
 }
 
 #[post("/accounts/prelogin/password", data = "<data>")]
 async fn prelogin_password(data: Json<PreloginData>, conn: DbConn) -> Json<Value> {
+	eprintln!("[ERROR] >>> Entering prelogin_password()");
     prelogin(data, conn).await
 }
 
 #[post("/accounts/register", data = "<data>")]
 async fn identity_register(data: Json<RegisterData>, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering identity_register()");
     register(data, false, conn).await
 }
 
@@ -1059,6 +1083,7 @@ async fn register_verification_email(
     ip: ClientIp,
     conn: DbConn,
 ) -> ApiResult<RegisterVerificationResponse> {
+	eprintln!("[ERROR] >>> Entering register_verification_email()");
     crate::ratelimit::check_limit_unauthenticated(&ip.ip)?;
 
     let data = data.into_inner();
@@ -1093,12 +1118,14 @@ async fn register_verification_email(
     } else {
         // If email verification is not required, return the token directly
         // the clients will use this token to finish the registration
+		eprintln!("[WARN] <<< Exiting register_verification_email()");
         Ok(RegisterVerificationResponse::Token(Json(token)))
     }
 }
 
 #[post("/accounts/register/finish", data = "<data>")]
 async fn register_finish(data: Json<RegisterData>, conn: DbConn) -> JsonResult {
+	eprintln!("[ERROR] >>> Entering register_finish()");
     register(data, true, conn).await
 }
 
@@ -1167,20 +1194,24 @@ struct ConnectData {
     password_hash_b64: Option<String>,
 }
 fn check_is_some<T>(value: Option<&T>, msg: &str) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering check_is_some(msg={})", msg);
     if value.is_none() {
         err!(msg)
     }
+	eprintln!("[WARN] <<< Exiting check_is_some(msg={})", msg);
     Ok(())
 }
 
 #[get("/sso/prevalidate")]
 fn prevalidate() -> JsonResult {
+	eprintln!("[ERROR] >>> Entering prevalidate()");
     if CONFIG.sso_enabled() {
         let sso_token = sso::encode_ssotoken_claims();
         Ok(Json(json!({
             "token": sso_token,
         })))
     } else {
+		eprintln!("[WARN] <<< Exiting prevalidate()");
         err!("SSO sign-in is not available")
     }
 }
@@ -1189,6 +1220,7 @@ const SSO_BINDING_COOKIE: &str = "VW_SSO_BINDING";
 
 #[get("/connect/oidc-signin?<code>&<state>", rank = 1)]
 async fn oidcsignin(code: OIDCCode, state: String, cookies: &CookieJar<'_>, mut conn: DbConn) -> ApiResult<Redirect> {
+	eprintln!("[ERROR] >>> Entering oidcsignin(state={})", state);
     oidcsignin_redirect(state, code, None, cookies, &mut conn).await
 }
 
@@ -1226,6 +1258,7 @@ async fn oidcsignin_redirect(
     cookies: &CookieJar<'_>,
     conn: &mut DbConn,
 ) -> ApiResult<Redirect> {
+	eprintln!("[ERROR] >>> Entering oidcsignin_redirect(base64_state={})", base64_state);
     let state = sso::decode_state(&base64_state)?;
 
     let Some(mut sso_auth) = SsoAuth::find(&state, conn).await else {
@@ -1248,6 +1281,7 @@ async fn oidcsignin_redirect(
     sso_auth.updated_at = Utc::now().naive_utc();
     sso_auth.save(conn).await?;
 
+	eprintln!("[ERROR] Exception in oidcsignin_redirect(base64_state={}): (unprintable)", base64_state);
     let mut url = match url::Url::parse(&sso_auth.redirect_uri) {
         Ok(url) => url,
         Err(err) => err!(format!("Failed to parse redirect uri ({}): {err}", sso_auth.redirect_uri)),
@@ -1261,6 +1295,7 @@ async fn oidcsignin_redirect(
 
     debug!("Redirection to {url}");
 
+	eprintln!("[WARN] <<< Exiting oidcsignin_redirect(base64_state={})", base64_state);
     Ok(Redirect::temporary(String::from(url)))
 }
 
@@ -1291,6 +1326,7 @@ struct AuthorizeData {
 // The `redirect_uri` will change depending of the client (web, android, ios ..)
 #[get("/connect/authorize?<data..>")]
 async fn authorize(data: AuthorizeData, cookies: &CookieJar<'_>, secure: Secure, conn: DbConn) -> ApiResult<Redirect> {
+	eprintln!("[ERROR] >>> Entering authorize(data={:?})", data);
     let AuthorizeData {
         client_id,
         redirect_uri,
@@ -1322,5 +1358,6 @@ async fn authorize(data: AuthorizeData, cookies: &CookieJar<'_>, secure: Secure,
             .build(),
     );
 
+	eprintln!("[WARN] <<< Exiting authorize(data={:?})", data);
     Ok(Redirect::temporary(String::from(auth_url)))
 }

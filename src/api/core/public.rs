@@ -22,6 +22,7 @@ use crate::{
 };
 
 pub fn routes() -> Vec<Route> {
+	eprintln!("[ERROR] >>> Entering routes()");
     routes![ldap_import]
 }
 
@@ -52,6 +53,7 @@ struct OrgImportData {
 
 #[post("/public/organization/import", data = "<data>")]
 async fn ldap_import(data: Json<OrgImportData>, token: PublicToken, conn: DbConn) -> EmptyResult {
+	eprintln!("[ERROR] >>> Entering ldap_import()");
     // Most of the logic for this function can be found here
     // https://github.com/bitwarden/server/blob/9ebe16587175b1c0e9208f84397bb75d0d595510/src/Core/AdminConsole/Services/Implementations/OrganizationService.cs#L1203
 
@@ -109,6 +111,7 @@ async fn ldap_import(data: Json<OrgImportData>, token: PublicToken, conn: DbConn
                     Invitation::new(&new_user.email).save(&conn).await?;
                 }
                 user_created = true;
+				eprintln!("[DEBUG] ldap_import(): user_created → {}", user_created);
                 new_user
             };
             let member_status = if CONFIG.mail_enabled() || user.password_hash.is_empty() {
@@ -193,6 +196,7 @@ async fn ldap_import(data: Json<OrgImportData>, token: PublicToken, conn: DbConn
         }
     }
 
+	eprintln!("[WARN] <<< Exiting ldap_import()");
     Ok(())
 }
 
@@ -203,6 +207,7 @@ impl<'r> FromRequest<'r> for PublicToken {
     type Error = &'static str;
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+		eprintln!("[ERROR] >>> Entering from_request()");
         let headers = request.headers();
         // Get access_token
         let access_token: &str = if let Some(a) = headers.get_one("Authorization") {
@@ -228,6 +233,7 @@ impl<'r> FromRequest<'r> for PublicToken {
         }
         // Check if claims.iss is domain|claims.scope[0]
         let complete_host = format!("{}|{}", CONFIG.domain_origin(), claims.scope[0]);
+		eprintln!("[ERROR] from_request(): complete_host → {}", complete_host);
         if complete_host != claims.iss {
             err_handler!("Token not issued by this server");
         }
@@ -251,6 +257,7 @@ impl<'r> FromRequest<'r> for PublicToken {
             err_handler!("Token not issued for this client");
         }
 
+		eprintln!("[WARN] <<< Exiting from_request()");
         Outcome::Success(PublicToken(claims.client_sub))
     }
 }

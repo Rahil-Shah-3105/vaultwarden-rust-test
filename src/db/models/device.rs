@@ -38,8 +38,10 @@ pub struct Device {
 /// Local methods
 impl Device {
     pub fn new(uuid: DeviceId, user_uuid: UserId, name: String, atype: i32) -> Self {
+		eprintln!("[ERROR] >>> Entering new(uuid={:?},name={},atype={})", uuid, name, atype);
         let now = Utc::now().naive_utc();
 
+		eprintln!("[WARN] <<< Exiting new(uuid={:?},name={},atype={})", uuid, name, atype);
         Self {
             uuid,
             created_at: now,
@@ -58,10 +60,12 @@ impl Device {
 
     #[inline(always)]
     pub fn generate_refresh_token() -> String {
+		eprintln!("[ERROR] >>> Entering generate_refresh_token()");
         crypto::encode_random_bytes::<64>(&BASE64URL)
     }
 
     pub fn to_json(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json()");
         json!({
             "id": self.uuid,
             "name": self.name,
@@ -70,37 +74,46 @@ impl Device {
             "creationDate": format_date(&self.created_at),
             "isTrusted": false,
             "object":"device"
+		eprintln!("[WARN] <<< Exiting to_json()");
         })
     }
 
     pub fn refresh_twofactor_remember(&mut self) -> String {
+		eprintln!("[ERROR] >>> Entering refresh_twofactor_remember()");
         use crate::auth::{encode_jwt, generate_2fa_remember_claims};
 
         let two_factor_remember_claim = generate_2fa_remember_claims(self.uuid.clone(), self.user_uuid.clone());
         let two_factor_remember_string = encode_jwt(&two_factor_remember_claim);
         self.twofactor_remember = Some(two_factor_remember_string.clone());
 
+		eprintln!("[WARN] <<< Exiting refresh_twofactor_remember()");
         two_factor_remember_string
     }
 
     pub fn delete_twofactor_remember(&mut self) {
+		eprintln!("[ERROR] >>> Entering delete_twofactor_remember()");
+		eprintln!("[WARN] <<< Exiting delete_twofactor_remember()");
         self.twofactor_remember = None;
     }
 
     // This rely on the fact we only update the device after a successful login
     pub fn is_new(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering is_new()");
         self.created_at == self.updated_at
     }
 
     pub fn is_push_device(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering is_push_device()");
         matches!(DeviceType::from_i32(self.atype), DeviceType::Android | DeviceType::Ios)
     }
 
     pub fn is_cli(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering is_cli()");
         matches!(DeviceType::from_i32(self.atype), DeviceType::WindowsCLI | DeviceType::MacOsCLI | DeviceType::LinuxCLI)
     }
 
     pub fn is_mobile(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering is_mobile()");
         matches!(DeviceType::from_i32(self.atype), DeviceType::Android | DeviceType::Ios)
     }
 }
@@ -131,6 +144,7 @@ impl DeviceWithAuthRequest {
     }
 
     pub fn from(c: Device, a: Option<AuthRequest>) -> Self {
+		eprintln!("[ERROR] >>> Entering from()");
         Self {
             device: c,
             pending_auth_request: a,
@@ -141,10 +155,15 @@ impl DeviceWithAuthRequest {
 /// Database methods
 impl Device {
     pub async fn save(&mut self, update_time: bool, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save(update_time={})", update_time);
         if update_time {
             self.updated_at = Utc::now().naive_utc();
         }
 
+		let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] save(update_time,conn)={},(unprintable): database query executed in {} ms", update_time, __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(update_time,conn)={},(unprintable): database query executed in {} ms", update_time, __log_start.elapsed().as_millis());
+        eprintln!("[WARN] <<< Exiting save(update_time={})", update_time);
         db_run! { conn:
             sqlite, mysql {
                 crate::util::retry(||
@@ -169,6 +188,10 @@ impl Device {
     }
 
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete_all_by_user(user_uuid,conn)=(unprintable),(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] delete_all_by_user(user_uuid,conn)=(unprintable),(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete_all_by_user()");
         conn.run(move |conn| {
             diesel::delete(devices::table.filter(devices::user_uuid.eq(user_uuid)))
                 .execute(conn)
@@ -178,6 +201,7 @@ impl Device {
     }
 
     pub async fn find_by_uuid_and_user(uuid: &DeviceId, user_uuid: &UserId, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_uuid_and_user(uuid={:?})", uuid);
         conn.run(move |conn| {
             devices::table
                 .filter(devices::uuid.eq(uuid))
@@ -189,16 +213,19 @@ impl Device {
     }
 
     pub async fn find_with_auth_request_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<DeviceWithAuthRequest> {
+		eprintln!("[ERROR] >>> Entering find_with_auth_request_by_user()");
         let devices = Self::find_by_user(user_uuid, conn).await;
         let mut result = Vec::new();
         for device in devices {
             let auth_request = AuthRequest::find_by_user_and_requested_device(user_uuid, &device.uuid, conn).await;
             result.push(DeviceWithAuthRequest::from(device, auth_request));
         }
+		eprintln!("[WARN] <<< Exiting find_with_auth_request_by_user()");
         result
     }
 
     pub async fn find_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_user()");
         conn.run(move |conn| {
             devices::table.filter(devices::user_uuid.eq(user_uuid)).load::<Self>(conn).expect("Error loading devices")
         })
@@ -206,10 +233,15 @@ impl Device {
     }
 
     pub async fn find_by_uuid(uuid: &DeviceId, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_uuid(uuid={:?})", uuid);
         conn.run(move |conn| devices::table.filter(devices::uuid.eq(uuid)).first::<Self>(conn).ok()).await
     }
 
     pub async fn clear_push_token_by_uuid(uuid: &DeviceId, conn: &DbConn) -> EmptyResult {
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] clear_push_token_by_uuid(uuid,conn)={:?},(unprintable): update query executed in {} ms", uuid, __log_start.elapsed().as_millis());
+            eprintln!("[ERROR] clear_push_token_by_uuid(uuid,conn)={:?},(unprintable): database query executed in {} ms", uuid, __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting clear_push_token_by_uuid(uuid={:?})", uuid);
         conn.run(move |conn| {
             diesel::update(devices::table)
                 .filter(devices::uuid.eq(uuid))
@@ -220,11 +252,13 @@ impl Device {
         .await
     }
     pub async fn find_by_refresh_token(refresh_token: &str, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_refresh_token(refresh_token=<redacted>)");
         conn.run(move |conn| devices::table.filter(devices::refresh_token.eq(refresh_token)).first::<Self>(conn).ok())
             .await
     }
 
     pub async fn find_latest_active_by_user(user_uuid: &UserId, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_latest_active_by_user()");
         conn.run(move |conn| {
             devices::table
                 .filter(devices::user_uuid.eq(user_uuid))
@@ -236,6 +270,7 @@ impl Device {
     }
 
     pub async fn find_push_devices_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_push_devices_by_user()");
         conn.run(move |conn| {
             devices::table
                 .filter(devices::user_uuid.eq(user_uuid))
@@ -247,6 +282,7 @@ impl Device {
     }
 
     pub async fn check_user_has_push_device(user_uuid: &UserId, conn: &DbConn) -> bool {
+		eprintln!("[ERROR] >>> Entering check_user_has_push_device()");
         conn.run(move |conn| {
             devices::table
                 .filter(devices::user_uuid.eq(user_uuid))
@@ -261,6 +297,7 @@ impl Device {
     }
 
     pub async fn rotate_refresh_tokens_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering rotate_refresh_tokens_by_user()");
         // Generate a new token per device.
         // We cannot do a single UPDATE with one value because each device needs a unique token.
         let devices = Self::find_by_user(user_uuid, conn).await;
@@ -268,6 +305,7 @@ impl Device {
             device.refresh_token = Device::generate_refresh_token();
             device.save(false, conn).await?;
         }
+		eprintln!("[WARN] <<< Exiting rotate_refresh_tokens_by_user()");
         Ok(())
     }
 }
@@ -333,6 +371,7 @@ pub enum DeviceType {
 impl DeviceType {
     #[expect(clippy::match_same_arms, reason = "Specifically define 14 and have a fallback for new types")]
     pub fn from_i32(value: i32) -> DeviceType {
+		eprintln!("[ERROR] >>> Entering from_i32(value={})", value);
         match value {
             0 => DeviceType::Android,
             1 => DeviceType::Ios,

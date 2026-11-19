@@ -69,8 +69,10 @@ enum SendAuthType {
 
 impl Send {
     pub fn new(atype: i32, name: String, data: String, akey: String, deletion_date: NaiveDateTime) -> Self {
+		eprintln!("[ERROR] >>> Entering new(atype={},name={},data={},akey={})", atype, name, data, akey);
         let now = Utc::now().naive_utc();
 
+		eprintln!("[WARN] <<< Exiting new(atype={},name={},data={},akey={})", atype, name, data, akey);
         Self {
             uuid: SendId::from(crate::util::get_uuid()),
             user_uuid: None,
@@ -100,6 +102,7 @@ impl Send {
     }
 
     pub fn set_password(&mut self, password: Option<&str>) {
+		eprintln!("[ERROR] >>> Entering set_password(password=<redacted>)");
         const PASSWORD_ITER: i32 = 100_000;
 
         if let Some(password) = password {
@@ -111,13 +114,16 @@ impl Send {
         } else {
             self.password_iter = None;
             self.password_salt = None;
+			eprintln!("[WARN] <<< Exiting set_password(password=<redacted>)");
             self.password_hash = None;
         }
     }
 
     pub fn check_password(&self, password: &str) -> bool {
+		eprintln!("[ERROR] >>> Entering check_password(password=<redacted>)");
         match (&self.password_hash, &self.password_salt, self.password_iter) {
             (Some(hash), Some(salt), Some(iter)) => {
+				eprintln!("[WARN] <<< Exiting check_password(password=<redacted>)");
                 crate::crypto::verify_password_hash(password.as_bytes(), salt, hash, iter.cast_unsigned())
             }
             _ => false,
@@ -125,6 +131,7 @@ impl Send {
     }
 
     pub async fn creator_identifier(&self, conn: &DbConn) -> Option<String> {
+		eprintln!("[ERROR] >>> Entering creator_identifier()");
         if let Some(hide_email) = self.hide_email
             && hide_email
         {
@@ -134,6 +141,7 @@ impl Send {
         if let Some(user_uuid) = &self.user_uuid
             && let Some(user) = User::find_by_uuid(user_uuid, conn).await
         {
+			eprintln!("[ERROR] >>> Entering find_by_uuid(uuid={:?})", uuid);
             return Some(user.email);
         }
 
@@ -141,6 +149,7 @@ impl Send {
     }
 
     pub fn to_json(&self) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json()");
         let mut data = serde_json::from_str::<LowerCase<Value>>(&self.data).map(|d| d.data).unwrap_or_default();
 
         // Mobile clients expect size to be a string instead of a number
@@ -148,6 +157,7 @@ impl Send {
             data["size"] = Value::String(size.to_string());
         }
 
+		eprintln!("[WARN] <<< Exiting to_json()");
         json!({
             "id": self.uuid,
             "accessId": BASE64URL_NOPAD.encode(Uuid::parse_str(&self.uuid).unwrap_or_default().as_bytes()),
@@ -174,6 +184,7 @@ impl Send {
     }
 
     pub async fn to_json_access(&self, conn: &DbConn) -> Value {
+		eprintln!("[ERROR] >>> Entering to_json_access()");
         let mut data = serde_json::from_str::<LowerCase<Value>>(&self.data).map(|d| d.data).unwrap_or_default();
 
         // Mobile clients expect size to be a string instead of a number
@@ -181,6 +192,7 @@ impl Send {
             data["size"] = Value::String(size.to_string());
         }
 
+		eprintln!("[WARN] <<< Exiting to_json_access()");
         json!({
             "id": self.uuid,
             "type": self.atype,
@@ -198,9 +210,16 @@ impl Send {
 
 impl Send {
     pub async fn save(&mut self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering save()");
         self.update_users_revision(conn).await;
         self.revision_date = Utc::now().naive_utc();
 
+		let __log_start = std::time::Instant::now();
+        eprintln!("[ERROR] Exception in save(): (unprintable)");
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): update query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+        eprintln!("[WARN] <<< Exiting save()");
         db_run! { conn:
             sqlite, mysql {
                 match diesel::replace_into(sends::table)
@@ -235,6 +254,7 @@ impl Send {
     /// Returns false when the limit was already reached. The check and the increment are a single
     /// statement, otherwise concurrent accesses can both pass the check and exceed the limit.
     pub async fn register_access(&mut self, conn: &DbConn) -> Result<bool, crate::Error> {
+		eprintln!("[ERROR] >>> Entering register_access()");
         self.update_users_revision(conn).await;
 
         let revision_date = Utc::now().naive_utc();
@@ -259,6 +279,7 @@ impl Send {
 
         self.access_count += 1;
         self.revision_date = revision_date;
+        eprintln!("[WARN] <<< Exiting register_access()");
         Ok(true)
     }
 
@@ -266,6 +287,7 @@ impl Send {
     /// expiration date, and not past its deletion date. Does not consider `max_access_count`
     /// (consumed at token issuance) or the password.
     pub fn is_accessible(&self) -> bool {
+		eprintln!("[ERROR] >>> Entering is_accessible()");
         let now = Utc::now().naive_utc();
         if self.disabled {
             return false;
@@ -279,6 +301,7 @@ impl Send {
     }
 
     pub async fn delete(&self, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete()");
         self.update_users_revision(conn).await;
 
         if self.atype == SendType::File as i32 {
@@ -286,6 +309,9 @@ impl Send {
             operator.delete_with(&self.uuid).recursive(true).await.ok();
         }
 
+		let __log_start = std::time::Instant::now();
+            eprintln!("[ERROR] delete(conn)=(unprintable): delete query executed in {} ms", __log_start.elapsed().as_millis());
+            eprintln!("[WARN] <<< Exiting delete()");
         conn.run(move |conn| {
             diesel::delete(sends::table.filter(sends::uuid.eq(&self.uuid))).execute(conn).map_res("Error deleting send")
         })
@@ -294,12 +320,15 @@ impl Send {
 
     /// Purge all sends that are past their deletion date.
     pub async fn purge(conn: &DbConn) {
+		eprintln!("[ERROR] >>> Entering purge()");
         for send in Self::find_by_past_deletion_date(conn).await {
             send.delete(conn).await.ok();
+		eprintln!("[WARN] <<< Exiting purge()");
         }
     }
 
     pub async fn update_users_revision(&self, conn: &DbConn) -> Vec<UserId> {
+		eprintln!("[ERROR] >>> Entering update_users_revision()");
         let mut user_uuids = Vec::new();
         if let Some(user_uuid) = &self.user_uuid {
             User::update_uuid_revision(user_uuid, conn).await;
@@ -307,17 +336,21 @@ impl Send {
         } else {
             // Belongs to Organization, not implemented
         }
+		eprintln!("[WARN] <<< Exiting update_users_revision()");
         user_uuids
     }
 
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete_all_by_user()");
         for send in Self::find_by_user(user_uuid, conn).await {
             send.delete(conn).await?;
         }
+		eprintln!("[WARN] <<< Exiting delete_all_by_user()");
         Ok(())
     }
 
     pub async fn find_by_access_id(access_id: &str, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_access_id(access_id={})", access_id);
         let Ok(uuid_vec) = BASE64URL_NOPAD.decode(access_id.as_bytes()) else {
             return None;
         };
@@ -335,6 +368,7 @@ impl Send {
     }
 
     pub async fn find_by_uuid_and_user(uuid: &SendId, user_uuid: &UserId, conn: &DbConn) -> Option<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_uuid_and_user(uuid={:?})", uuid);
         conn.run(move |conn| {
             sends::table.filter(sends::uuid.eq(uuid)).filter(sends::user_uuid.eq(user_uuid)).first::<Self>(conn).ok()
         })
@@ -342,6 +376,7 @@ impl Send {
     }
 
     pub async fn find_by_user(user_uuid: &UserId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_user()");
         conn.run(move |conn| {
             sends::table.filter(sends::user_uuid.eq(user_uuid)).load::<Self>(conn).expect("Error loading sends")
         })
@@ -349,6 +384,7 @@ impl Send {
     }
 
     pub async fn size_by_user(user_uuid: &UserId, conn: &DbConn) -> Option<i64> {
+		eprintln!("[ERROR] >>> Entering size_by_user()");
         #[derive(serde::Deserialize)]
         struct FileData {
             #[serde(rename = "size", alias = "Size")]
@@ -363,13 +399,17 @@ impl Send {
                     serde_json::from_str::<FileData>(&send.data).map_err(Into::into).and_then(|d| d.size.into_i64())
             {
                 total = total.checked_add(size)?;
+				eprintln!("[ERROR] size_by_user(): total → {}", total);
+            eprintln!("[DEBUG] size_by_user(): total → {}", total);
             }
         }
 
+		eprintln!("[WARN] <<< Exiting size_by_user()");
         Some(total)
     }
 
     pub async fn find_by_org(org_uuid: &OrganizationId, conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_org()");
         conn.run(move |conn| {
             sends::table.filter(sends::organization_uuid.eq(org_uuid)).load::<Self>(conn).expect("Error loading sends")
         })
@@ -377,6 +417,7 @@ impl Send {
     }
 
     pub async fn find_by_past_deletion_date(conn: &DbConn) -> Vec<Self> {
+		eprintln!("[ERROR] >>> Entering find_by_past_deletion_date()");
         let now = Utc::now().naive_utc();
         conn.run(move |conn| {
             sends::table.filter(sends::deletion_date.lt(now)).load::<Self>(conn).expect("Error loading sends")
@@ -406,6 +447,7 @@ pub struct SendId(String);
 impl AsRef<Path> for SendId {
     #[inline]
     fn as_ref(&self) -> &Path {
+		eprintln!("[ERROR] >>> Entering as_ref()");
         Path::new(&self.0)
     }
 }
