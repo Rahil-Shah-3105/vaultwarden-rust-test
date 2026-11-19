@@ -103,6 +103,7 @@ static CAN_BACKUP: LazyLock<bool> = LazyLock::new(|| false);
 #[get("/")]
 fn admin_disabled() -> &'static str {
 	eprintln!("[ERROR] >>> Entering admin_disabled()");
+	eprintln!("[WARN] <<< Exiting admin_disabled()");
     "The admin panel is disabled, please configure the 'ADMIN_TOKEN' variable to enable it"
 }
 
@@ -117,6 +118,7 @@ pub const FAKE_ADMIN_UUID: &str = "00000000-0000-0000-0000-000000000000";
 
 fn admin_path() -> String {
 	eprintln!("[ERROR] >>> Entering admin_path()");
+	eprintln!("[WARN] <<< Exiting admin_path()");
     format!("{}{ADMIN_PATH}", CONFIG.domain_path())
 }
 
@@ -146,6 +148,7 @@ impl<'r> FromRequest<'r> for IpHeader {
 
 fn admin_url() -> String {
 	eprintln!("[ERROR] >>> Entering admin_url()");
+	eprintln!("[WARN] <<< Exiting admin_url()");
     format!("{}{}", CONFIG.domain_origin(), admin_path())
 }
 
@@ -274,6 +277,7 @@ struct AdminTemplateData {
 impl AdminTemplateData {
     fn new(page_content: &str, page_data: Value) -> Self {
 		eprintln!("[ERROR] >>> Entering new(page_content={})", page_content);
+		eprintln!("[WARN] <<< Exiting new(page_content={})", page_content);
         Self {
             page_content: String::from(page_content),
             page_data: Some(page_data),
@@ -285,6 +289,7 @@ impl AdminTemplateData {
 
     fn render(self) -> Result<String, Error> {
 		eprintln!("[ERROR] >>> Entering render()");
+		eprintln!("[WARN] <<< Exiting render()");
         CONFIG.render_template(BASE_TEMPLATE, &self)
     }
 }
@@ -304,12 +309,14 @@ fn render_admin_page() -> ApiResult<Html<String>> {
 #[get("/")]
 fn admin_page(_token: AdminToken) -> ApiResult<Html<String>> {
 	eprintln!("[ERROR] >>> Entering admin_page()");
+	eprintln!("[WARN] <<< Exiting admin_page()");
     render_admin_page()
 }
 
 #[get("/", rank = 2)]
 fn admin_page_login() -> ApiResult<Html<String>> {
 	eprintln!("[ERROR] >>> Entering admin_page_login()");
+	eprintln!("[WARN] <<< Exiting admin_page_login()");
     render_admin_login(None, None)
 }
 
@@ -646,6 +653,7 @@ async fn update_membership_type(data: Json<MembershipTypeData>, token: AdminToke
 #[post("/users/update_revision", format = "application/json")]
 async fn update_revision_users(_token: AdminToken, conn: DbConn) -> EmptyResult {
 	eprintln!("[ERROR] >>> Entering update_revision_users()");
+	eprintln!("[WARN] <<< Exiting update_revision_users()");
     User::update_all_revisions(&conn).await
 }
 
@@ -692,11 +700,13 @@ struct GitCommit {
 
 async fn get_json_api<T: DeserializeOwned>(url: &str) -> Result<T, Error> {
 	eprintln!("[ERROR] >>> Entering get_json_api(url={})", url);
+	eprintln!("[WARN] <<< Exiting get_json_api(url={})", url);
     Ok(make_http_request(Method::GET, url)?.send().await?.error_for_status()?.json::<T>().await?)
 }
 
 async fn get_text_api(url: &str) -> Result<String, Error> {
 	eprintln!("[ERROR] >>> Entering get_text_api(url={})", url);
+	eprintln!("[WARN] <<< Exiting get_text_api(url={})", url);
     Ok(make_http_request(Method::GET, url)?.send().await?.error_for_status()?.text().await?)
 }
 

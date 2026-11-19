@@ -13,6 +13,7 @@ const { spawn } = require('node:child_process');
 export function loadEnv(){
 	logger.error('>>> Entering loadEnv()', { "event.action": "loadEnv" });
     var myEnv = dotenv.config({ path: 'test.env', quiet: true });
+	logger.error(`loadEnv(): myEnv → ${myEnv}`, { "event.action": "loadEnv" });
     dotenvExpand.expand(myEnv);
 
     return {

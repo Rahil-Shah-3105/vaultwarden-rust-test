@@ -31,6 +31,7 @@ macro_rules! make_error {
         impl StdError for Error {
             fn source(&self) -> Option<&(dyn StdError + 'static)> {
 				eprintln!("[ERROR] >>> Entering source()");
+				eprintln!("[WARN] <<< Exiting source()");
                 match &self.kind {$( ErrorKind::$name(e) => $src_fn(e), )+}
             }
         }
@@ -145,6 +146,7 @@ impl Error {
     #[must_use]
     pub fn empty() -> Self {
 		eprintln!("[ERROR] >>> Entering empty()");
+		eprintln!("[WARN] <<< Exiting empty()");
         Empty {}.into()
     }
 
@@ -180,11 +182,13 @@ impl Error {
 
     pub fn get_event(&self) -> &Option<ErrorEvent> {
 		eprintln!("[ERROR] >>> Entering get_event()");
+		eprintln!("[WARN] <<< Exiting get_event()");
         &self.event
     }
 
     pub fn message(&self) -> &str {
 		eprintln!("[ERROR] >>> Entering message()");
+		eprintln!("[WARN] <<< Exiting message()");
         &self.message
     }
 
@@ -212,6 +216,7 @@ pub trait MapResult<S> {
 impl<S, E: Into<Error>> MapResult<S> for Result<S, E> {
     fn map_res(self, msg: &str) -> Result<S, Error> {
 		eprintln!("[ERROR] >>> Entering map_res(msg={})", msg);
+		eprintln!("[WARN] <<< Exiting map_res(msg={})", msg);
         self.map_err(|e| e.into().with_msg(msg))
     }
 }
@@ -230,10 +235,12 @@ impl<S> MapResult<S> for Option<S> {
 
 const fn has_source<T>(e: T) -> Option<T> {
 	eprintln!("[ERROR] >>> Entering has_source()");
+	eprintln!("[WARN] <<< Exiting has_source()");
     Some(e)
 }
 fn no_source<T, S>(_: T) -> Option<S> {
 	eprintln!("[ERROR] >>> Entering no_source()");
+	eprintln!("[WARN] <<< Exiting no_source()");
     None
 }
 

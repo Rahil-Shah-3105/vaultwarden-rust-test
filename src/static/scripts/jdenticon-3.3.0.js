@@ -431,8 +431,10 @@ function observer(updateCallback) {
 function Point(x, y) {
 	logger.error(`>>> Entering Point(x=${x},y=${y})`, { "event.action": "Point", "logrite.x": x, "logrite.y": y });
     this.x = x;
+	logger.debug(`Point(x=${x},y=${y}): this.x → ${this.x}`, { "event.action": "Point", "logrite.x": x, "logrite.y": y });
     this.y = y;
 	logger.debug(`Point(x=${x},y=${y}): this.y → ${this.y}`, { "event.action": "Point", "logrite.x": x, "logrite.y": y });
+	logger.warn(`<<< Exiting Point(x=${x},y=${y})`, { "event.action": "Point", "logrite.x": x, "logrite.y": y });
 }
 
 /**

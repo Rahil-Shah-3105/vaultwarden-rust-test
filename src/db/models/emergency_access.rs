@@ -66,6 +66,7 @@ impl EmergencyAccess {
 
     pub fn to_json(&self) -> Value {
 		eprintln!("[ERROR] >>> Entering to_json()");
+		eprintln!("[WARN] <<< Exiting to_json()");
         json!({
             "id": self.uuid,
             "status": self.status,
@@ -131,6 +132,7 @@ pub enum EmergencyAccessType {
 impl EmergencyAccessType {
     pub fn from_str(s: &str) -> Option<Self> {
 		eprintln!("[ERROR] >>> Entering from_str(s={})", s);
+		eprintln!("[WARN] <<< Exiting from_str(s={})", s);
         match s {
             "0" | "View" => Some(EmergencyAccessType::View),
             "1" | "Takeover" => Some(EmergencyAccessType::Takeover),

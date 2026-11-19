@@ -104,6 +104,7 @@ fn icon_external(host: &str) -> Cached<Option<Redirect>> {
         307 => Some(Redirect::temporary(url)),
         308 => Some(Redirect::permanent(url)),
         _ => {
+			eprintln!("[DEBUG] icon_external(host={}): 302 → {}", host, 302);
 			eprintln!("[DEBUG] icon_external(host={}): 301 → {}", host, 301);
             error!("Unexpected redirect code {}", CONFIG.icon_redirect_code());
             None
@@ -257,6 +258,7 @@ struct Icon {
 impl Icon {
     const fn new(priority: u8, href: String) -> Self {
 		eprintln!("[ERROR] >>> Entering new(priority={},href={})", priority, href);
+		eprintln!("[WARN] <<< Exiting new(priority={},href={})", priority, href);
         Self {
             priority,
             href,
@@ -311,8 +313,8 @@ fn get_favicons_node(dom: Tokenizer<StringReader<'_>, FaviconEmitter>, icons: &m
             let priority = get_icon_priority(full_href.as_str(), sizes);
 			eprintln!("[ERROR] get_favicons_node(): priority → {}", priority);
             icons.push(Icon::new(priority, full_href.to_string()));
-        }
 	eprintln!("[WARN] <<< Exiting get_favicons_node()");
+        }
     }
 }
 
@@ -433,6 +435,7 @@ async fn get_icon_url(domain: &str) -> Result<IconUrlResult, Error> {
 
 async fn get_page(url: &str) -> Result<Response, Error> {
 	eprintln!("[ERROR] >>> Entering get_page(url={})", url);
+	eprintln!("[WARN] <<< Exiting get_page(url={})", url);
     get_page_with_referer(url, "").await
 }
 
@@ -534,8 +537,8 @@ fn parse_sizes(sizes: &str) -> (u16, u16) {
             Some(dimensions) if dimensions.len() >= 3 => {
                 width = dimensions[1].parse::<u16>().unwrap_or_default();
 				eprintln!("[ERROR] parse_sizes(sizes={}): width → {}", sizes, width);
-                height = dimensions[2].parse::<u16>().unwrap_or_default();
 				eprintln!("[ERROR] parse_sizes(sizes={}): height → {}", sizes, height);
+                height = dimensions[2].parse::<u16>().unwrap_or_default();
             eprintln!("[DEBUG] parse_sizes(sizes={}): width → {}", sizes, width);
             eprintln!("[DEBUG] parse_sizes(sizes={}): height → {}", sizes, height);
             }
@@ -908,6 +911,7 @@ impl Emitter for FaviconEmitter {
 
     fn current_is_appropriate_end_tag_token(&mut self) -> bool {
 		eprintln!("[ERROR] >>> Entering current_is_appropriate_end_tag_token()");
+		eprintln!("[WARN] <<< Exiting current_is_appropriate_end_tag_token()");
         match &self.current_token {
             Some(token) if token.closing => !self.last_start_tag.is_empty() && self.last_start_tag == token.tag.name,
             _ => false,

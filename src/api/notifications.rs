@@ -371,8 +371,8 @@ impl WebSocketUsers {
                 if let Err(e) = sender.send(Message::binary(data)).await {
 					eprintln!("[ERROR] Exception in send_update(data={:?}): (unprintable)", data);
                     error!("Error sending WS update {e}");
-                }
 			eprintln!("[WARN] <<< Exiting send_update(data={:?})", data);
+                }
             }
         }
     }
@@ -395,8 +395,8 @@ impl WebSocketUsers {
         }
 
         if CONFIG.push_enabled() {
-            push_user_update(ut, user, push_uuid, conn).await;
 		eprintln!("[WARN] <<< Exiting send_user_update()");
+            push_user_update(ut, user, push_uuid, conn).await;
         }
     }
 
@@ -418,8 +418,8 @@ impl WebSocketUsers {
         }
 
         if CONFIG.push_enabled() {
-            push_logout(user, acting_device, conn).await;
 		eprintln!("[WARN] <<< Exiting send_logout()");
+            push_logout(user, acting_device, conn).await;
         }
     }
 
@@ -444,8 +444,8 @@ impl WebSocketUsers {
         }
 
         if CONFIG.push_enabled() {
-            push_folder_update(ut, folder, device, conn).await;
 		eprintln!("[WARN] <<< Exiting send_folder_update()");
+            push_folder_update(ut, folder, device, conn).await;
         }
     }
 
@@ -550,8 +550,8 @@ impl WebSocketUsers {
         }
 
         if CONFIG.push_enabled() {
-            push_auth_request(user_id, auth_request_uuid, device, conn).await;
 		eprintln!("[WARN] <<< Exiting send_auth_request(auth_request_uuid={})", auth_request_uuid);
+            push_auth_request(user_id, auth_request_uuid, device, conn).await;
         }
     }
 
@@ -577,8 +577,8 @@ impl WebSocketUsers {
         }
 
         if CONFIG.push_enabled() {
-            push_auth_response(user_id, auth_request_id, device, conn).await;
 		eprintln!("[WARN] <<< Exiting send_auth_response()");
+            push_auth_response(user_id, auth_request_id, device, conn).await;
         }
     }
 }
@@ -625,8 +625,8 @@ impl AnonymousWebSocketSubscriptions {
             if let Err(e) = sender.send(Message::binary(data)).await {
 				eprintln!("[ERROR] Exception in send_update(token=<redacted>,data={:?}): (unprintable)", data);
                 error!("Error sending WS update {e}");
-            }
 		eprintln!("[WARN] <<< Exiting send_update(token=<redacted>,data={:?})", data);
+            }
         }
     }
 
@@ -703,6 +703,7 @@ fn create_anonymous_update(payload: Vec<(Value, Value)>, ut: UpdateType, user_id
 
 fn create_ping() -> Vec<u8> {
 	eprintln!("[ERROR] >>> Entering create_ping()");
+	eprintln!("[WARN] <<< Exiting create_ping()");
     serialize(&Value::Array(vec![6.into()]))
 }
 

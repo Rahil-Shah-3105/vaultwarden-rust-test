@@ -163,6 +163,7 @@ fn vaultwarden_css() -> EtagCached<Css<String>> {
 #[get("/")]
 async fn web_index() -> Cached<Option<NamedFile>> {
 	eprintln!("[ERROR] >>> Entering web_index()");
+	eprintln!("[WARN] <<< Exiting web_index()");
     Cached::short(NamedFile::open(Path::new(&CONFIG.web_vault_folder()).join("index.html")).await.ok(), false)
 }
 
@@ -171,6 +172,7 @@ async fn web_index() -> Cached<Option<NamedFile>> {
 #[get("/index.html")]
 fn web_index_direct() -> Redirect {
 	eprintln!("[ERROR] >>> Entering web_index_direct()");
+	eprintln!("[WARN] <<< Exiting web_index_direct()");
     Redirect::to(format!("{}/", CONFIG.domain_path()))
 }
 
@@ -224,6 +226,7 @@ fn app_id() -> Cached<(ContentType, Json<Value>)> {
 #[get("/.well-known/apple-app-site-association")]
 fn apple_app_site_association() -> Cached<(ContentType, Json<Value>)> {
 	eprintln!("[ERROR] >>> Entering apple_app_site_association()");
+	eprintln!("[WARN] <<< Exiting apple_app_site_association()");
     Cached::long(
         (
             ContentType::JSON,
@@ -243,6 +246,7 @@ fn apple_app_site_association() -> Cached<(ContentType, Json<Value>)> {
 #[get("/<p..>", rank = 10)] // Only match this if the other routes don't match
 async fn web_files(p: PathBuf) -> Cached<Option<NamedFile>> {
 	eprintln!("[ERROR] >>> Entering web_files(p={:?})", p);
+	eprintln!("[WARN] <<< Exiting web_files(p={:?})", p);
     Cached::long(NamedFile::open(Path::new(&CONFIG.web_vault_folder()).join(p)).await.ok(), true)
 }
 
@@ -263,6 +267,7 @@ async fn attachments(cipher_id: CipherId, file_id: AttachmentId, token: String) 
 #[get("/alive")]
 fn alive(_conn: DbConn) -> Json<String> {
 	eprintln!("[ERROR] >>> Entering alive()");
+	eprintln!("[WARN] <<< Exiting alive()");
     now()
 }
 

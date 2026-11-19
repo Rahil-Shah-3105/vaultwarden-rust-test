@@ -322,8 +322,8 @@ impl Send {
     pub async fn purge(conn: &DbConn) {
 		eprintln!("[ERROR] >>> Entering purge()");
         for send in Self::find_by_past_deletion_date(conn).await {
-            send.delete(conn).await.ok();
 		eprintln!("[WARN] <<< Exiting purge()");
+            send.delete(conn).await.ok();
         }
     }
 
@@ -398,8 +398,8 @@ impl Send {
                 && let Ok(size) =
                     serde_json::from_str::<FileData>(&send.data).map_err(Into::into).and_then(|d| d.size.into_i64())
             {
-                total = total.checked_add(size)?;
 				eprintln!("[ERROR] size_by_user(): total → {}", total);
+                total = total.checked_add(size)?;
             eprintln!("[DEBUG] size_by_user(): total → {}", total);
             }
         }
@@ -448,6 +448,7 @@ impl AsRef<Path> for SendId {
     #[inline]
     fn as_ref(&self) -> &Path {
 		eprintln!("[ERROR] >>> Entering as_ref()");
+		eprintln!("[WARN] <<< Exiting as_ref()");
         Path::new(&self.0)
     }
 }

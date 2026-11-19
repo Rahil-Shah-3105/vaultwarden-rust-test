@@ -209,6 +209,7 @@ impl Event {
         let __log_start = std::time::Instant::now();
         eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
         eprintln!("[ERROR] save(conn)=(unprintable): database query executed in {} ms", __log_start.elapsed().as_millis());
+		eprintln!("[WARN] <<< Exiting save()");
         db_run! { conn:
             sqlite, mysql {
                 diesel::replace_into(event::table)

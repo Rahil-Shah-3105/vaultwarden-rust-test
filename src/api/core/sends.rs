@@ -43,6 +43,7 @@ const SIZE_525_MB: i64 = 550_502_400;
 
 pub fn routes() -> Vec<rocket::Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![
         get_sends,
         get_send,

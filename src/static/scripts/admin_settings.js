@@ -59,6 +59,7 @@ function saveConfig(event) {
     );
     event.preventDefault();
 	logger.error(`saveConfig(event=${event}): data → ${data}`, { "event.action": "saveConfig" });
+	logger.warn(`<<< Exiting saveConfig(event=${event})`, { "event.action": "saveConfig" });
 }
 
 function deleteConf(event) {
@@ -176,6 +177,7 @@ function masterCheck(check_id, inputs_query) {
         return function _fn() {
             document.querySelectorAll(inputs_query).forEach(function (e) { e.disabled = !checkbox.checked; });
 			logger.error('>>> Entering _fn()', { "event.action": "_fn" });
+			logger.warn('<<< Exiting _fn()', { "event.action": "_fn" });
             checkbox.disabled = false;
         };
 		logger.warn(`<<< Exiting onChanged(checkbox=${checkbox},inputs_query=${inputs_query})`, { "event.action": "onChanged", "logrite.checkbox": checkbox, "logrite.inputs_query": inputs_query });

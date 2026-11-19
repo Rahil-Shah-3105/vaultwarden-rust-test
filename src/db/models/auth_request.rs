@@ -75,6 +75,7 @@ impl AuthRequest {
 
     pub fn to_json_for_pending_device(&self) -> Value {
 		eprintln!("[ERROR] >>> Entering to_json_for_pending_device()");
+		eprintln!("[WARN] <<< Exiting to_json_for_pending_device()");
         json!({
             "id": self.uuid,
             "creationDate": format_date(&self.creation_date),
@@ -116,6 +117,7 @@ impl AuthRequest {
 
     pub async fn find_by_uuid(uuid: &AuthRequestId, conn: &DbConn) -> Option<Self> {
 		eprintln!("[ERROR] >>> Entering find_by_uuid(uuid={:?})", uuid);
+		eprintln!("[WARN] <<< Exiting find_by_uuid(uuid={:?})", uuid);
         conn.run(move |conn| auth_requests::table.filter(auth_requests::uuid.eq(uuid)).first::<Self>(conn).ok()).await
     }
 
@@ -186,6 +188,7 @@ impl AuthRequest {
 
     pub fn check_access_code(&self, access_code: &str) -> bool {
 		eprintln!("[ERROR] >>> Entering check_access_code(access_code={})", access_code);
+		eprintln!("[WARN] <<< Exiting check_access_code(access_code={})", access_code);
         ct_eq(&self.access_code, access_code)
     }
 
@@ -195,8 +198,8 @@ impl AuthRequest {
         // https://github.com/bitwarden/server/blob/f8ee2270409f7a13125cd414c450740af605a175/src/Sql/dbo/Auth/Stored%20Procedures/AuthRequest_DeleteIfExpired.sql
         let expiry_time = Utc::now().naive_utc() - chrono::TimeDelta::try_minutes(15).unwrap();
         for auth_request in Self::find_created_before(&expiry_time, conn).await {
-            auth_request.delete(conn).await.ok();
 		eprintln!("[WARN] <<< Exiting purge_expired_auth_requests()");
+            auth_request.delete(conn).await.ok();
         }
     }
 }

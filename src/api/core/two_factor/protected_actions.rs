@@ -16,6 +16,7 @@ use crate::{
 
 pub fn routes() -> Vec<Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![request_otp, verify_otp]
 }
 
@@ -34,6 +35,7 @@ pub struct ProtectedActionData {
 impl ProtectedActionData {
     pub fn new(token: String) -> Self {
 		eprintln!("[ERROR] >>> Entering new(token=<redacted>)");
+		eprintln!("[WARN] <<< Exiting new(token=<redacted>)");
         Self {
             token,
             token_sent: Utc::now().naive_utc(),
@@ -43,6 +45,7 @@ impl ProtectedActionData {
 
     pub fn to_json(&self) -> String {
 		eprintln!("[ERROR] >>> Entering to_json()");
+		eprintln!("[WARN] <<< Exiting to_json()");
         serde_json::to_string(&self).unwrap()
     }
 
@@ -65,6 +68,7 @@ impl ProtectedActionData {
 
     pub fn time_since_sent(&self) -> TimeDelta {
 		eprintln!("[ERROR] >>> Entering time_since_sent()");
+		eprintln!("[WARN] <<< Exiting time_since_sent()");
         Utc::now().naive_utc() - self.token_sent
     }
 }

@@ -46,6 +46,7 @@ static WEBAUTHN: LazyLock<Webauthn> = LazyLock::new(|| {
 
 pub fn routes() -> Vec<Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![get_webauthn, generate_webauthn_challenge, activate_webauthn, activate_webauthn_put, delete_webauthn,]
 }
 
@@ -83,6 +84,7 @@ pub struct WebauthnRegistration {
 impl WebauthnRegistration {
     fn to_json(&self) -> Value {
 		eprintln!("[ERROR] >>> Entering to_json()");
+		eprintln!("[WARN] <<< Exiting to_json()");
         json!({
             "id": self.id,
             "name": self.name,
@@ -97,8 +99,8 @@ impl WebauthnRegistration {
 
         if cred.backup_state != backup_state {
             cred.backup_state = backup_state;
-            changed = true;
 			eprintln!("[ERROR] set_backup_eligible(backup_eligible={},backup_state={}): changed → {}", backup_eligible, backup_state, changed);
+            changed = true;
         }
 
         if backup_eligible && !cred.backup_eligible {
@@ -247,6 +249,7 @@ pub struct AuthenticatorAssertionResponseRawCopy {
 impl From<PublicKeyCredentialCopy> for PublicKeyCredential {
     fn from(r: PublicKeyCredentialCopy) -> Self {
 		eprintln!("[ERROR] >>> Entering from(r={:?})", r);
+		eprintln!("[WARN] <<< Exiting from(r={:?})", r);
         Self {
             id: r.id,
             raw_id: r.raw_id,
@@ -318,6 +321,7 @@ async fn activate_webauthn(data: Json<EnableWebauthnData>, headers: Headers, con
 #[put("/two-factor/webauthn", data = "<data>")]
 async fn activate_webauthn_put(data: Json<EnableWebauthnData>, headers: Headers, conn: DbConn) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering activate_webauthn_put()");
+	eprintln!("[WARN] <<< Exiting activate_webauthn_put()");
     activate_webauthn(data, headers, conn).await
 }
 
@@ -492,6 +496,7 @@ fn check_and_update_backup_eligible(
     registrations: &mut Vec<WebauthnRegistration>,
     state: &mut PasskeyAuthentication,
 ) -> Result<bool, Error> {
+	eprintln!("[ERROR] >>> Entering check_and_update_backup_eligible(registrations={:?})", registrations);
     // The feature flags from the response
     // For details see: https://www.w3.org/TR/webauthn-3/#sctn-authenticator-data
     const FLAG_BACKUP_ELIGIBLE: u8 = 0b0000_1000;

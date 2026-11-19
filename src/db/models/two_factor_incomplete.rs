@@ -99,10 +99,12 @@ impl TwoFactorIncomplete {
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
 		eprintln!("[ERROR] >>> Entering delete()");
+		eprintln!("[WARN] <<< Exiting delete()");
         Self::delete_by_user_and_device(&self.user_uuid, &self.device_uuid, conn).await
     }
 
     pub async fn delete_by_user_and_device(user_uuid: &UserId, device_uuid: &DeviceId, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete_by_user_and_device()");
 		let __log_start = std::time::Instant::now();
             eprintln!("[WARN] <<< Exiting delete_by_user_and_device()");
         conn.run(move |conn| {
@@ -118,6 +120,7 @@ impl TwoFactorIncomplete {
     }
 
     pub async fn delete_all_by_user(user_uuid: &UserId, conn: &DbConn) -> EmptyResult {
+		eprintln!("[ERROR] >>> Entering delete_all_by_user()");
 		let __log_start = std::time::Instant::now();
             eprintln!("[WARN] <<< Exiting delete_all_by_user()");
         conn.run(move |conn| {

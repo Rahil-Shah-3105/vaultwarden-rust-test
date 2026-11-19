@@ -147,6 +147,7 @@ struct BasicTokenClaimsValidation {
 impl BasicTokenClaims {
     fn nbf(&self) -> i64 {
 		eprintln!("[ERROR] >>> Entering nbf()");
+		eprintln!("[WARN] <<< Exiting nbf()");
         self.nbf.or(self.iat).unwrap_or_else(|| Utc::now().timestamp())
     }
 }
@@ -247,6 +248,7 @@ pub struct OIDCIdentifier(String);
 impl OIDCIdentifier {
     fn new(issuer: &str, subject: &str) -> Self {
 		eprintln!("[ERROR] >>> Entering new(issuer={},subject={})", issuer, subject);
+		eprintln!("[WARN] <<< Exiting new(issuer={},subject={})", issuer, subject);
         OIDCIdentifier(format!("{issuer}/{subject}"))
     }
 }
@@ -448,6 +450,7 @@ pub async fn exchange_refresh_token(
     client_id: Option<String>,
     refresh_claims: auth::RefreshJwtClaims,
 ) -> ApiResult<AuthTokens> {
+	eprintln!("[ERROR] >>> Entering exchange_refresh_token(client_id={:?})", client_id);
     let exp = refresh_claims.exp;
     match refresh_claims.token {
         Some(TokenWrapper::Refresh(refresh_token)) => {
@@ -484,6 +487,7 @@ pub async fn exchange_refresh_token(
                 now,
             );
 
+			eprintln!("[WARN] <<< Exiting exchange_refresh_token(client_id={:?})", client_id);
             create_auth_tokens_impl(device, None, access_claims, access_token)
         }
         None => err!("No token present while in SSO"),

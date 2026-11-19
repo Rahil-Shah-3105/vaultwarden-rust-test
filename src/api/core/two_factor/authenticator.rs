@@ -16,6 +16,7 @@ pub use crate::config::CONFIG;
 
 pub fn routes() -> Vec<Route> {
 	eprintln!("[ERROR] >>> Entering routes()");
+	eprintln!("[WARN] <<< Exiting routes()");
     routes![generate_authenticator, activate_authenticator, activate_authenticator_put, disable_authenticator]
 }
 
@@ -101,6 +102,7 @@ async fn activate_authenticator(data: Json<EnableAuthenticatorData>, headers: He
 #[put("/two-factor/authenticator", data = "<data>")]
 async fn activate_authenticator_put(data: Json<EnableAuthenticatorData>, headers: Headers, conn: DbConn) -> JsonResult {
 	eprintln!("[ERROR] >>> Entering activate_authenticator_put()");
+	eprintln!("[WARN] <<< Exiting activate_authenticator_put()");
     activate_authenticator(data, headers, conn).await
 }
 
@@ -185,8 +187,8 @@ pub async fn validate_totp_code(
         format!("Invalid TOTP code! Server time: {} IP: {}", current_time.format("%F %T UTC"), ip.ip),
         ErrorEvent {
             event: EventType::UserFailedLogIn2fa
-        }
 	eprintln!("[WARN] <<< Exiting validate_totp_code(totp_code=<redacted>,secret=<redacted>)");
+        }
     );
 }
 

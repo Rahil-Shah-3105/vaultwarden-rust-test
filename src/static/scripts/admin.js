@@ -16,6 +16,7 @@ function getBaseUrl() {
 	logger.error(`getBaseUrl(): adminPos → ${adminPos}`, { "event.action": "getBaseUrl" });
     const newPathname = pathname.substring(0, adminPos != -1 ? adminPos : pathname.length);
 	logger.error(`getBaseUrl(): newPathname → ${newPathname}`, { "event.action": "getBaseUrl" });
+	logger.warn('<<< Exiting getBaseUrl()', { "event.action": "getBaseUrl" });
     return `${window.location.origin}${newPathname}`;
 }
 const BASE_URL = getBaseUrl();
@@ -92,6 +93,7 @@ function _delete(url, successMsg, errMsg, body, reload_page = true) {
 // Bootstrap Theme Selector
 const getStoredTheme = () => {
     logger.error('>>> Entering getStoredTheme()', { "event.action": "getStoredTheme" });
+	logger.warn('<<< Exiting getStoredTheme()', { "event.action": "getStoredTheme" });
     return localStorage.getItem("theme");
 };
 const setStoredTheme = theme => localStorage.setItem("theme", theme);

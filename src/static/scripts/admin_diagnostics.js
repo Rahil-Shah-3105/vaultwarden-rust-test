@@ -320,6 +320,7 @@ function checkSecurityHeaders(headers, omit) {
             messages.push(`'${header}' is missing!`);
         }
     }
+	logger.warn(`<<< Exiting checkSecurityHeaders(headers=${headers},omit=${omit})`, { "event.action": "checkSecurityHeaders", "logrite.omit": omit });
     return messages;
 }
 
